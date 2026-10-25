@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
+from functools import cache
 
 from ..alerts.step_output import StepOutputAlerts
 from ..composition import build_alert_sender
@@ -18,6 +19,7 @@ from ..constants import (
     ROUTINE_DRY_RUN,
 )
 from ..models import now_ist
+from ..research_data.nifty_panel import DailyFiles
 from ..storage import wiring as storage
 from ..storage.raw_source import (
     NseArchiveSource,
@@ -29,7 +31,6 @@ from .batches import ManifestBatches
 from .dispatcher import BatchDispatcher
 from .dry_run import DryRunRoutine
 from .index_closes import IndexCloseAppender
-from .panel_wiring import drive_files
 from .records import PipelineRecords
 from .run import PipelineRun
 from .run_summary import RunSummaryStore
@@ -42,6 +43,15 @@ JOBS: dict[str, tuple[str, type[NseArchiveSource]]] = {
 }  # job -> (routine it fires, dataset it downloads)
 POINTER_DATASETS = frozenset(source.dataset for _, source in JOBS.values())  # what a routine accepts in a pointer
 DRIVE_SETTINGS_MISSING = f"set {', '.join(storage.OWNER_UPLOAD_SETTINGS)} to use the pipeline's Drive areas"
+
+
+def drive_files(label: str, source: type[NseArchiveSource], store: RawFileStore) -> DailyFiles:
+    """A dataset's daily files as held in Drive (never fetched from NSE here)."""
+    get = cache(lambda path: store.get(path))  # the input check and the builder read the same file once
+    return DailyFiles(
+        label, source.dataset, source.first_day, source.last_day,
+        lambda day: (source.filename_for(day), get(source.path_for(day))),
+    )  # fmt: skip
 
 
 def build_trigger(routine: str, env=os.environ) -> RoutineTrigger:

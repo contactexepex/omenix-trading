@@ -10,7 +10,6 @@ from .raw_source import (
     NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
-    NseSpanBodSource,
     ParticipantOiSource,
     ParticipantVolumeSource,
 )
@@ -35,7 +34,6 @@ DATED_SOURCES = (
     ParticipantOiSource,
     NseEquityBhavcopySource,
     NseDeliverySource,
-    NseSpanBodSource,
     ParticipantVolumeSource,
     FiiDerivativeStatsSource,
 )  # one file per session: the coverage check's datasets
@@ -69,7 +67,6 @@ LIBRARIAN_DATASETS = {
         NseEquityBhavcopySource,
         NseDeliverySource,
         NseDailyFoSource,
-        NseSpanBodSource,
         ParticipantVolumeSource,
         FiiDerivativeStatsSource,
     )

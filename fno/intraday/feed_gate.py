@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from ..constants_operations import STEP_OK
+from ..constants import STEP_OK
 from .status import GOOD
 
 GATE_MARKS = ("10:30", "10:45")

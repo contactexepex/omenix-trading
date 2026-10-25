@@ -6,8 +6,8 @@ from __future__ import annotations
 import os
 import time
 
+from ..alerts.reported import ReportedAlerts
 from ..composition import build_alert_sender
-from ..daily.alerts import ReportedAlerts
 from ..models import now_ist
 from ..providers.public import PublicData
 from ..storage.data_wiring import RECEIPTS_FOLDER, RECEIPTS_MESSAGE, build_data_store, receipt_folder
@@ -44,7 +44,5 @@ def build_close_reader(env=os.environ) -> CloseReader:
     calendar = build_session_calendar()
     alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
     confirmer = Confirmer(store, ArchivedIndexCloses(build_stored_index_close_files()), calendar, alerts, now=now_ist)
-    from ..rehearsal.close_wiring import rehearsed_close_list
-
-    source = rehearsed_close_list(NseIndexList(PublicData().nse_json), drive)  # REH1b: the recorded answers
+    source = NseIndexList(PublicData().nse_json)
     return CloseReader(source, store, confirmer, calendar, now_ist, time.sleep)

@@ -43,10 +43,10 @@ def add_intraday_parser(subparsers) -> None:
 
 
 def cmd_intraday(args) -> int:
+    from ..alerts.reported import ReportedAlerts
     from ..alerts.sender import NoAlertSender
     from ..composition import build_alert_sender
     from ..config import load_app_config
-    from ..daily.alerts import ReportedAlerts
     from ..storage.wiring import build_session_calendar
     from .wiring import DRY_RUN_ALERTS, build_heartbeat, build_intraday_recorder
 

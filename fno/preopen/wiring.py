@@ -7,10 +7,9 @@ from __future__ import annotations
 
 import time
 
+from ..capture_errors import CAPTURE_ERRORS_FILE, build_capture_error_log
 from ..composition import build_alert_sender
 from ..constants import RESEARCH_USER_AGENT
-from ..health.capture_errors import CAPTURE_ERRORS_FILE
-from ..health.wiring import build_capture_error_log
 from ..http_pacing import PacedSession
 from ..intraday.candle_source import GrowwCandleSource
 from ..intraday.clock_wiring import build_clock_check
@@ -66,10 +65,7 @@ def _parts(cfg: dict) -> list[PreopenPart]:
     provider = _LazyGroww(cfg)
     api = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the capture holds
     indices = [GrowwIndexPreopen(name, _candles(api, symbol)) for name, symbol in GROWW_SYMBOLS.items()]
-    from ..rehearsal.preopen_wiring import rehearsed_preopen_parts
-
-    parts = [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
-    return rehearsed_preopen_parts(parts)  # story REH1c: the day's recorded answers when rehearsing
+    return [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
 
 
 class _LazyGroww:

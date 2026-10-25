@@ -1,9 +1,11 @@
 """Composition root of story O5's public-record scan, standard library only (story DR1 audit item 6): the commit hook
-runs the scan on every commit, also in a routine whose packages are still installing; importing the whole app
-(`fno.composition`) made the AI books' sealed answers wait for pip and miss 15:15 (22 and 23 Oct). The #fno-desk
-sender is built only when a refusal is alerted (`fno.composition.build_alert_sender`, which needs `requests`)."""
+runs the scan on every commit, also in a routine whose packages are still installing; importing the whole app made the
+AI books' sealed answers wait for pip and miss 15:15 (22 and 23 Oct). The #fno-desk sender (`fno.alerts.sender`, which
+needs `requests`) is built only when a refusal is alerted, never on import, so the scan never pulls `requests` in."""
 
 from __future__ import annotations
+
+import os
 
 from .catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .forbidden_files import MOVED_VIX_FILES, PAPER_ACCOUNT_FILES, RAW_GROWW_QUOTES
@@ -27,12 +29,20 @@ def send_alert(text: str, alerts=None) -> str:
     refused, only without the text."""
     if alerts is None:
         try:
-            from ..composition import build_alert_sender
-
-            alerts = build_alert_sender()
+            alerts = _build_alert_sender()
         except Exception as failure:  # noqa: BLE001 - a missing or half-installed package (judge 549): print the text
             return NO_SENDER.format(kind=type(failure).__name__, why=_why(failure), text=text)
     return alerts.send(text)
+
+
+def _build_alert_sender():
+    """#fno-desk through `FNO_SLACK_BOT_TOKEN` (else a no-op sender); imported lazily so the scan's root stays
+    standard-library only (no `requests`) until a refusal is actually alerted."""
+    from ..alerts.sender import NoAlertSender, SlackChannelAlerts
+    from ..constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID
+
+    token = os.environ.get(ENV_FNO_SLACK_BOT_TOKEN)
+    return SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender()
 
 
 def _why(failure: Exception) -> str:

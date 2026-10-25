@@ -124,8 +124,7 @@ def _committed(out, committers: Callable[[], list]) -> bool:
 
 def _record(problems: list[Problem]) -> None:
     """One O10 row per kind (a routine's problems: O10's `record-error` row), failures first."""
-    from ..health.capture_errors import CaptureError, one_line
-    from ..health.wiring import build_capture_error_log
+    from ..capture_errors import CaptureError, build_capture_error_log, one_line
     from ..models import now_ist
 
     log, day = build_capture_error_log(), now_ist().date()

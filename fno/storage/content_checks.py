@@ -6,11 +6,10 @@ from __future__ import annotations
 
 from ..constants import INDEX_INDIA_VIX, INDEX_NIFTY_50
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
-from ..market_read_models.corporate_actions import read_corporate_actions
-from ..market_read_models.flows_files import read_fii_dii, read_nsdl_equity
-from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
-from ..market_read_models.symbol_changes import read_symbol_changes
-from ..nse_margins.span_file import read_span_file
+from ..nse_files.corporate_actions import read_corporate_actions
+from ..nse_files.flows_files import read_fii_dii, read_nsdl_equity
+from ..nse_files.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
+from ..nse_files.symbol_changes import read_symbol_changes
 from ..research_data.fii_derivative_stats import read_fii_derivative_stats
 from ..research_data.fo_masters import ban_list_trade_date, read_ban_list, read_lot_sizes
 from ..research_data.participant_oi import read_participant_oi
@@ -22,7 +21,6 @@ from .raw_source import (
     NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
-    NseSpanBodSource,
     ParticipantOiSource,
     ParticipantVolumeSource,
 )
@@ -80,8 +78,6 @@ VALIDATORS = {
     NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
-    # a valid SPAN file of any method A14c reads (2020's minimum included); A14's daily job still refuses that method
-    NseSpanBodSource: lambda filename, data: read_span_file(data, filename, allow_short_option_minimum=True),
     FoBanListSource: lambda filename, data: read_ban_list(data, filename),
     FoLotSizeSource: lambda filename, data: read_lot_sizes(data, filename),
 }

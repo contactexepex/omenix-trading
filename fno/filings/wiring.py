@@ -9,8 +9,8 @@ import hashlib
 import io
 from datetime import date
 
-from ..market_read_models.nse_files import read_nifty500_list
 from ..models import now_ist
+from ..nse_files.nse_files import read_nifty500_list
 from ..providers.public import PublicData
 from ..storage import wiring as storage
 from ..storage.coverage import CoverageDataset

@@ -11,8 +11,6 @@ from pathlib import Path
 
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
-from ..forecast_v4.cutoff_move import cutoff_flag
-from ..forecast_v4.terms import MOVED_AFTER_CUTOFF_X
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
@@ -67,7 +65,7 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     plan = _expiry_plan(groww_listed_expiries(client))
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
-    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m(), cutoff=v4_cutoff_flag)
+    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m())
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
         source, files, ledger, Heartbeat(folder), calendar, alerts, build_clock_check(), session_rv,
@@ -79,11 +77,6 @@ def _observers() -> tuple[tuple[MarkObserver, float], ...]:
     """Every mark observer with its time limit, in order: LM1's position monitor, then A21's announcements poll, when
     they are built (each owner names its limit here)."""
     return ()
-
-
-def v4_cutoff_flag(levels: dict) -> tuple[str, str]:
-    """Protocol v4's moved-after-cutoff flag and sign at the frozen X (story G10)."""
-    return cutoff_flag(levels, MOVED_AFTER_CUTOFF_X)
 
 
 def build_heartbeat() -> PublishedHeartbeat:

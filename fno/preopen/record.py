@@ -10,7 +10,7 @@ from collections.abc import Callable, Sequence
 from datetime import date
 
 from ..alerts.sender import AlertSender
-from ..health.capture_errors import CaptureError, CaptureErrorLog
+from ..capture_errors import CaptureError, CaptureErrorLog
 from ..intraday.clock import ClockReading
 from ..research_data.calendar import CalendarError
 from ..storage.data_store import DataStore

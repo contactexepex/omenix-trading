@@ -64,8 +64,8 @@ class CommitOnce:
 
 
 def _archive(args, recorder: CommitOnce) -> int:
+    from ..alerts.reported import ReportedAlerts
     from ..composition import build_alert_sender
-    from ..daily.alerts import ReportedAlerts
     from .wiring import build_companies, build_filings_librarian, build_gap_log, build_progress, write_symbol_map
 
     started, alerts = now_ist(), ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)

@@ -102,10 +102,7 @@ def build_owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | 
     folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
     if not (folder and client_id and client_secret and refresh_token):
         return None
-    from ..rehearsal.drive_wiring import rehearsed_drive
-
-    store = GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
-    return rehearsed_drive(store)  # story REH1: under `dryrun/<run_id>/` when rehearsing, else unchanged
+    return GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
 
 
 def build_revision_index() -> RevisionIndex:
@@ -159,9 +156,7 @@ def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path 
 
 def build_nse_source(source_type: type[NseArchiveSource]) -> NseArchiveSource:
     """One NSE dataset straight from NSE's archive, through the shared polite session."""
-    from ..rehearsal.nse_wiring import rehearsed_session
-
-    session = rehearsed_session(PacedSession())  # story REH1b: a rehearsal never fetches
+    session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
     return source_type(session)
 

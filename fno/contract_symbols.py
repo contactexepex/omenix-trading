@@ -6,8 +6,7 @@ contract IDs can be either:
 - NSE's option-chain identifier, `OPTIDXNIFTY13-10-2026CE21950.00`: NSE's instrument code (`OPTIDX`, `OPTSTK`,
   `FUTIDX`, `FUTSTK`) comes first, then the underlying, then the expiry.
 
-C2 (`fno.risk`) and C4 (`fno.checks`) both read the underlying here: it is the symbol format's rule, not either one's
-arithmetic, so C4 stays independent of C2 (judge 83)."""
+The underlying is read here, in one place: it is the symbol format's rule, not any consumer's arithmetic (judge 83)."""
 
 from __future__ import annotations
 

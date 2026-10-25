@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import time
 from enum import StrEnum
 
-# The daily operations' names (E3's and O1's run steps, O1's step statuses, O8's health statuses) live in their own
-# module, split out at the size limit; imported here so every `from fno.constants import ...` keeps working
 from .constants_channels import *  # noqa: F403 - story FL1's two channels; callers keep `fno.constants`
-from .constants_operations import *  # noqa: F403 - its `__all__` names them; callers keep `fno.constants`
+
+# A daily run step's status, read by the ingestion feed gate (fno/intraday/feed_gate.py)
+STEP_OK = "ok"
 
 # Environment variable names (values are never stored in files).
 # Groww Trade API (market data only; the tool never places orders)

@@ -41,13 +41,12 @@ DRY_RUN_DRIVE = "drive"
 def build_candle_backfill(cfg: dict, dry_run_folder: Path | None = None) -> CandleBackfill:
     folder, archive, calendar = _parts(dry_run_folder)
     nse = NseIndexDays(_nse_library(archive_to=None if dry_run_folder else build_owner_drive_store()))
-    from ..rehearsal.candle_wiring import rehearsed_candle_source
 
     def groww() -> GrowwCandleSource:
         provider = GrowwProvider(cfg)
         return GrowwCandleSource(ReadOnlyGroww(lambda: provider.api), now_ist)  # the only Groww object it holds
 
-    source = rehearsed_candle_source(groww)  # story REH1b: the day's recorded answers when rehearsing, no Groww
+    source = groww()
     return CandleBackfill(
         source, archive, nse, CandleRvTable(folder), DeferralLog(folder / DEFERRALS), _deriver(calendar), calendar,
         now_ist,

@@ -208,7 +208,7 @@ def nse_session_day(day: date) -> bool:
 def build_preopen_committers() -> list[OwnedPathsCommitter]:
     """Part B's own repository files: its snapshot logs and O10's capture-error log (its row after a failure); each
     committer adds only those paths, pulls with --no-rebase and retries its push (A16e's committer)."""
-    from ..health.capture_errors import CAPTURE_ERRORS_FILE
+    from ..capture_errors import CAPTURE_ERRORS_FILE
 
     errors = storage.REPOSITORY / CAPTURE_ERRORS_FILE
     logs = [f"{index}_preopen.csv" for index in PREOPEN_INDEXES]
@@ -278,9 +278,7 @@ def build_raw_area(env=os.environ) -> RawFileStore:
 
 
 def _session() -> PacedSession:
-    from ..rehearsal.cue_wiring import rehearsed_cue_session
-
-    session = rehearsed_cue_session(PacedSession())  # story REH1c: the day's archived copies when rehearsing
+    session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # who we are, plainly (owner rule 50a79a43: no false identity)
     return session
 

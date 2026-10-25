@@ -50,9 +50,9 @@ def add_quotes_parser(subparsers) -> None:
 
 
 def cmd_quotes(args) -> int:
+    from ..alerts.reported import ReportedAlerts
     from ..composition import build_alert_sender, build_nse_quote_recorder, build_quote_recorder
     from ..config import ROOT, load_app_config
-    from ..daily.alerts import ReportedAlerts
     from ..storage.wiring import CALENDAR_FILE, QUOTES_FOLDER, build_quote_store
     from .report import canonical_snapshots, spread_report
 

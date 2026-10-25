@@ -28,6 +28,4 @@ def build_index_quote_recorders(cfg: dict) -> dict[str, QuoteSnapshotRecorder]:
     recorders[WEEKLY_NAME] = QuoteSnapshotRecorder(
         provider, weekly_store, dataset=WEEKLY_DATASET, slot=weekly_slot(), **shared
     )  # fmt: skip
-    from ..rehearsal.quote_wiring import rehearsed_recorder
-
-    return {name: rehearsed_recorder(recorder) for name, recorder in recorders.items()}  # REH1b: recorded, rehearsing
+    return recorders
