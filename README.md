@@ -67,6 +67,10 @@ archives it to Drive, and commits only its own output paths (manifest rows, rece
 | `filings-archive` | `filings probe` / `archive` / `day-lists` | company filings: results and shareholding XBRL, announcements, board meetings |
 | `data-checks` | `data-cache sync` | integrity re-check of files brought into the verified Drive cache |
 
+One source does **not** run as a GitHub workflow: the **Groww 15-minute/1-minute NIFTY candles** are collected by a
+scheduled Claude session (`python -m fno intraday backfill`), because Groww needs a broker key and the rule is "no
+broker key in GitHub, ever". See [`docs/GROWW_CANDLE_ROUTINE.md`](docs/GROWW_CANDLE_ROUTINE.md).
+
 ## Commands
 
 ```bash

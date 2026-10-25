@@ -31,6 +31,7 @@ local folder, then Drive, then NSE itself, and archives what it fetches to Drive
 | Data | Source | Notes |
 |---|---|---|
 | NIFTY option chain and per-contract quote book at about 3 pm | Groww Trade API (`fno/ingestion/providers/groww.py`), market data only | `quote_book` gives bid, ask, sizes and last trade time but **no quote timestamp**, so a quote's age is unknown; validity needs a trade today. Groww's expiry list refuses future years, so in late December the recorder takes expiries from NSE's latest daily file |
+| 15-minute and 1-minute NIFTY candles | Groww historical candle API (`fno/ingestion/intraday/candle_source.py`), market data only | collected daily by a scheduled session, not a GitHub workflow (Groww key, "no broker key in GitHub"); see [`GROWW_CANDLE_ROUTINE.md`](GROWW_CANDLE_ROUTINE.md) |
 | Option chain (fallback, `chain` command) | NSE public website (`fno/ingestion/providers/public.py`) | unofficial and can be throttled |
 
 Groww credentials (`GROWW_API_KEY` and `GROWW_TOTP_SECRET`, or `GROWW_ACCESS_TOKEN`) live only in the environment or
