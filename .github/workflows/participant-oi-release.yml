@@ -12,6 +12,11 @@ on:
     # - cron: "41 11 * * *" # 17:11 IST every day: the calendar decides (a closed day records nothing)  # DISABLED for migration; re-enable at cutover
     # - cron: "15 17 * * *" # 22:45 IST: the rest of the window up to 23:30  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the check log and the manifest row
@@ -41,16 +46,25 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads for each command)
+        if: ${{ inputs.dry_run }}
+        run: |
+          python -m fno participant-oi due-day --help
+          python -m fno participant-oi watch --help
+          python -m fno data-librarian participant-oi --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-participant-oi"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: The day still due, once for every step (a run starting after midnight IST checks the evening before)
         id: due
+        if: ${{ !inputs.dry_run }}
         run: echo "day=$(python -m fno participant-oi due-day)" >> "$GITHUB_OUTPUT"
       - name: Watch NSE's archive until the due day's file appears (A8)
         id: watch
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         env:
           DAY: ${{ steps.due.outputs.day }}
@@ -60,12 +74,14 @@ jobs:
           if [[ "$limit" < "23:30" && "$limit" > "17:00" ]]; then until=$limit; else until=23:30; fi
           python -m fno participant-oi watch --day "$DAY" --until "$until" --every 5 --evidence-folder "$EVIDENCE" | tee watch.log
       - name: Commit the check log
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$EVIDENCE"
           git diff --cached --quiet || git commit -m "O6 Actions: participant-OI release checks $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: The day's file into Drive with its manifest row (A9)
         id: librarian
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         env:
           DAY: ${{ steps.due.outputs.day }}
@@ -85,7 +101,7 @@ jobs:
             --download "${{ (steps.watch.outcome == 'success' && steps.librarian.outcome != 'failure') && 'success' || 'failure' }}" \
             "${notes[@]}"
       - name: Alert #fno-desk when the job itself failed
-        if: ${{ failure() }}
+        if: ${{ failure() && !inputs.dry_run }}
         run: >
           python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O participant-OI release (GitHub Actions) failed; see

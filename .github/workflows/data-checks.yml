@@ -15,6 +15,11 @@ on:
     branches: [main]
     paths: ["tests/**", "fno/storage/**", ".github/workflows/data-checks.yml"]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,14 +47,19 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive read, no pytest, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno data-cache sync --help
       - name: Bring the moved groups' files into the verified cache
         id: sync
+        if: ${{ !inputs.dry_run }}
         run: for prefix in $MOVED; do python -m fno data-cache sync "$prefix" || exit 1; done
       - name: The data tests, on the verified cache only
         id: tests
+        if: ${{ !inputs.dry_run }}
         run: python -m pytest -q -m data
       - name: Alert the desk channel when the data checks failed
-        if: ${{ failure() }} # O10's watcher sees an alert step on every failure
+        if: ${{ failure() && !inputs.dry_run }} # O10's watcher sees an alert step on every failure
         run: |
           python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O data checks (O9b): sync ${{ steps.sync.outcome }}, tests ${{ steps.tests.outcome }} (a Drive copy missing or changed, or a moved table failing its test); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

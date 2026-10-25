@@ -11,6 +11,11 @@ on:
   # schedule:  # DISABLED for migration; re-enable at cutover
     # - cron: "7 0 1 * *" # 05:37 IST on the 1st of each month  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the sweep log and the revision index rows
@@ -40,18 +45,24 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno participant-oi sweep --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-participant-oi"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Sweep every recorded file (A8; new versions kept, A11)
         id: sweep
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           set -o pipefail
           python -m fno participant-oi sweep --evidence-folder "$EVIDENCE" | tee sweep.log
       - name: Commit the sweep log
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$EVIDENCE"
           git diff --cached --quiet || git commit -m "O6 Actions: participant-OI sweep $(TZ=Asia/Kolkata date +%F)"
@@ -66,7 +77,7 @@ jobs:
             --download "${{ steps.sweep.outcome == 'success' && 'success' || 'exit 1 (moved, unanswered or new versions: see the notes)' }}" \
             "${notes[@]}"
       - name: Alert #fno-desk when the job itself failed
-        if: ${{ failure() }}
+        if: ${{ failure() && !inputs.dry_run }}
         run: >
           python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O participant-OI sweep (GitHub Actions) failed; see

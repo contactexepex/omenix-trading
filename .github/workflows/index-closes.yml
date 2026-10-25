@@ -17,6 +17,11 @@ on:
     # - cron: "11 2 * * *" # 07:41 IST: retry for the previous session if the evening run missed it  # DISABLED for migration; re-enable at cutover
     # - cron: "11 6 * * *" # 11:41 IST: last retry, still before 14:00 (GitHub's schedule can start late)  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the closes and the manifest rows
@@ -44,48 +49,60 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads for each command)
+        if: ${{ inputs.dry_run }}
+        run: |
+          python -m fno data-librarian index-close --help
+          python -m fno data-revisions sweep --help
+          python -m fno pipeline index-closes --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-index-closes"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: The last session whose file is due (today from 19:00 IST, else yesterday)
+        if: ${{ !inputs.dry_run }}
         run: |
           if (( 10#$(TZ=Asia/Kolkata date +%H) >= 19 )); then due=$(TZ=Asia/Kolkata date +%F)
           else due=$(TZ=Asia/Kolkata date -d yesterday +%F); fi
           echo "DUE=$due" >> "$GITHUB_ENV"; echo "closes due through $due"
       - name: Archive the last week's index-close files in Drive (A9)
         id: librarian
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           python -m fno data-librarian index-close \
             --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
       - name: Keep later NSE versions beside the originals (A11)
         id: revisions
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           python -m fno data-revisions sweep index-close \
             --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
       - name: Append the new sessions' closes (point in time, never rewriting)
         id: append
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: python -m fno pipeline index-closes --to "$DUE"
       - name: Commit the closes
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$CLOSES"
           git diff --cached --quiet || git commit -m "O6 Actions: NIFTY 50 and India VIX closes $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk when the librarian failed (the append step alerts by itself)
-        if: ${{ steps.librarian.outcome != 'success' }}
+        if: ${{ steps.librarian.outcome != 'success' && !inputs.dry_run }}
         run: |
           python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O daily index closes: the archive step failed (Drive, NSE or the calendar: its log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
       - name: Fail the run when the append stopped (a named stop posted its own line; otherwise the next step speaks)
-        if: ${{ steps.append.outcome != 'success' }}
+        if: ${{ steps.append.outcome != 'success' && !inputs.dry_run }}
         run: exit 1
       - name: Alert #fno-desk when the job itself failed
-        if: ${{ failure() && steps.librarian.outcome == 'success' && steps.append.outputs.posted != 'true' }} # one line per run (O8c)
+        if: ${{ failure() && !inputs.dry_run && steps.librarian.outcome == 'success' && steps.append.outputs.posted != 'true' }} # one line per run (O8c)
         run: >
           python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O daily index closes (GitHub Actions) failed; see

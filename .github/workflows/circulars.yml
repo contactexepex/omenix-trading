@@ -9,6 +9,11 @@ on:
   # schedule:  # DISABLED for migration; re-enable at cutover
     # - cron: "30 2-16 * * *" # hourly, 08:00-22:00 IST, every day: NSE issued circulars on 13 non-session days of 2026  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the receipts (receipts/)
@@ -35,16 +40,21 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno circulars --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-circulars"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: NSE and SEBI circulars (the job alerts the desk channel itself, naming every problem)
         id: circulars
+        if: ${{ !inputs.dry_run }}
         run: python -m fno circulars
       - name: Alert the desk channel when the run failed without the job's own line (a crash, a sender that could not post)
-        if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
+        if: ${{ failure() && !inputs.dry_run }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
         env:
           POSTED: ${{ steps.circulars.outputs.posted }}
         run: |

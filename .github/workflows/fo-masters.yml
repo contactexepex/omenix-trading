@@ -11,6 +11,11 @@ on:
     # - cron: "45 5 * * *" # 11:15 IST retry (GitHub starts crons hours late; a second run keeps the first copies)  # DISABLED for migration; re-enable at cutover
     # - cron: "15 13 * * *" # 18:45 IST: the next session's ban list, written about 18:12 IST, filed under its date  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the manifest rows (research/data/manifests/)
@@ -37,16 +42,21 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno fo-masters --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-fo-masters"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Ban list and market lots (the job alerts #fno-desk itself, naming every failure)
         id: masters
+        if: ${{ !inputs.dry_run }}
         run: python -m fno fo-masters
       - name: Alert #fno-desk when the run failed without the job's own line (a crash, a sender that could not post)
-        if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
+        if: ${{ failure() && !inputs.dry_run }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
         env:
           POSTED: ${{ steps.masters.outputs.posted }}
         run: |

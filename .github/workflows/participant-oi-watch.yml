@@ -13,6 +13,11 @@ on:
   # schedule:  # DISABLED for migration; re-enable at cutover
     # - cron: "7,22,37,52 11-17 * * *" # 16:37-23:22 IST every day: the calendar decides  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the check rows
@@ -38,25 +43,31 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno participant-oi check-once --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-participant-oi"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: One check of today's file (A8)
         id: check
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           set -o pipefail
           python -m fno participant-oi check-once | tee check.log
       - name: Commit the check rows
         id: commit
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$LOG" "$STARTS" "$REREADS"
           git diff --cached --quiet || git commit -m "A8 Actions: participant-OI release check $(TZ=Asia/Kolkata date '+%F %H:%M')"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: "One line to #fno-desk when the check crashed or the rows were not committed (alerts are posted already)"
-        if: ${{ always() }}
+        if: ${{ always() && !inputs.dry_run }}
         run: |
           problems=()
           [[ "${{ steps.check.outcome }}" == success ]] || grep -qs '^Omenix F&O participant OI:' check.log \

@@ -15,6 +15,11 @@ on:
   # schedule:  # DISABLED for migration; re-enable at cutover
     # - cron: "41 1 * * *" # 07:11 IST every day: the previous month (nothing new until a month has ended)  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the receipts of the VIX table's parts and checks (O9b) and the manifest rows
@@ -43,23 +48,33 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads for each command)
+        if: ${{ inputs.dry_run }}
+        run: |
+          python -m fno vix-history fill --help
+          python -m fno vix-history sweep --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-vix-history"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: The previous IST month
+        if: ${{ !inputs.dry_run }}
         run: echo "MONTH=$(TZ=Asia/Kolkata date -d "$(TZ=Asia/Kolkata date +%Y-%m-01) -1 day" +%Y-%m)" >> "$GITHUB_ENV"
       - name: Archive the month and append its days (A15)
         id: fill
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: python -m fno vix-history fill --from "$MONTH" --to "$MONTH"
       - name: Keep a later NSE version of the month beside the original (A11)
         id: sweep
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: python -m fno vix-history sweep --from "$MONTH" --to "$MONTH"
       - name: Commit the receipts of the table and its checks (the data is in Drive, O9b) and the manifest rows
         id: commit
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$MANIFESTS"
           if [ -d "$RECEIPTS" ]; then git add "$RECEIPTS"; fi
@@ -72,7 +87,7 @@ jobs:
       # One alert step for every failure (judge 351 SF1): `!cancelled()` keeps it running after a failed commit, which a
       # plain `if:` (an implicit `success() &&`) would skip; a cancelled or timed-out run is O10's capture-watch's to post
       - name: "One line to #fno-desk when the run failed: each step's outcome"
-        if: ${{ !cancelled() && (steps.fill.outcome != 'success' || steps.sweep.outcome != 'success' || failure()) }}
+        if: ${{ !cancelled() && !inputs.dry_run && (steps.fill.outcome != 'success' || steps.sweep.outcome != 'success' || failure()) }}
         run: |
           python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O India VIX month ${MONTH:-unknown}: fill ${{ steps.fill.outcome }}, sweep ${{ steps.sweep.outcome }}, commit ${{ steps.commit.outcome }} (NSE, Drive, the checks or the push: the log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

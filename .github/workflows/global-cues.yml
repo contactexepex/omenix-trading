@@ -23,6 +23,11 @@ on:
     # - cron: "11 23 * * *" # 04:41 IST: the Treasury's 10-year if the 03:41 run came before it  # DISABLED for migration; re-enable at cutover
     # - cron: "41 8 * * *" # 14:11 IST: RBI's reference rate of the day  # DISABLED for migration; re-enable at cutover
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate runner + deps + CLI load; write nothing to Drive, no commit, no Slack."
+        type: boolean
+        default: false
 
 permissions:
   contents: write # commits the cue tables, logs and checks
@@ -51,19 +56,25 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+      - name: DRY-RUN validation (no Drive, no commit, no Slack; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno global-cues fill --help
       - name: Commit identity and the public-record scan (story O5)
+        if: ${{ !inputs.dry_run }}
         run: |
           git config core.hooksPath .githooks
           git config user.name "omenix-global-cues"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Download, archive and extend every cue (A17)
         id: fill
+        if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |
           set -o pipefail
           python -m fno global-cues fill | tee "$RUNNER_TEMP/fill.txt"
       - name: Commit the cue tables, logs and checks (also after a failed cue)
         id: commit
+        if: ${{ !inputs.dry_run }}
         run: |
           git add "$CUES" "$MANIFESTS"
           git diff --cached --quiet || git commit -m "A17 Actions: global cues $(TZ=Asia/Kolkata date '+%F %H:%M')"
@@ -75,7 +86,7 @@ jobs:
       # One alert step for every failure (judge 351 SF1): `!cancelled()` keeps it running after a failed commit, which a
       # plain `if:` (an implicit `success() &&`) would skip; a cancelled or timed-out run is O10's capture-watch's to post
       - name: "One line to #fno-desk when the run failed: the failed, stale or newly behind cues, and a failed commit"
-        if: ${{ !cancelled() && (steps.fill.outcome != 'success' || failure()) }}
+        if: ${{ !cancelled() && !inputs.dry_run && (steps.fill.outcome != 'success' || failure()) }}
         run: |
           cues="$(grep -oE '^[a-z0-9_]+(: FAILED|: BEHIND|: .*STALE| FAILED)' "$RUNNER_TEMP/fill.txt" | cut -d' ' -f1 | cut -d: -f1 | paste -sd, - || true)"
           what="${cues:+$cues failed, stale or behind (the log names why)}"
