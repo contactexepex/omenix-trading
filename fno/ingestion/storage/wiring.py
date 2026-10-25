@@ -9,7 +9,6 @@ from pathlib import Path
 
 from fno.ingestion.research_data.calendar import SessionCalendar, load_session_calendar
 from fno.ingestion.research_data.nifty_panel import DailyFiles
-from fno.ingestion.research_data.panel_store import CsvGzPanelFolder, PanelSink
 from fno.ingestion.storage.content_checks import COVERED_SESSION, VALIDATORS
 from fno.ingestion.storage.coverage import CoverageCheck, CoverageDataset, read_exceptions
 from fno.ingestion.storage.google_drive import GoogleDriveStore, service_account_token
@@ -49,8 +48,6 @@ from fno.shared.constants import (
     ENV_GDRIVE_OAUTH_CLIENT_SECRET,
     ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
     ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
-    PANEL_FORMAT_LEGACY,
-    PANEL_FORMAT_UDIFF,
     PANEL_INDEX_CLOSE,
     RESEARCH_USER_AGENT,
 )
@@ -263,7 +260,6 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
 
 
 PANEL_FOLDER = ROOT / "research" / "data" / "nifty-panel"  # story A3's output
-EVENTS_FILE = ROOT / "research" / "data" / "events" / "events.csv"  # story A6
 LIVE_VALIDATION_FOLDER = ROOT / "research" / "live_validation"  # story B7 reports
 
 
@@ -277,15 +273,6 @@ def daily_files(label: str, source_type: type[NseArchiveSource], library: FileLi
         source_type.last_day,
         lambda day: (source_type.filename_for(day), library.get(source_type.path_for(day)).data),
     )
-
-
-def build_nifty_panel_files(project_folder: Path | None = None) -> tuple[list[DailyFiles], DailyFiles]:
-    """The NIFTY panel's inputs: F&O files in order of precedence (current format first), and index closes."""
-    fo_files = [
-        daily_files(PANEL_FORMAT_UDIFF, NseDailyFoSource, build_nse_fo_library(project_folder)),
-        daily_files(PANEL_FORMAT_LEGACY, NseLegacyFoSource, build_nse_legacy_fo_library(project_folder)),
-    ]
-    return fo_files, build_index_close_files(project_folder)
 
 
 def build_index_close_files(project_folder: Path | None = None) -> DailyFiles:
@@ -305,10 +292,6 @@ def _reader_raw_stores(env=os.environ) -> list[RawFileStore]:
     the owner's settings (GitHub's jobs and the routines carry these), each only ever read."""
     drive = build_owner_drive(env)
     return build_raw_stores() + ([AreaStore(drive, RAW_AREA)] if drive is not None else [])
-
-
-def build_panel_sink(folder: Path | None = None) -> PanelSink:
-    return CsvGzPanelFolder(folder or PANEL_FOLDER)
 
 
 def build_session_calendar() -> SessionCalendar:
