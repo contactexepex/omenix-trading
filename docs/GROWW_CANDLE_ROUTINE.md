@@ -15,15 +15,16 @@ every other source.
   - `research/data/intraday/rv-candle/` — the per-session RV rows and `deferred.csv`
     (`fno/ingestion/intraday/candle_rv_table.py:18`, `backfill_daily.py:11-13`).
   - `research/data/manifests/groww-candles/` — `nifty-15m.csv`, `nifty-1m.csv`
-    (`fno/ingestion/intraday/candle_archive.py:22`, `backfill_daily.py:14`).
+    (`fno/ingestion/intraday/candle_archive.py:23`, `backfill_daily.py:14`).
 
 Read-only towards Groww: the backfill holds a `ReadOnlyGroww` client that allows only reads
-(`fno/ingestion/intraday/read_only.py:13`); it never places, modifies or cancels an order.
+(`fno/ingestion/intraday/read_only.py:13,24`); it never places, modifies or cancels an order.
 
 ## How it runs: a scheduled Claude session, not a GitHub workflow
 
-This is the **one ingestion job that does not run as a GitHub Actions workflow.** It runs as a scheduled session
-(the same model the deferred 3 pm Groww quote recorder uses), because it needs a Groww broker key and the repository
+Unlike the thirteen workflow-based sources, this routine runs as a **scheduled Claude session** (the same model the
+deferred 3 pm Groww quote recorder uses — the other Groww job that is a session, not a workflow), because it needs a
+Groww broker key and the repository
 rule is **"no broker key in GitHub, ever"** (`.github/workflows/quote-recorder-nse.yml:2,44`) — a GitHub Actions
 secret would break that rule and the hard line "secrets never in files or chat" (CLAUDE.md). So:
 
