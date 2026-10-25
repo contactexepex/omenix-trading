@@ -1,9 +1,8 @@
-"""Pricing, Greeks and option-chain statistics."""
+"""Pricing and option-chain statistics."""
 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
 
 from fno.shared.models import OptionChain
 
@@ -27,49 +26,6 @@ def bs_price(spot: float, strike: float, t: float, r: float, sigma: float, kind:
     if kind == "CE":
         return spot * norm_cdf(d1) - strike * math.exp(-r * t) * norm_cdf(d2)
     return strike * math.exp(-r * t) * norm_cdf(-d2) - spot * norm_cdf(-d1)
-
-
-@dataclass
-class Greeks:
-    delta: float
-    gamma: float
-    theta: float  # per calendar day
-    vega: float  # per 1 vol point
-
-
-def bs_greeks(spot: float, strike: float, t: float, r: float, sigma: float, kind: str) -> Greeks:
-    t = max(t, 1e-6)
-    sigma = max(sigma, 1e-4)
-    sqrt_t = math.sqrt(t)
-    d1 = (math.log(spot / strike) + (r + 0.5 * sigma**2) * t) / (sigma * sqrt_t)
-    d2 = d1 - sigma * sqrt_t
-    gamma = norm_pdf(d1) / (spot * sigma * sqrt_t)
-    vega = spot * norm_pdf(d1) * sqrt_t / 100
-    common = -spot * norm_pdf(d1) * sigma / (2 * sqrt_t)
-    if kind == "CE":
-        delta = norm_cdf(d1)
-        theta = common - r * strike * math.exp(-r * t) * norm_cdf(d2)
-    else:
-        delta = norm_cdf(d1) - 1
-        theta = common + r * strike * math.exp(-r * t) * norm_cdf(-d2)
-    return Greeks(delta=delta, gamma=gamma, theta=theta / 365, vega=vega)
-
-
-def implied_vol(price: float, spot: float, strike: float, t: float, r: float, kind: str) -> float | None:
-    """Bisection IV solver; returns annualised vol as a fraction, or None."""
-    intrinsic = max(spot - strike, 0) if kind == "CE" else max(strike - spot, 0)
-    if price <= intrinsic or t <= 0:
-        return None
-    lo, hi = 1e-4, 5.0
-    for _ in range(100):
-        mid = (lo + hi) / 2
-        if bs_price(spot, strike, t, r, mid, kind) > price:
-            hi = mid
-        else:
-            lo = mid
-        if hi - lo < 1e-6:
-            break
-    return (lo + hi) / 2
 
 
 # ---------------------------------------------------------------- chain stats

@@ -46,10 +46,6 @@ class CaptureErrorLog:
         reader = csv.DictReader(io.StringIO(self.path.read_text(encoding="utf-8")))
         return [CaptureError(date.fromisoformat(r["date"]), *(r[c] for c in COLUMNS[1:])) for r in reader]
 
-    def has_run(self, run_url: str, kind: str) -> bool:
-        """The watcher's row for this run: other rows may share the URL (a long run records its own episodes)."""
-        return any((error.run_url, error.kind) == (run_url, kind) for error in self.rows())
-
     def has(self, day: date, job: str, kind: str) -> bool:
         return any((e.day, e.job, e.kind) == (day, job, kind) for e in self.rows())
 

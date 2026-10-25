@@ -57,8 +57,8 @@ def dataset_name(source: type[NseArchiveSource]) -> str:
 
 
 # Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes; P6: the
-# equity, delivery and current-format F&O files the market read models need each day, and the reference lists; A14:
-# the beginning-of-day SPAN files; A23: participant volume and FII derivatives statistics, the flow history.
+# equity, delivery and current-format F&O files the market read models need each day, and the reference lists; A23:
+# participant volume and FII derivatives statistics, the flow history.
 LIBRARIAN_DATASETS = {
     dataset_name(s): s
     for s in (

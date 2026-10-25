@@ -34,14 +34,6 @@ class FiiFlow:
     oi_contracts: int
     oi_crores: float
 
-    @property
-    def net_crores(self) -> float:
-        return self.buy_crores - self.sell_crores
-
-    @property
-    def net_contracts(self) -> int:
-        return self.buy_contracts - self.sell_contracts
-
 
 @dataclass(frozen=True)
 class FiiDerivativeStats:

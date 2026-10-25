@@ -71,8 +71,8 @@ them was found by a person reading Slack, not by the system: nothing compares "e
 
 ## 2. Design: two pillars
 
-**Superseded (23 Oct): sections 2, 3 and 6 are replaced by `DR1-design-staging.md`, the owner's staging and
-certification model.** Kept below as the record of the first proposal.
+**Superseded (23 Oct): sections 2, 3 and 6 were replaced by the owner's later staging and certification model.** Kept
+below as the record of the first proposal.
 
 **Availability:** every expected dataset is present and readable through its real reader every session, or the system
 repairs it itself, or proves it gone (the source no longer serves it) and says so once. **Consistency:** no reader ever
@@ -186,23 +186,15 @@ data/daily_runs/full/2026-10-22/20261022T100328Z-39767f.json --writer daily-run 
    none or two files or a doubled folder in one line; a refused commit fails the command.
 5. Gates: ruff, `tools/check_imports.py`, full suite (14,595 passed; the 10 history tests need an unshallowed clone).
 
-## 5. Routines: the first line each needs (for the owner to paste)
+## 5. Routines: starting on latest main
 
-Every routine that works in this repository, with its time: daily desk 14:05; morning lab 08:38; evening lab 19:53;
-pre-open 08:36; A16 recorder at :52 from 08:52 to 14:52 and 08:22; A8 participant-OI recorder (evening); Book 2 and
-Book 3 forecast routines (fired by forecast-capture about 15:10). Proposed first line, the same for all, placed before
-setup (A16's prompt runs setup before its pull today, so a stale checkout runs a stale setup):
-
-> 0. First, before anything else: `git fetch -q origin main && git checkout -q --detach origin/main`. If it fails,
-> post its error line to #fno-desk (`C0C89E8QCCD`) and stop. Every push in this run is `git pull --no-rebase origin
-> main` then `git push origin HEAD:main`.
-
-Why detached and not `git checkout -B main origin/main`: it never moves or discards a local branch (A8's checkout held
-92 local-only commits on 23 Oct), it refuses rather than overwrites uncommitted changes, and every committer already
-pushes `HEAD:main` (O1's PUBLISH_BRANCH, A16's committer). The Book 2/3 prompts' step 2 (`git checkout -q main && git
-pull`) fails when a local main has diverged; this line replaces it. CLAUDE.md's hand steps that say a bare `git pull
---no-rebase` (lines 70, 140, 164) need `origin main` and `HEAD:main` (a rule-document change: lane 1, it touches the
-routines).
+**Historical (23 Oct 2026), amended (25 Oct 2026).** This section proposed a hand-run first line (`git fetch -q
+origin main && git checkout -q --detach origin/main`) for the prompt-fired routines of the time — daily desk, morning
+and evening lab, pre-open, the A16 recorder, the A8 participant-OI recorder, and the Book 2/Book 3 forecast routines —
+all of which have since been removed. The schedules now run as the GitHub Actions workflows in `.github/workflows/`,
+which check out with `actions/checkout@v4`; for a scheduled run that checks out the latest `main`, so no hand-run
+fetch/detach step is needed. Every push in a run is still `git pull --no-rebase origin main` then `git push origin
+HEAD:main`, with the record scan on, never `--no-verify` (CLAUDE.md, "Branch").
 
 ## 6. Proposed build order (reliability first, owner 23 Oct)
 

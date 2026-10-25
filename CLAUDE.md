@@ -77,10 +77,9 @@ damage, not by its size; when unsure, lane 1.
 
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
 
-**Every scheduled workflow starts on latest main (story DR1, owner 23 Oct 2026).** The first line of each workflow's
-run, before setup: `git fetch -q origin main && git checkout -q --detach origin/main`; if it fails, post its error
-line to #fno-desk (`C0C89E8QCCD`) and stop. Every push is `git pull --no-rebase origin main`, then
-`git push origin HEAD:main`.
+**Every scheduled workflow starts on latest main (story DR1, owner 23 Oct 2026; amended 25 Oct 2026).** Each
+workflow checks out with `actions/checkout@v4`, which for a scheduled run checks out the latest `main`. Every push is
+`git pull --no-rebase origin main`, then `git push origin HEAD:main`.
 
 Work on `main` (`git pull --no-rebase origin main` before every push). Every session commits with the public-record
 scan on (story O5): `.claude/settings.json` runs `git config core.hooksPath .githooks` at session start; run it

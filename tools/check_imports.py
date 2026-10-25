@@ -1,8 +1,7 @@
 """Clean-slate criterion 1: every runnable Python file imports only `fno` modules that exist.
 
 Parses (AST) every .py file under fno/, tests/, tools/ and research/, resolves absolute and relative imports, and
-reports any import of an `fno` module that is not in this checkout. Files listed in ARCHIVAL are historical studies
-that run only at their pinned commit (see their README) and are skipped. Exit code 0 when clean, 1 otherwise.
+reports any import of an `fno` module that is not in this checkout. Exit code 0 when clean, 1 otherwise.
 
     python tools/check_imports.py
 """
@@ -15,13 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCANNED = ("fno", "tests", "tools", "research")
-# Historical studies that import the removed old desk; runnable only at the commit named in their README.
-ARCHIVAL = frozenset({"research/2026-10-12-backtest/replay.py"})
 
 
 def runnable_files(root: Path = ROOT) -> list[Path]:
     files = (p for folder in SCANNED for p in (root / folder).rglob("*.py") if "__pycache__" not in p.parts)
-    return sorted(p for p in files if p.relative_to(root).as_posix() not in ARCHIVAL)
+    return sorted(files)
 
 
 def imported_modules(path: Path, root: Path = ROOT) -> list[str]:
@@ -85,7 +82,7 @@ def _defined_in_init(package: str, attr: str, root: Path) -> bool:
 
 def main() -> int:
     found = problems()
-    print("\n".join(found) if found else f"clean: {len(runnable_files())} files, {len(ARCHIVAL)} archival skipped")
+    print("\n".join(found) if found else f"clean: {len(runnable_files())} files")
     return 1 if found else 0
 
 

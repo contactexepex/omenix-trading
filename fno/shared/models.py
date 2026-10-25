@@ -104,7 +104,3 @@ class OptionChain:
         expiry_dt = datetime.combine(self.expiry, EXPIRY_CLOSE, tzinfo=IST)
         seconds = max((expiry_dt - at).total_seconds(), 3600.0)
         return seconds / (365.0 * 24 * 3600)
-
-    def days_to_expiry(self, today: date | None = None) -> int:
-        today = today or self.timestamp.date()
-        return (self.expiry - today).days

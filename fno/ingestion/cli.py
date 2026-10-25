@@ -111,7 +111,7 @@ def cmd_chain(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     """Every command fno has (`main` parses with it)."""
-    p = argparse.ArgumentParser(prog="fno", description="Omenix F&O: Indian F&O options research (paper trading).")
+    p = argparse.ArgumentParser(prog="fno", description="Omenix F&O: Indian F&O market-data ingestion (research).")
     p.add_argument("--config", default=str(ROOT / "config.yaml"))
     p.add_argument("--provider", choices=["nse", "groww", "sample"], help="override the root provider (chain only)")
     sub = p.add_subparsers(dest="cmd", required=True)

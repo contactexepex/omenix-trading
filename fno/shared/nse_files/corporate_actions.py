@@ -35,10 +35,6 @@ class CorporateAction:
     kind: str  # ratio (split, bonus), demerger, break (no ratio anywhere) or none (no price change)
     factor: float | None = None  # a ratio action's divisor of earlier prices
 
-    @property
-    def changes_shares(self) -> bool:
-        return self.kind != KIND_NONE
-
 
 def classify(subject: str) -> tuple[str, float | None]:
     """(kind, factor) of an action's description in NSE's list."""

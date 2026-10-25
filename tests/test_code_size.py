@@ -1,7 +1,6 @@
 """Engineering-standards enforcer (CLAUDE.md): no ``.py`` file and no class in ``fno/`` exceeds 350 lines.
 
-The limit is inclusive (<= 350 passes); the current largest file, ``fno/shared/constants.py``, sits at exactly 350.
-Restored in refactor stage 3. The judge also checks this (``docs/JUDGE.md``)."""
+The limit is inclusive (<= 350 passes). The judge also checks this (``docs/JUDGE.md``)."""
 
 from __future__ import annotations
 

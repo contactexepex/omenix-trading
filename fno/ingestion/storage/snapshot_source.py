@@ -144,10 +144,6 @@ class CorporateActionsBySymbolSource(CorporateActionsSource):
     EXTENSION = ".json"
 
     @classmethod
-    def path_for_symbol(cls, day: date, symbol: str) -> str:
-        return f"{cls.dataset}/{day:{SNAPSHOT_FOLDER}}/{symbol}{cls.EXTENSION}"
-
-    @classmethod
     def day_for_path(cls, path: str) -> date:
         *_, year, month, day, filename = path.split("/")
         if not filename.endswith(cls.EXTENSION):

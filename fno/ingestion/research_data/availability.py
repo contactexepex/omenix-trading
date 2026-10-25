@@ -45,9 +45,6 @@ class AvailabilityRule(ABC):
     def describe(self) -> str:
         """One line saying which rule this is and what it rests on."""
 
-    def is_usable(self, day: date, decision_moment: datetime) -> bool:
-        return decision_moment >= self.usable_from(day)
-
 
 class NextSessionRule(AvailabilityRule):
     """The default until release times are measured: usable from the next session's decision time."""

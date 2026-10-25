@@ -14,8 +14,6 @@ quotes:
   windows:
     v4: {start: "14:32", end: "14:40", max_early_wait_minutes: 30}  # after A16's 14:30 mark (Groww cap; 25 Oct)
 
-underlyings: [NIFTY, BANKNIFTY]
-
 # Fallback lot sizes (NSE revises these; the NSE provider infers the live value from order quantities).
 lot_sizes:
   NIFTY: 65
@@ -23,20 +21,7 @@ lot_sizes:
   FINNIFTY: 60
   MIDCPNIFTY: 120
 
-# Groww F&O charges for options (verify against Groww's current pricing page).
-charges:
-  brokerage_per_order: 20.0
-  stt_sell_pct: 0.15           # on sell-side premium; raised from 0.1% by Budget 2026, from 1 Apr 2026 (applied to all dates: C1 known limits)
-  stt_exercise_pct: 0.15       # on the intrinsic value of an exercised option, paid by the purchaser; 0.125% up to 31 Mar 2026 (NSE circular NSE/FATAX/73524, Ref 02/2026, 31 Mar 2026; story E7)
-  exchange_txn_pct: 0.03503    # NSE options transaction charge on premium
-  sebi_per_crore: 10.0
-  ipft_per_crore: 50.0         # NSE investor protection fund, options premium
-  stamp_duty_buy_pct: 0.003
-  gst_pct: 18.0                # CGST 9% + SGST 9% (or IGST 18%)
-
 # F&O alerts go only to #fno-desk, never to #market-brief.
 slack:
   channel_name: fno-desk
   channel_id: C0C89E8QCCD
-
-risk_free_rate: 0.065

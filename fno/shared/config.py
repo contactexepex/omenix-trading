@@ -17,11 +17,8 @@ ALLOWED_APP_KEYS = frozenset(
     {
         "provider",
         "quotes",
-        "underlyings",
         "lot_sizes",
-        "charges",
         "slack",
-        "risk_free_rate",
     }  # fmt: skip
 )
 

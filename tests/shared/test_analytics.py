@@ -1,4 +1,4 @@
-"""Black-Scholes pricing, Greeks and option-chain statistics (``fno/shared/analytics.py``): pure functions, so the
+"""Black-Scholes pricing and option-chain statistics (``fno/shared/analytics.py``): pure functions, so the
 assertions are real maths, not mocks."""
 
 from __future__ import annotations
@@ -42,27 +42,6 @@ def test_zero_time_or_vol_is_intrinsic() -> None:
 def test_longer_expiry_and_higher_vol_cost_more() -> None:
     assert an.bs_price(SPOT, STRIKE, 0.2, R, SIGMA, "CE") > an.bs_price(SPOT, STRIKE, 0.02, R, SIGMA, "CE")
     assert an.bs_price(SPOT, STRIKE, T, R, 0.30, "CE") > an.bs_price(SPOT, STRIKE, T, R, 0.10, "CE")
-
-
-def test_implied_vol_round_trips() -> None:
-    price = an.bs_price(SPOT, STRIKE, T, R, SIGMA, "CE")
-    recovered = an.implied_vol(price, SPOT, STRIKE, T, R, "CE")
-    assert recovered == pytest.approx(SIGMA, abs=1e-3)
-
-
-def test_implied_vol_none_at_or_below_intrinsic() -> None:
-    intrinsic = max(SPOT - STRIKE, 0.0)
-    assert an.implied_vol(intrinsic, SPOT, STRIKE, T, R, "CE") is None
-
-
-def test_greeks_have_the_right_signs() -> None:
-    call = an.bs_greeks(SPOT, STRIKE, T, R, SIGMA, "CE")
-    put = an.bs_greeks(SPOT, STRIKE, T, R, SIGMA, "PE")
-    assert 0.0 < call.delta < 1.0
-    assert -1.0 < put.delta < 0.0
-    assert call.gamma > 0.0 and put.gamma > 0.0
-    assert call.vega > 0.0 and put.vega > 0.0
-    assert call.delta - put.delta == pytest.approx(1.0, abs=1e-3)  # parity of deltas
 
 
 def test_chain_statistics_on_sample_chain() -> None:

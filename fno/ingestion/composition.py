@@ -42,9 +42,6 @@ from fno.ingestion.storage.wiring import (
 )
 from fno.shared.alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from fno.shared.constants import DESK_DECISION_TIME, ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID
-from fno.shared.record_scan.wiring import (
-    build_record_scanner,  # noqa: F401 - re-exported: the scan's root is stdlib-only (DR1)
-)
 
 
 def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:

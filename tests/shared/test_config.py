@@ -16,9 +16,9 @@ def _write(tmp_path: Path, text: str) -> Path:
 
 
 def test_allowed_keys_load(tmp_path: Path) -> None:
-    cfg = load_app_config(_write(tmp_path, "provider: sample\nrisk_free_rate: 0.065\n"))
+    cfg = load_app_config(_write(tmp_path, "provider: sample\nquotes:\n  provider: auto\n"))
     assert cfg["provider"] == "sample"
-    assert cfg["risk_free_rate"] == 0.065
+    assert cfg["quotes"] == {"provider": "auto"}
 
 
 def test_unknown_key_is_rejected(tmp_path: Path) -> None:

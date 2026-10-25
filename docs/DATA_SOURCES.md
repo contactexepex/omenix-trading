@@ -50,7 +50,7 @@ never does.
 "forbidden") pause that site for 15 minutes instead of retrying into a longer block.
 
 **NSE downloads (story A9b, `fno/ingestion/storage/retry_policy.py`):** every NSE archive source (`NseArchiveSource`: the F&O,
-index, participant-OI, SPAN, equity, flows, VIX, filings and corporate-action files) follows one policy, GET and HEAD
+index, participant-OI, equity, flows, VIX, filings and corporate-action files) follows one policy, GET and HEAD
 alike:
 
 | Answer | What happens |

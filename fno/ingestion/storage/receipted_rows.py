@@ -55,9 +55,6 @@ class ReceiptedRowLog(_ReceiptedSeries, RowLog):
         parts = self.files()
         return b"".join([parts[0], *(part.split(b"\n", 1)[1] for part in parts[1:])]) if parts else b""
 
-    def current_bytes(self) -> bytes:
-        return self.rebuilt()
-
     def check_appendable(self) -> None:
         """Every append is a new write-once part: nothing existing can change."""
 
@@ -75,9 +72,6 @@ class ReceiptedSnapshots(_ReceiptedSeries, Report):
     def latest_bytes(self) -> bytes | None:
         files = self.files()
         return files[-1] if files else None
-
-    def current_bytes(self) -> bytes:
-        return self.latest_bytes() or b""
 
     def latest(self) -> list[dict[str, str]]:
         data = self.latest_bytes()
