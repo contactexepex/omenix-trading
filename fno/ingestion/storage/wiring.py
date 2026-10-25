@@ -42,6 +42,7 @@ from fno.ingestion.storage.source_lists import RUN_DATED_FLOWS as RUN_DATED_FLOW
 from fno.ingestion.storage.source_lists import SNAPSHOT_SOURCES as SNAPSHOT_SOURCES
 from fno.ingestion.storage.trading_days import next_trading_day
 from fno.ingestion.storage.versioned_store import VersionedRawStore
+from fno.shared.config import ROOT
 from fno.shared.constants import (
     ENV_GDRIVE_FOLDER_ID,
     ENV_GDRIVE_OAUTH_CLIENT_ID,
@@ -57,10 +58,10 @@ from fno.shared.http_pacing import PacedSession
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
 REVISIONS_AREA = "revisions"  # later versions NSE published of raw files, under the same paths (A11)
-CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
+CALENDAR_FOLDER = ROOT / "research" / "data" / "calendar"
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
-REPOSITORY = Path(__file__).resolve().parents[2]
+REPOSITORY = ROOT
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
 REVISION_INDEX_FOLDER = MANIFEST_FOLDER / "revisions"  # one row per archived later version (A11)
 
@@ -184,11 +185,11 @@ def build_participant_oi_library(project_folder: Path | None = None) -> RawFileL
 
 
 QUOTES_FOLDER = (
-    Path(__file__).resolve().parents[2] / "research" / "data" / "quotes"
+    ROOT / "research" / "data" / "quotes"
 )  # repository: sidecars and canonical markers; Groww's raw quote files are in Drive only (A4b)
 
 
-PARTICIPANT_OI_EVIDENCE = Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi"
+PARTICIPANT_OI_EVIDENCE = ROOT / "research" / "data" / "participant_oi"
 PARTICIPANT_OI_RELEASE_LOG = PARTICIPANT_OI_EVIDENCE / "release_checks.csv"  # NSE's release times, committed (A8)
 PARTICIPANT_OI_REREADS = PARTICIPANT_OI_EVIDENCE / "release_rereads.csv"  # the daily rewrite re-read, done per due day
 PARTICIPANT_OI_LAST_MODIFIED = PARTICIPANT_OI_EVIDENCE / "archive_last_modified_2026-10-13.csv"  # with the download
@@ -261,9 +262,9 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
     return CoverageCheck(store or build_drive_reader(), build_session_calendar(), build_file_exceptions())
 
 
-PANEL_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "nifty-panel"  # story A3's output
-EVENTS_FILE = Path(__file__).resolve().parents[2] / "research" / "data" / "events" / "events.csv"  # story A6
-LIVE_VALIDATION_FOLDER = Path(__file__).resolve().parents[2] / "research" / "live_validation"  # story B7 reports
+PANEL_FOLDER = ROOT / "research" / "data" / "nifty-panel"  # story A3's output
+EVENTS_FILE = ROOT / "research" / "data" / "events" / "events.csv"  # story A6
+LIVE_VALIDATION_FOLDER = ROOT / "research" / "live_validation"  # story B7 reports
 
 
 def daily_files(label: str, source_type: type[NseArchiveSource], library: FileLibrary) -> DailyFiles:
