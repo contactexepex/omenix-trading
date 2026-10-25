@@ -29,11 +29,6 @@ NO_DRIVE = "set the four FNO_GDRIVE_* owner settings to use A4h's Drive data sto
 RECEIPTS_LABEL = "close-read receipts"
 
 
-def receipt_pathspecs() -> tuple[str, ...]:
-    """The receipts of A4h's Drive files only, never the shared `receipts/` root (O1's step commits these)."""
-    return (f"receipts/{DATA_AREA}/{ROOT}/",)
-
-
 def build_receipts_committer() -> GitManifestRecorder:
     """A hand or evening run's own commit of A4h's receipts only (O1's steps commit them through their pathspec):
     uncommitted, a fresh checkout would not see them, read again and meet Drive's write-once file (judge 447)."""

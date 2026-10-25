@@ -12,30 +12,25 @@ from __future__ import annotations
 import csv
 import io
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from fno.shared.numbering.registry import Row, read_rows, rows_from_text
+from fno.shared.numbering.registry import Row, read_rows
 
 LEDGER = "research/ledger.csv"  # B4's LEDGER_FILE, named here so the number check stays standard library only
 BLOCK = re.compile(r"([1-9]\d*)(?:-([1-9]\d*))?")
 TRIAL_ID = re.compile(r"[1-9]\d*")
 BOOK3_ID = re.compile(r"book3:\S+")
-BOOK3_EXPERIMENT = "book3_ai strategies"  # Book 3's TRIAL_FAMILY (fno/book3/registry.py), named here: standard library
+BOOK3_EXPERIMENT = "book3_ai strategies"  # Book 3's TRIAL_FAMILY, named here (standard library)
 CLAIM_COMMAND = "python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>"
 
 UNCOVERED = "{ledger}: trial {id} ({experiment}) is in no block of {registry}; claim one first: {command}"
 OUTSIDE = "{ledger}: trial {id}'s experiment {experiment} does not start with its block's name {name} (block {block})"
 OVERLAP = "{registry}: blocks {first} ({first_name}) and {second} ({second_name}) overlap"
-NOT_CLAIMED = "trial {id} is in no block of {registry}: claim one first ({command}), then merge main into your branch"
-OTHER_BLOCK = "trial {id} sits in block {block}, claimed for experiment {name!r}, not {experiment!r}"
 BAD_ID = (
     "trial id {id!r} ({experiment}) is neither a whole number from 1 nor a Book 3 id (book3:<strategy_id> under "
     f"{BOOK3_EXPERIMENT!r})"
 )
-UNCOMMITTED = "{registry} has uncommitted changes: commit it first (the claims are read as git holds them, judge 644)"
-NO_FREE = "no free id in a block claimed for experiment {experiment!r} in {registry}: claim one ({command})"
 
 
 @dataclass(frozen=True)
@@ -173,49 +168,3 @@ def seed_blocks(trials: list[Trial], rows: list[Row]) -> list[Block]:
         else:
             runs.append(Block(trial.id, trial.id, trial.experiment))
     return runs
-
-
-class TrialClaims:
-    """The claims `Ledger.register`, `require_committed`, the evaluation freeze and the factory read: the blocks in the
-    registry as git holds it at HEAD, like the ledger row itself, so a block typed locally and never committed covers
-    nothing (judge J)."""
-
-    def __init__(self, committed_text: Callable[[str], str | None], is_clean: Callable[[str], bool]):
-        self._committed_text, self._is_clean = committed_text, is_clean
-
-    def _uncommitted(self) -> str | None:
-        """Refused while the registry has local changes, so what is checked is what is shared."""
-        clean = self._is_clean(LEDGER_TRIAL.registry)
-        return None if clean else UNCOMMITTED.format(registry=LEDGER_TRIAL.registry)
-
-    def _blocks(self) -> list[Block]:
-        text = self._committed_text(LEDGER_TRIAL.registry)
-        return well_formed(rows_from_text(text)) if text else []
-
-    def problem(self, trial_id: str, experiment: str) -> str | None:
-        """Why this trial may not be registered or run here, or None; Book 3's named ids are not counted."""
-        if is_book3(trial_id, experiment):
-            return None
-        if not counted(trial_id):
-            return BAD_ID.format(id=trial_id, experiment=experiment)
-        uncommitted = self._uncommitted()
-        if uncommitted:
-            return uncommitted
-        owner = next((b for b in self._blocks() if b.covers(int(trial_id))), None)
-        if owner is None:
-            return NOT_CLAIMED.format(id=trial_id, registry=LEDGER_TRIAL.registry, command=CLAIM_COMMAND)
-        if not owner.is_for(experiment):
-            return OTHER_BLOCK.format(id=trial_id, block=owner.text, name=owner.name, experiment=experiment)
-        return None
-
-    def next_free(self, experiment: str, used: set[str]) -> str:
-        """The lowest unused id of a block claimed for this experiment; never one from another block."""
-        uncommitted = self._uncommitted()
-        if uncommitted:
-            raise ValueError(uncommitted)
-        for block in sorted(self._blocks(), key=lambda b: b.first):
-            if block.is_for(experiment):
-                free = next((n for n in range(block.first, block.last + 1) if str(n) not in used), None)
-                if free is not None:
-                    return str(free)
-        raise ValueError(NO_FREE.format(experiment=experiment, registry=LEDGER_TRIAL.registry, command=CLAIM_COMMAND))

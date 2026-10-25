@@ -5,7 +5,6 @@ symbol map. They live in their own area (`index`), never in `raw`, because raw f
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from pathlib import Path
 
 from fno.ingestion.storage.google_drive_upload import GoogleDriveUploadStore
 from fno.ingestion.storage.raw_store import path_parts
@@ -19,22 +18,6 @@ class IndexFileStore(ABC):
     @abstractmethod
     def replace(self, path: str, data: bytes) -> None:
         """Writes the file, replacing the previous version (folders made as needed)."""
-
-
-class LocalIndexStore(IndexFileStore):
-    def __init__(self, folder: Path):
-        self.folder = Path(folder)
-
-    def get(self, path: str) -> bytes | None:
-        file = self.folder.joinpath(*path_parts(path))
-        return file.read_bytes() if file.is_file() else None
-
-    def replace(self, path: str, data: bytes) -> None:
-        file = self.folder.joinpath(*path_parts(path))
-        file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = file.with_name(f".{file.name}.part")
-        temporary.write_bytes(data)
-        temporary.replace(file)
 
 
 class DriveIndexStore(IndexFileStore):

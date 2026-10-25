@@ -18,7 +18,6 @@ from fno.ingestion.quotes.recorder import NSE_DATASET as NSE_QUOTE_DATASET
 from fno.ingestion.quotes.recorder import QuoteSnapshotRecorder
 from fno.ingestion.research_data.availability import AvailabilityRule, LastWriteBoundRule
 from fno.ingestion.research_data.last_written import latest_writes, read_last_modified_table
-from fno.ingestion.research_data.positioning import PointInTimeParticipantOi
 from fno.ingestion.research_data.release_check_once import ReleaseCheckOnce
 from fno.ingestion.research_data.release_times import (
     ReleaseLog,
@@ -37,7 +36,6 @@ from fno.ingestion.storage.wiring import (
     PARTICIPANT_OI_SWEEPS,
     build_nse_fo_library,
     build_nse_source,
-    build_participant_oi_library,
     build_quote_store,
     build_revision_capturing_source,
     build_session_calendar,
@@ -120,14 +118,3 @@ def build_last_write_sweep(archive: RevisionArchive, log: Path | None = None) ->
     read in full and a version that differs from the archived one is saved as a revision."""
     source = build_revision_capturing_source(ParticipantOiSource, archive)
     return LastWriteSweep(source, ParticipantOiSource.path_for, log or PARTICIPANT_OI_SWEEPS)  # O6: Actions' own log
-
-
-def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:
-    """Participant OI as a decision at a given moment could have known it (story A8)."""
-    library = build_participant_oi_library(project_folder)
-    return PointInTimeParticipantOi(
-        lambda day: library.get(ParticipantOiSource.path_for(day)).data,
-        ParticipantOiSource.filename_for,
-        build_session_calendar(),
-        build_participant_oi_rule(),
-    )

@@ -12,7 +12,6 @@ is refused: a year is either complete or not used.
 from __future__ import annotations
 
 import csv
-import json
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -20,8 +19,6 @@ from pathlib import Path
 COVERS, HOLIDAY, UNSCHEDULED = "covers", "holiday", "unscheduled"
 CLOSURE_KINDS = (HOLIDAY, UNSCHEDULED)
 FIELDS = ("date", "kind", "description", "source_url", "sha256")
-ROC_OFFSET = 1911  # TWSE dates are Republic of China years: 115 is 2026
-TRADING_DAY_MARK = "交易日"  # "trading day": TWSE's first and last trading-day rows, not closures
 SATURDAY = 5
 
 
@@ -65,25 +62,6 @@ class MarketClosures:
 def load_closures(path: Path, name: str) -> MarketClosures:
     with open(path, encoding="utf-8") as f:
         return MarketClosures(list(csv.DictReader(f)), name)
-
-
-def twse_closures(data: bytes) -> list[tuple[date, str]]:
-    """The weekday closures in TWSE's holiday file (OpenAPI `holidaySchedule`): (date, TWSE's name). Rows whose name
-    marks a first or last trading day are trading days; weekend rows are dropped. ValueError on a changed layout or an
-    empty list (TWSE never publishes an empty year)."""
-    try:
-        rows = [(_roc_day(row["Date"]), row["Name"]) for row in json.loads(data)]
-    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-        raise ValueError(f"not TWSE's holiday file ({type(exc).__name__})") from exc
-    if not rows:
-        raise ValueError("TWSE's holiday file lists no day")
-    return [(day, name) for day, name in rows if TRADING_DAY_MARK not in name and day.weekday() < SATURDAY]
-
-
-def _roc_day(text: str) -> date:
-    if len(text) != 7 or not text.isdigit():
-        raise ValueError(f"{text!r} is not a TWSE date")
-    return date(int(text[:3]) + ROC_OFFSET, int(text[3:5]), int(text[5:]))
 
 
 def _day(row: dict[str, str], n: int, name: str) -> date:

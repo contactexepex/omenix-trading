@@ -11,14 +11,12 @@ The file is derived data, committed next to the panel (`warmup_closes.csv`); the
 from __future__ import annotations
 
 import csv
-import io
-import tempfile
 from datetime import date
 from pathlib import Path
 
 from fno.ingestion.research_data.calendar import SessionCalendar
 from fno.ingestion.research_data.nifty_panel import DailyFiles, PanelBuildError
-from fno.ingestion.research_data.panel_store import WARMUP_FIELDS, WARMUP_FILE, file_sha256
+from fno.ingestion.research_data.panel_store import WARMUP_FILE, file_sha256
 from fno.shared.constants import INDEX_INDIA_VIX, INDEX_NIFTY_50
 from fno.shared.fo_bhavcopy import BadFile, read_index_closes
 
@@ -46,18 +44,6 @@ def build_warmup_rows(index_files: DailyFiles, calendar: SessionCalendar, start:
     if problems:
         raise PanelBuildError(problems)
     return rows
-
-
-def write_warmup_closes(folder: Path, rows: list[tuple]) -> Path:
-    out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
-    writer.writerow(WARMUP_FIELDS)
-    writer.writerows(rows)
-    path = Path(folder) / WARMUP_FILE
-    with tempfile.NamedTemporaryFile("w", dir=folder, delete=False, encoding="utf-8", suffix=".part") as temporary:
-        temporary.write(out.getvalue())
-    Path(temporary.name).replace(path)  # never a half-written file
-    return path
 
 
 class WarmupConflict(RuntimeError):

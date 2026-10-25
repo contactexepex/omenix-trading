@@ -102,8 +102,3 @@ def check_server(clock: ServerClock, host_now: Callable[[], datetime]) -> SkewCh
     except ServerTimeUnknown as error:
         return unchecked(clock.name, str(error))
     return skew_check(clock.name, server_time, before, host_now(), clock.resolution_seconds)
-
-
-def utc_text(moment: datetime) -> str:
-    """A stored time: UTC with its offset (`+00:00`)."""
-    return moment.astimezone(UTC).isoformat()

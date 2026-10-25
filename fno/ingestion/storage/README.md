@@ -18,8 +18,6 @@ fno-research/                        local: the --keep-raw folder; Drive: the sh
     processed/<routine>/<dataset>/<batch>/<version>.json  the routine finished this version
   derived/                           area: what routines produce, one result per version (O6; constants.DERIVED_AREA)
     <routine>/<dataset>/<batch>/<version>.json
-  cards/                             area: the daily trade card records, Drive only (story T1; constants.CARDS_AREA)
-    <YYYY>/<MM>/<d>_<Slack ts>.json  one posting attempt: card text, sections, record hashes, Slack receipt
   <other area>/                      future kinds of files (exports, backups...), each in its own area
 ```
 

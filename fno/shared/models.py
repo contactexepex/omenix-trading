@@ -15,14 +15,7 @@ def wall_clock() -> datetime:
     return datetime.now(UTC)
 
 
-_clock: Callable[[], datetime] = wall_clock  # the process's one clock (story REH1: a rehearsal installs its own)
-
-
-def install_clock(clock: Callable[[], datetime]) -> None:
-    """Every clock read of the package goes through here (a test forbids `datetime.now` elsewhere); a rehearsal's
-    replay clock is installed once, at process start, by its composition root."""
-    global _clock
-    _clock = clock
+_clock: Callable[[], datetime] = wall_clock  # the process's one clock (a test forbids `datetime.now` elsewhere)
 
 
 def now_ist() -> datetime:

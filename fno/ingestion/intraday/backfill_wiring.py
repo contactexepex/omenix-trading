@@ -60,11 +60,6 @@ def build_candle_verifier() -> CandleRowVerifier:
     return CandleRowVerifier(archive, nse, CandleRvTable(folder), _deriver(calendar), calendar, SERIES_START)
 
 
-def build_candle_archive() -> CandleArchive:
-    """Read-only use of the archived candles (G10's X tool reads the checked 15-minute closes through it)."""
-    return _parts(None)[1]
-
-
 def build_deferral_log(dry_run_folder: Path | None = None) -> DeferralLog:
     return DeferralLog((Path(dry_run_folder) if dry_run_folder else CANDLE_FOLDER) / DEFERRALS)
 

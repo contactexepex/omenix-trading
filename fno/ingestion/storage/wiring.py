@@ -22,16 +22,11 @@ from fno.ingestion.storage.raw_source import (
     NseArchiveSource,
     NseDailyFoSource,
     NseIndexCloseSource,
-    NseLegacyFoSource,
-    ParticipantOiSource,
 )
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
 from fno.ingestion.storage.revision_source import RevisionCapturingSource
 from fno.ingestion.storage.revisions import RevisionArchive, RevisionIndex
 from fno.ingestion.storage.session_filed_taker import CurrentSessionTaker, SessionFiledTaker
-from fno.ingestion.storage.snapshot_source import (
-    CorporateActionsBySymbolSource,
-)
 from fno.ingestion.storage.snapshot_taker import SnapshotTaker
 from fno.ingestion.storage.source_lists import DATED_SOURCES, LIBRARIAN_DATASETS, RAW_SOURCES, SNAPSHOT_DATASETS
 from fno.ingestion.storage.source_lists import (
@@ -166,21 +161,6 @@ def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
     return build_nse_library(NseDailyFoSource, project_folder)
 
 
-def build_nse_legacy_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
-    """NSE daily F&O files in the older format, up to 5 July 2024."""
-    return build_nse_library(NseLegacyFoSource, project_folder)
-
-
-def build_nse_index_close_library(project_folder: Path | None = None) -> RawFileLibrary:
-    """NSE daily index closing values (NIFTY 50, India VIX and others)."""
-    return build_nse_library(NseIndexCloseSource, project_folder)
-
-
-def build_participant_oi_library(project_folder: Path | None = None) -> RawFileLibrary:
-    """NSE daily participant-wise open interest (story A8)."""
-    return build_nse_library(ParticipantOiSource, project_folder)
-
-
 QUOTES_FOLDER = (
     ROOT / "research" / "data" / "quotes"
 )  # repository: sidecars and canonical markers; Groww's raw quote files are in Drive only (A4b)
@@ -208,15 +188,6 @@ def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[Coverage
     return tuple(
         CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s), revisions.counts(s)) for s in DATED_SOURCES
     )
-
-
-def build_own_list_taker() -> SnapshotTaker:
-    """A symbol's own NSE corporate-action list into the owner's Drive (symbols NSE's range list leaves out)."""
-    store = build_owner_drive_store()
-    if store is None:
-        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
-    source = CorporateActionsBySymbolSource
-    return SnapshotTaker(store, build_nse_source(source), VALIDATORS[source])
 
 
 def build_snapshot_taker(name: str) -> SnapshotTaker | SessionFiledTaker:
@@ -273,12 +244,6 @@ def daily_files(label: str, source_type: type[NseArchiveSource], library: FileLi
         source_type.last_day,
         lambda day: (source_type.filename_for(day), library.get(source_type.path_for(day)).data),
     )
-
-
-def build_index_close_files(project_folder: Path | None = None) -> DailyFiles:
-    """NSE's daily index-close files for a WRITER (the panel, story A10's warm-up closes): a file no store has is
-    fetched from NSE and archived to Drive. Readers use `build_stored_index_close_files`."""
-    return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
 
 
 def build_stored_index_close_files() -> DailyFiles:

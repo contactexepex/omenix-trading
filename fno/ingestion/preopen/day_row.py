@@ -1,23 +1,18 @@
 """The day's one derived row and every fixed name of story A22's files. The row is written once under a fixed name,
 so a second run the same day finds it taken and a late run never hides an on-time one. Values are written only for a
-part that is `ok` or `late`; any other part keeps its status and why, and its raw answer stays in Drive.
-`PREOPEN_RECEIPT_BY` and `receipt_path` are what O8's witness reads (agreed with O8's owner, 21 Oct)."""
+part that is `ok` or `late`; any other part keeps its status and why, and its raw answer stays in Drive."""
 
 from __future__ import annotations
 
 import csv
 import io
 from collections.abc import Mapping, Sequence
-from datetime import date, time
-from pathlib import Path
+from datetime import date
 
 from fno.ingestion.preopen.answers import BASIS_FLAT
 from fno.ingestion.preopen.run import LATE, OK, PartResult
-from fno.ingestion.storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
-from fno.ingestion.storage.receipts import ReceiptFolder
 from fno.shared.models import IST
 
-PREOPEN_RECEIPT_BY = time(9, 15)  # the consumer's need: FL1's 09:15 report reads the row (O8 judges it at 17:51)
 DAY_FILE = "preopen/day/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"
 EARLY_FILES = {"gift": "preopen/gift/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"}  # owner e70525ee4: GIFT for 08:50
 RAW_FILE = "preopen/raw/{day:%Y}/{day:%m}/{day:%d}/{part}_{seen:%H%M%S}.json"
@@ -43,11 +38,6 @@ def raw_file(day: date, result: PartResult) -> str:
 def early_file(part: str, day: date) -> str:
     """A part's own write-once file, pushed as soon as the part ends (GIFT Nifty, for the 08:50 morning edition)."""
     return EARLY_FILES[part].format(day=day)
-
-
-def receipt_path(day: date, file: str | None = None) -> str:
-    """The committed receipt of the day row (or of another of A22's Drive files), relative to the repository."""
-    return ReceiptFolder(Path(RECEIPTS_FOLDER)).file_for(f"{DATA_AREA}/{file or day_file(day)}").as_posix()
 
 
 def early_row(day: date, result: PartResult) -> bytes:

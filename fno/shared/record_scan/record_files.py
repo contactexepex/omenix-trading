@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Code folders: they hold the scan's own patterns and the tests' planted examples, so they are scanned only for
 # credential-shaped values (keys and tokens). Everything else tracked is a record and gets every pattern, so a new
-# record folder (journal/, playbook/, agents/, book3/ ...) is scanned without being listed anywhere.
+# record folder is scanned without being listed anywhere.
 CODE_FOLDERS = ("fno/", "tests/", "tools/")
 TRACKED_FILES = ("git", "ls-files", "-z")
 # Staged entries with their mode and blob id: ":<old mode> <new mode> <old id> <new id> <status>\0<path>\0"
