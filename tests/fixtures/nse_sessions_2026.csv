@@ -1,0 +1,4 @@
+date,kind,description,source_url
+2026-01-26,holiday,Republic Day,https://example.org/nse/holidays/2026
+2026-02-21,special,Special weekend session (synthetic fixture),https://example.org/nse/special/2026
+2026-11-08,muhurat,Diwali Muhurat trading (synthetic fixture),https://example.org/nse/muhurat/2026
