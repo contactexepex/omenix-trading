@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-23T08:50:51.740723+05:30,yahoo/preopen/2026/10/23/085051_sse_composite_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/000001.SS?range=1d&interval=5m,,21ba9d5100dac38e5165227dfbdd0d69ea710d98c54393e760c0e0acd742d331,3148

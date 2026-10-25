@@ -1,0 +1,10 @@
+date,url,status,sha256,size_bytes
+2026-10-12,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=07-09-2025&to_date=12-10-2026,200,a15b2902a9fdc775804f79a02e9cfd95a4b0a4d8405bed4c467a5e496c4d931e,739794
+2026-10-13,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=08-09-2025&to_date=13-10-2026,200,8e2c9af9cbb82433c6a4f9d2614f51e7b11cab6fc14c68fc5d357e40dc7313ef,740095
+2026-10-14,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=09-09-2025&to_date=14-10-2026,200,c4a558d88525bde0148875c5d74dfe13595866326c19eea25927cdc7d102f95e,732051
+2026-10-15,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=10-09-2025&to_date=15-10-2026,200,a6055393d937ecff16cd13c3dc1b90a547a9c613fc44a2685a531da6de4c7dce,732958
+2026-10-16,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=11-09-2025&to_date=16-10-2026,200,c3ef91b44ccb7026089c7ee4383865082f4992ee3fa25617451b7fa066d93b07,730986
+2026-10-19,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=14-09-2025&to_date=19-10-2026,200,031a839d4f586ed12dc93a12af3dae75e77ddc2a06b64ea4ad46526afe9212f1,710122
+2026-10-21,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=16-09-2025&to_date=21-10-2026,200,f7c5f8e5265ffa6eef1aba1f8f8f121cb62ac944e62982fd170ddf6856e3c1dd,705437
+2026-10-22,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=17-09-2025&to_date=22-10-2026,200,afba5ca426813851911b9b4ac8e68998dd00d0d49a5a9eaca9a297a2fc242d77,700704
+2026-10-23,https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=18-09-2025&to_date=23-10-2026,200,aebadb5ddf1b98c49471158cc8fb1c4765ace95574af15031b55b3e68ead4f91,698803

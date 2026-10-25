@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-23T08:51:00.052772+05:30,yahoo/preopen/2026/10/23/085100_sti_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?range=1d&interval=5m,,9607f20a1a4f605ff43cc13de48352e395a8ba2fafc4e0a6f9d0d89bcd73871e,3310

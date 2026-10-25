@@ -1,0 +1,21 @@
+date,kind,description,source_url,sha256
+2026-01-01,covers,"TWSE holidaySchedule 2026 (ROC 115), fetched 2026-10-24",https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-01-01,holiday,中華民國開國紀念日,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-12,holiday,市場無交易，僅辦理結算交割作業,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-13,holiday,市場無交易，僅辦理結算交割作業,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-16,holiday,農曆除夕及春節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-17,holiday,農曆除夕及春節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-18,holiday,農曆除夕及春節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-19,holiday,農曆除夕及春節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-20,holiday,農曆除夕及春節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-02-27,holiday,和平紀念日,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-04-03,holiday,兒童節及民族掃墓節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-04-06,holiday,兒童節及民族掃墓節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-05-01,holiday,勞動節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-06-19,holiday,端午節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-09-25,holiday,中秋節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-09-28,holiday,孔子誕辰紀念日/ 教師節,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-10-09,holiday,國慶日,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-10-23,unscheduled,Typhoon Champi: TWSE did not trade (its 5-second statistics for the day: no data),https://www.twse.com.tw/exchangeReport/MI_5MINS?response=json&date=20261023,524073bee5865420fde6798a0b4ad13de98a897bd5e93d963606d84ff8c6e918
+2026-10-26,holiday,臺灣光復暨金門古寧頭大捷紀念日,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
+2026-12-25,holiday,行憲紀念日,https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule,7644c1a8af784c09f54670fd7413f536b13eb76c54d658058e8873d1aee32117
