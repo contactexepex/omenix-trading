@@ -31,7 +31,6 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/derivatives/fo-bhavcopy-legacy` | `NseLegacyFoSource` | F&O, old format (`fo02JAN2019bhav.csv.zip`) | up to 5 Jul 2024 |
 | `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2017 onwards (2017-18: warm-up, A10) |
 | `nse/derivatives/participant-oi` | `ParticipantOiSource` | participant-wise open interest (client, DII, FII, pro; story A8) | 2019 onwards |
-| `nse/derivatives/span-bod` | `NseSpanBodSource` | NSE Clearing's beginning-of-day SPAN risk parameters (`nsccl.<YYYYMMDD>.i1.zip`, written the evening before, by 03:05 IST in 131 sampled files; story A14's margins) | 1 Oct 2026 onwards (NSE keeps them back to 2020) |
 | `nse/equities/cm-bhavcopy` | `NseEquityBhavcopySource` | capital-market file, UDiFF (every security's prices and volume; P6) | 1 Oct 2025 onwards |
 | `nse/equities/security-delivery` | `NseDeliverySource` | security-wise file with delivery % (`sec_bhavdata_full_DDMMYYYY.csv`; P6) | 1 Oct 2025 onwards |
 | `nse/equities/equity-list` | `EquityListSource` | the list of listed companies (`EQUITY_L.csv`), one copy per day fetched (P6) | 13 Oct 2026 onwards |
