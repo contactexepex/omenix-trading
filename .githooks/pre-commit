@@ -1,0 +1,10 @@
+#!/bin/sh
+# Public-record safety scan (story O5): refuses the commit when a staged file holds a credential, personal data or a
+# broker identifier, and posts the finding lines (never the values) to #fno-desk when FNO_SLACK_BOT_TOKEN is set.
+# Every session turns it on with `git config core.hooksPath .githooks` (CLAUDE.md; .claude/settings.json does it at
+# session start).
+PYTHON=$(command -v python3 || command -v python) || {
+    echo "record scan: no python3 or python found, so the commit is refused; install Python, never use --no-verify" >&2
+    exit 1
+}
+exec "$PYTHON" "$(dirname "$0")/../tools/check_records.py" --staged --alert --root "$(git rev-parse --show-toplevel)"

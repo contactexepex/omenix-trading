@@ -1,0 +1,22 @@
+HOW TO RUN
+
+1. Install Python from python.org (on Windows tick "Add Python to PATH").
+
+2. Double-click nse_raw_download.py
+   When it asks "Which folder?", press Enter
+   (or paste the same folder you used last time, so the files you already have are skipped).
+   It downloads into a folder called "raw" inside that folder:
+     - F&O files, current format, 2024 to today
+     - F&O files, old format, 2019 to July 2024
+     - daily index closes (NIFTY, Bank NIFTY, India VIX), 2019 to today
+     - daily participant open interest (client, DII, FII, pro), 2019 to today
+   About 1.5 hours the first time. If it stops, double-click again: it carries on where it stopped.
+
+3. Open drive.google.com in your browser, open your fno-research folder,
+   and drag the "raw" folder into it. Google Drive adds the new files next to the ones already there.
+   (If Drive asks about files that already exist, choose "skip" / keep the existing ones.)
+
+That's all. No settings, keys or Google programs are needed on your computer.
+
+If it says "cannot check secure websites" (Mac): open Finder > Applications > Python 3.x,
+double-click "Install Certificates.command", then run the script again.

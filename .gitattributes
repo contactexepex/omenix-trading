@@ -1,0 +1,9 @@
+# Append-only logs written by more than one job (story A8: the Actions watch and the routine): a merge keeps both
+# sides' new rows instead of stopping on a conflict at the end of the file.
+research/data/participant_oi/release_checks.csv merge=union
+research/data/participant_oi/actions/release_checks.csv merge=union
+research/data/participant_oi/release_check_starts.csv merge=union
+research/data/participant_oi/actions/release_check_starts.csv merge=union
+# Story O10: the capture-error log, appended by the capture watcher (one run per failed workflow run, possibly at once)
+# and by the health check
+research/ops/capture_errors.csv merge=union

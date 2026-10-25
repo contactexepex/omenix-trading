@@ -1,0 +1,64 @@
+# WORKED EXAMPLE of the playbook format (story D1). NOT A PASSED STRATEGY and never to be approved as it stands.
+# Its rule is experiment 1's policy P6 ("SC if F1 > 0 and no event"), which FAILED the 2019-2023 challenge:
+# -Rs 18,468 over 60 opportunities (research/2026-10-12-experiment-1/RESULTS.md). The funding and expected-range
+# numbers below are illustrative, not measured. Status stays `research`; the evidence stays empty.
+name: example-sc-iv-rich-no-event
+version: 1
+status: research
+payer: >-
+  Hypothesis only: option buyers who overpay for NIFTY index protection when implied volatility is above realised
+  volatility (the variance risk premium). Experiment 1 found no such edge after costs in 2019-2023.
+edge_family: short premium, defined risk
+structure:
+  code: SC
+  strikes_rule: sell the call nearest spot x 1.02 and the put nearest spot x 0.98 (entry day's chain), buy each W further out
+  width_rule: largest W of 300, 250, 200, 150, 100 points whose modelled maximum loss incl. charges and pads is at most Rs 10,000
+  widths: [300, 250, 200, 150, 100]
+  lots: 1
+  expiry:
+    kind: monthly
+    min_days: 30
+    max_days: 45
+    exit_days_before_expiry: 21
+entry_conditions:
+  - feature: F1_atm_iv_minus_rv20
+    operator: ">"
+    threshold: 0
+  - feature: F3_scheduled_event_in_window
+    operator: is
+    threshold: false
+live_use_rule:
+  min_days: 20
+  min_agreement: 0.9
+  min_available: 0.9
+size_rule: 1 lot (65 units); no trade if the modelled maximum loss incl. charges exceeds Rs 10,000
+funding:
+  margin_per_lot: 20000
+  source: ILLUSTRATIVE, not measured (research/data/margins/margins.csv has no SC row yet)
+  date: 2026-10-14
+exits:
+  time: the last trading day with 21 or more calendar days to expiry, at 15:00
+  profit: none  # held to the time exit
+  loss: none  # nothing beyond the bought wings: the maximum loss is capped at entry
+  event: none
+evaluation_plan:
+  expected_range:
+    low: -1500
+    high: 500
+  expected_net_per_opportunity: -308
+  expected_net_source: experiment 1 challenge 2019-2023, P6, -Rs 18,468 over 60 opportunities (a FAIL)
+  unit: Rs net per opportunity after charges, pads and 31.2% tax (illustrative)
+  review_dates:
+    - 2027-01-14
+    - 2027-04-14
+  pause_rules:
+    - a single trade loses more than Rs 10,000 including charges (catastrophic-loss rule)
+    - the book's drawdown brake (Rs 30,000 below its highest closed equity)
+  catastrophic_loss_rs: 10000
+evidence:
+  test_results_path: null
+  test_results_commit: null
+  red_team_note: null
+  judge_verdict: null
+  freeze_record: null
+  owner_approval_date: null

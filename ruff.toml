@@ -1,0 +1,12 @@
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "I"]
+ignore = [
+    "E741",  # `l` for a leg is a deliberate short name in payoff maths
+    "B905",  # zip() over equal-length series built together; strict= adds noise
+]
+
+[lint.per-file-ignores]
+"fno/html_report.py" = ["E501"]  # self-contained HTML/CSS page template

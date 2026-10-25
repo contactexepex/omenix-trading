@@ -1,0 +1,62 @@
+# B0: a MEASUREMENT shadow (story R3, owner decision 1 A, 16 Oct 2026). Never promoted: approving it to paper needs the
+# owner's own decision, which this label does not grant. Experiment 1's policy P1 exactly (response 92's B0 row). P1
+# lost Rs 34,486 over 60 opportunities in 2019-23 (Rs 23,140 without 7 impossible stale-close exits;
+# research/2026-10-12-experiment-1/RESULTS.md). It measures premium, costs and the fill path at real quotes and can
+# never show an edge. Idea card: research/ideas/B0.md.
+name: b0-monthly-sc
+version: 1
+status: research
+payer: >-
+  Measurement only, no claimed payer: option buyers may overpay for NIFTY index protection (variance risk premium,
+  implied above realised by a median 2 points), but experiment 1 found no edge after costs. B0 records the real
+  premium, costs and fills at 15:00 quotes.
+edge_family: measurement
+structure:
+  code: SC
+  strikes_rule: sell the call nearest spot x 1.02 and the put nearest spot x 0.98 (entry day's chain), buy each W further out
+  width_rule: largest W of 300, 250, 200, 150, 100 points whose modelled maximum loss incl. charges and pads is at most Rs 10,000
+  widths: [300, 250, 200, 150, 100]
+  lots: 1
+  expiry:
+    kind: monthly
+    min_days: 30
+    max_days: 45
+    exit_days_before_expiry: 21
+entry_conditions: []
+live_use_rule:
+  min_days: 20
+  min_agreement: 0.9
+  min_available: 0.9
+size_rule: 1 lot (65 units); no trade if the modelled maximum loss incl. charges exceeds Rs 10,000
+funding:
+  margin_per_lot: 67595
+  # NSE's initial margin, not C2's stressed margin (about 98,013 at k 1.45) or the funds at entry (about Rs 1,00,784)
+  source: NSE SPAN plus exposure for SC 300, 14 Oct 2026 (research/data/margins/margins.csv; response 92)
+  date: 2026-10-14
+exits:
+  time: the last trading day with 21 or more calendar days to expiry, at 15:00
+  profit: none  # held to the time exit
+  loss: none  # nothing beyond the bought wings: the maximum loss is capped at entry
+  event: none
+evaluation_plan:
+  expected_range:  # P1's 10th-90th percentile single-trade net, 58 traded cycles 2019-23 (results_challenge.json);
+  # a range of single trades, while E6's review compares the mean with its low: restate it before B0 reaches 20 positions
+    low: -5084
+    high: 4156
+  expected_net_per_opportunity: -386
+  expected_net_source: experiment 1 challenge 2019-2023, P1, -Rs 23,140 over 60 opportunities without 7 impossible stale-close exits (-Rs 34,486 with them); worst clean trade -8,937
+  unit: Rs C1 net per opportunity after charges and pads, before tax
+  review_dates:
+    - 2027-01-15
+    - 2027-04-15
+  pause_rules:
+    - a single trade loses Rs 10,000 or more including charges (E6 alerts; a research version is never paused, the owner decides)
+    - realised net at or below -Rs 30,000 (3 x cap; E6 alerts; expected for a measurement, not a defect)
+  catastrophic_loss_rs: 10000
+evidence:
+  test_results_path: null
+  test_results_commit: null
+  red_team_note: null
+  judge_verdict: null
+  freeze_record: null
+  owner_approval_date: null
