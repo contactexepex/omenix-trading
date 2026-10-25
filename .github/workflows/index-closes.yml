@@ -1,0 +1,92 @@
+# Story O6 for G3: NSE's daily index-close file (ind_close_all) as a plain scheduled job (no AI session). Research
+# data only; never trades. After NSE's evening file:
+#   1. the A9 librarian archives each session's file in Drive with its manifest row (the last week, gaps refilled);
+#   2. the A11 sweep keeps any later NSE version beside the original (revisions area, never replacing it);
+#   3. `pipeline index-closes` appends the NIFTY 50 and India VIX closes to research/data/nifty-panel/warmup_closes.csv
+#      from the version first archived (point in time), never rewriting a row, and the panel reader serves them as
+#      closes-only sessions after the panel's last day.
+# G1 v2's live forecast needs the previous session's closes before 14:00 IST (judge 47 addendum 4): NSE publishes in
+# the evening, so the 21:11 run normally adds them; the 07:41 and 11:41 runs retry, and a close still missing posts one
+# #fno-desk line before 14:00. A run before 19:00 IST stops at yesterday (today's file is not out yet), so a morning
+# run never alerts about today. One #fno-desk line when a step fails. Secrets: the A12 Drive and Slack ones; none is printed or written to a file.
+name: index-closes
+
+on:
+  # schedule:  # DISABLED for migration; re-enable at cutover
+    # - cron: "41 15 * * *" # 21:11 IST every day: the calendar decides (a closed day adds nothing)  # DISABLED for migration; re-enable at cutover
+    # - cron: "11 2 * * *" # 07:41 IST: retry for the previous session if the evening run missed it  # DISABLED for migration; re-enable at cutover
+    # - cron: "11 6 * * *" # 11:41 IST: last retry, still before 14:00 (GitHub's schedule can start late)  # DISABLED for migration; re-enable at cutover
+  workflow_dispatch:
+
+permissions:
+  contents: write # commits the closes and the manifest rows
+
+concurrency:
+  group: index-closes
+  cancel-in-progress: false
+
+jobs:
+  closes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      CLOSES: research/data/nifty-panel/warmup_closes.csv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Commit identity and the public-record scan (story O5)
+        run: |
+          git config core.hooksPath .githooks
+          git config user.name "omenix-index-closes"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: The last session whose file is due (today from 19:00 IST, else yesterday)
+        run: |
+          if (( 10#$(TZ=Asia/Kolkata date +%H) >= 19 )); then due=$(TZ=Asia/Kolkata date +%F)
+          else due=$(TZ=Asia/Kolkata date -d yesterday +%F); fi
+          echo "DUE=$due" >> "$GITHUB_ENV"; echo "closes due through $due"
+      - name: Archive the last week's index-close files in Drive (A9)
+        id: librarian
+        continue-on-error: true
+        run: |
+          python -m fno data-librarian index-close \
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
+      - name: Keep later NSE versions beside the originals (A11)
+        id: revisions
+        continue-on-error: true
+        run: |
+          python -m fno data-revisions sweep index-close \
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
+      - name: Append the new sessions' closes (point in time, never rewriting)
+        id: append
+        continue-on-error: true
+        run: python -m fno pipeline index-closes --to "$DUE"
+      - name: Commit the closes
+        run: |
+          git add "$CLOSES"
+          git diff --cached --quiet || git commit -m "O6 Actions: NIFTY 50 and India VIX closes $(TZ=Asia/Kolkata date +%F)"
+          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: One line to #fno-desk when the librarian failed (the append step alerts by itself)
+        if: ${{ steps.librarian.outcome != 'success' }}
+        run: |
+          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O daily index closes: the archive step failed (Drive, NSE or the calendar: its log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          exit 1
+      - name: Fail the run when the append stopped (a named stop posted its own line; otherwise the next step speaks)
+        if: ${{ steps.append.outcome != 'success' }}
+        run: exit 1
+      - name: Alert #fno-desk when the job itself failed
+        if: ${{ failure() && steps.librarian.outcome == 'success' && steps.append.outputs.posted != 'true' }} # one line per run (O8c)
+        run: >
+          python -c "from fno.composition import build_alert_sender;
+          print(build_alert_sender().send('Omenix F&O daily index closes (GitHub Actions) failed; see
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

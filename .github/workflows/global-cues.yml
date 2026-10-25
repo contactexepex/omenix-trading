@@ -1,0 +1,85 @@
+# Story A17 on a schedule (audit Part A2, owner 16 Oct 2026: external data up to date every day): the global cues as a
+# plain job (no AI session). Research data only; never trades. `global-cues fill` downloads every cue (US closes and
+# FBIL to Drive only, the others into research/data/global-cues/), archives each copy in Drive with its log row,
+# extends the tables from 31 days before their last date and rewrites the checks; a cue that fails, or whose newest
+# value is older than its limit (STALE), is named and the run fails. The logs and tables are committed even then.
+# Three runs a day. GitHub starts this repository's morning crons 4 h 40 min to 5 h 01 min late (judge 351, 14-16 Oct
+# 2026), so the main run is set early enough to land before the 09:15 open even 5 hours late. Cboe and Nasdaq are
+# downloaded at most once an IST day (the owner's condition) and a copy drops the US day still running (A17's
+# `may_hold_unfinished`), so the day's first run must come after the US close (16:00 New York: 01:30 IST in summer
+# time, 02:30 IST in winter), or that close waits a day; a later run of the same IST day reuses the first copy:
+#   03:41 IST (08:41 if 5 hours late): 71 minutes after the winter close, 131 after the summer one;
+#   04:41 IST: the backup for the Treasury's 10-year yield, published by about 04:30 IST (`treasury_source.py`) and
+#   downloaded on every run, so an on-time 03:41 run that came before it is completed before the open;
+#   14:11 IST, after RBI's reference rate (about 13:00-13:30 IST).
+# A value first seen after 09:15 is not counted as known at the open (A17's as-of rule): late, never wrong.
+# One #fno-desk line when the run fails, naming the cues; O10's capture-watch records the failed run. Secrets: the A12
+# Drive and Slack ones; none is printed or written to a file.
+name: global-cues
+
+on:
+  # schedule:  # DISABLED for migration; re-enable at cutover
+    # - cron: "11 22 * * *" # 03:41 IST (the previous UTC day): the overnight US cues, before the open even 5 h late  # DISABLED for migration; re-enable at cutover
+    # - cron: "11 23 * * *" # 04:41 IST: the Treasury's 10-year if the 03:41 run came before it  # DISABLED for migration; re-enable at cutover
+    # - cron: "41 8 * * *" # 14:11 IST: RBI's reference rate of the day  # DISABLED for migration; re-enable at cutover
+  workflow_dispatch:
+
+permissions:
+  contents: write # commits the cue tables, logs and checks
+
+concurrency:
+  group: global-cues
+  cancel-in-progress: false
+
+jobs:
+  cues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      CUES: research/data/global-cues
+      MANIFESTS: research/data/manifests/global-cues
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Commit identity and the public-record scan (story O5)
+        run: |
+          git config core.hooksPath .githooks
+          git config user.name "omenix-global-cues"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Download, archive and extend every cue (A17)
+        id: fill
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python -m fno global-cues fill | tee "$RUNNER_TEMP/fill.txt"
+      - name: Commit the cue tables, logs and checks (also after a failed cue)
+        id: commit
+        run: |
+          git add "$CUES" "$MANIFESTS"
+          git diff --cached --quiet || git commit -m "A17 Actions: global cues $(TZ=Asia/Kolkata date '+%F %H:%M')"
+          for try in 1 2 3; do  # another job may push between the pull and the push
+            git pull --no-rebase --no-edit origin main && git push origin HEAD:main && exit 0
+            sleep $((try * 10))
+          done
+          exit 1
+      # One alert step for every failure (judge 351 SF1): `!cancelled()` keeps it running after a failed commit, which a
+      # plain `if:` (an implicit `success() &&`) would skip; a cancelled or timed-out run is O10's capture-watch's to post
+      - name: "One line to #fno-desk when the run failed: the failed, stale or newly behind cues, and a failed commit"
+        if: ${{ !cancelled() && (steps.fill.outcome != 'success' || failure()) }}
+        run: |
+          cues="$(grep -oE '^[a-z0-9_]+(: FAILED|: BEHIND|: .*STALE| FAILED)' "$RUNNER_TEMP/fill.txt" | cut -d' ' -f1 | cut -d: -f1 | paste -sd, - || true)"
+          what="${cues:+$cues failed, stale or behind (the log names why)}"
+          if [ "${{ steps.commit.outcome }}" != "success" ]; then what="${what:+$what; }the commit step did not succeed (nothing of this run is in the repository)"; fi
+          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O global cues: ${what:-the run failed}; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          exit 1

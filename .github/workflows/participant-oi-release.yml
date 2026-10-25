@@ -1,0 +1,92 @@
+# Story O6: the A8 participant-OI release-time check as a plain scheduled job (no AI session), side by side with the
+# Claude routine "participant-OI release times" until the owner switches. Research data only; never trades.
+# Same command as the routine (`participant-oi watch --until 23:30 --every 5`); its check log goes to
+# research/data/participant_oi/actions/ so the two never append to the same file. Then the day's file goes into Drive
+# (A9 librarian, with its manifest row) and the pipeline fires the dry-run routine once per new batch and version.
+# A GitHub job stops at 6 hours and the watch window is 17:11-23:30 IST, so a second run at 22:45 IST covers the tail.
+# Secrets: docs/stories/O6-owner-checklist.md; none is printed or written to a file.
+name: participant-oi-release
+
+on:
+  # schedule:  # DISABLED for migration; re-enable at cutover
+    # - cron: "41 11 * * *" # 17:11 IST every day: the calendar decides (a closed day records nothing)  # DISABLED for migration; re-enable at cutover
+    # - cron: "15 17 * * *" # 22:45 IST: the rest of the window up to 23:30  # DISABLED for migration; re-enable at cutover
+  workflow_dispatch:
+
+permissions:
+  contents: write # commits the check log and the manifest row
+
+concurrency:
+  group: participant-oi-release # the second run waits for the first
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      FNO_ROUTINE_DRY_RUN_TRIGGER_ID: ${{ secrets.FNO_ROUTINE_DRY_RUN_TRIGGER_ID }}
+      FNO_ROUTINE_DRY_RUN_TOKEN: ${{ secrets.FNO_ROUTINE_DRY_RUN_TOKEN }}
+      EVIDENCE: research/data/participant_oi/actions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Commit identity and the public-record scan (story O5)
+        run: |
+          git config core.hooksPath .githooks
+          git config user.name "omenix-participant-oi"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: The day still due, once for every step (a run starting after midnight IST checks the evening before)
+        id: due
+        run: echo "day=$(python -m fno participant-oi due-day)" >> "$GITHUB_OUTPUT"
+      - name: Watch NSE's archive until the due day's file appears (A8)
+        id: watch
+        continue-on-error: true
+        env:
+          DAY: ${{ steps.due.outputs.day }}
+        run: |
+          set -o pipefail
+          limit=$(TZ=Asia/Kolkata date -d '+330 min' +%H:%M) # stop before GitHub's 6-hour limit
+          if [[ "$limit" < "23:30" && "$limit" > "17:00" ]]; then until=$limit; else until=23:30; fi
+          python -m fno participant-oi watch --day "$DAY" --until "$until" --every 5 --evidence-folder "$EVIDENCE" | tee watch.log
+      - name: Commit the check log
+        run: |
+          git add "$EVIDENCE"
+          git diff --cached --quiet || git commit -m "O6 Actions: participant-OI release checks $(TZ=Asia/Kolkata date +%F)"
+          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: The day's file into Drive with its manifest row (A9)
+        id: librarian
+        continue-on-error: true
+        env:
+          DAY: ${{ steps.due.outputs.day }}
+        run: |
+          if grep -q ": present at" watch.log; then
+            python -m fno data-librarian participant-oi --from "$DAY" --to "$DAY"
+          else
+            echo "not published yet (or not a session): nothing to upload"
+          fi
+      - name: Fire the dry-run routine for new batches, run summary in Drive, one line to #fno-desk (O6)
+        if: false # DISABLED for migration: re-enable once Claude routines are repointed to exepex/omenix-trading
+        run: |
+          notes=()
+          while IFS= read -r line; do notes+=(--note "$line"); done < <(grep -E '^REWRITTEN' watch.log; tail -n 1 watch.log)
+          python -m fno pipeline fire participant-oi-release --days 5 \
+            --run-id "${{ github.run_id }}-${{ github.run_attempt }}" \
+            --download "${{ (steps.watch.outcome == 'success' && steps.librarian.outcome != 'failure') && 'success' || 'failure' }}" \
+            "${notes[@]}"
+      - name: Alert #fno-desk when the job itself failed
+        if: ${{ failure() }}
+        run: >
+          python -c "from fno.composition import build_alert_sender;
+          print(build_alert_sender().send('Omenix F&O participant-OI release (GitHub Actions) failed; see
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

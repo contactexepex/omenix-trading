@@ -1,0 +1,69 @@
+# Story A8: NSE's participant-OI release-time recorder as a plain scheduled job (no AI session). Every 15 minutes in
+# the evening, one check of today's file (`participant-oi check-once`), then exit. Research data only; never trades.
+# NSE's session calendar decides the day; once today's file is recorded present, later runs check nothing. Rows are
+# appended to research/data/participant_oi/release_checks.csv (the evidence the availability rule reads), never edited;
+# each check's start time to release_check_starts.csv beside it (A9b).
+# Alerts to #fno-desk (the command posts them): a rewritten file, NSE unreachable, the file still absent from 23:15 IST.
+# GitHub starts scheduled runs late (14 Oct 2026 on this repository: 4.5-5.5 hours, some never): checked_at records when
+# each check really ran, and a run that starts before noon IST checks the previous evening's file (still due).
+# Secrets: FNO_SLACK_BOT_TOKEN only; it is never printed or written to a file.
+name: participant-oi-watch
+
+on:
+  # schedule:  # DISABLED for migration; re-enable at cutover
+    # - cron: "7,22,37,52 11-17 * * *" # 16:37-23:22 IST every day: the calendar decides  # DISABLED for migration; re-enable at cutover
+  workflow_dispatch:
+
+permissions:
+  contents: write # commits the check rows
+
+concurrency:
+  group: participant-oi-watch # two runs never write at once; a waiting run follows the running one
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      LOG: research/data/participant_oi/release_checks.csv
+      STARTS: research/data/participant_oi/release_check_starts.csv
+      REREADS: research/data/participant_oi/release_rereads.csv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Commit identity and the public-record scan (story O5)
+        run: |
+          git config core.hooksPath .githooks
+          git config user.name "omenix-participant-oi"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: One check of today's file (A8)
+        id: check
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python -m fno participant-oi check-once | tee check.log
+      - name: Commit the check rows
+        id: commit
+        run: |
+          git add "$LOG" "$STARTS" "$REREADS"
+          git diff --cached --quiet || git commit -m "A8 Actions: participant-OI release check $(TZ=Asia/Kolkata date '+%F %H:%M')"
+          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: "One line to #fno-desk when the check crashed or the rows were not committed (alerts are posted already)"
+        if: ${{ always() }}
+        run: |
+          problems=()
+          [[ "${{ steps.check.outcome }}" == success ]] || grep -qs '^Omenix F&O participant OI:' check.log \
+            || problems+=("the check stopped without a result")
+          [[ "${{ steps.commit.outcome }}" == success ]] || problems+=("the check rows were not committed")
+          if (( ${#problems[@]} )); then
+            python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+              "Omenix F&O participant-OI watch (GitHub Actions): ${problems[*]}; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          [[ "${{ steps.check.outcome }}" == success && "${{ steps.commit.outcome }}" == success ]]
