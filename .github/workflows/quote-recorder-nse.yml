@@ -60,13 +60,13 @@ jobs:
       - name: One line to #fno-desk when the result is not good
         if: ${{ steps.record.outcome != 'success' }}
         run: |
-          python -c "import sys; from fno.composition import build_alert_sender;
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O 3 pm recorder (NSE, GitHub Actions): ' + sys.argv[1]))" \
             "$(grep -vE '^alert ' record.log | tail -n 1)"
           exit 1
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() && steps.record.outcome == 'success' }}
         run: >
-          python -c "from fno.composition import build_alert_sender;
+          python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O 3 pm recorder (NSE, GitHub Actions) failed; see
           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

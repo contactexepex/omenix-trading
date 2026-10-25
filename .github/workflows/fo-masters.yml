@@ -52,5 +52,5 @@ jobs:
         run: |
           if [ "$POSTED" = "true" ]; then echo "the job already spoke (its alert)"; exit 0; fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O master files: the GitHub Actions run failed without its own alert; see $RUN_URL"

@@ -22,8 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from fno.numbering.check import check_numbers  # noqa: E402
-from fno.numbering.seed import seed_registries  # noqa: E402
+from fno.shared.numbering.check import check_numbers  # noqa: E402
+from fno.shared.numbering.seed import seed_registries  # noqa: E402
 
 CLEAN = "number check: clean"
 ALERT = (
@@ -58,7 +58,9 @@ def _alert(problems: list[str], baseline: Path | None, alerts) -> None:
     if not new:
         return
     if alerts is None:
-        from fno.composition import build_alert_sender  # only when posting: the plain check stays standard library
+        from fno.ingestion.composition import (
+            build_alert_sender,  # only when posting: the plain check stays standard library
+        )
 
         alerts = build_alert_sender()
     print(alerts.send(ALERT.format(count=len(new), lines="\n".join(new))))

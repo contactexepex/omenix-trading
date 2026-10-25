@@ -80,6 +80,6 @@ jobs:
           cues="$(grep -oE '^[a-z0-9_]+(: FAILED|: BEHIND|: .*STALE| FAILED)' "$RUNNER_TEMP/fill.txt" | cut -d' ' -f1 | cut -d: -f1 | paste -sd, - || true)"
           what="${cues:+$cues failed, stale or behind (the log names why)}"
           if [ "${{ steps.commit.outcome }}" != "success" ]; then what="${what:+$what; }the commit step did not succeed (nothing of this run is in the repository)"; fi
-          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O global cues: ${what:-the run failed}; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1

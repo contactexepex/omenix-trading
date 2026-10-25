@@ -63,7 +63,7 @@ jobs:
             || problems+=("the check stopped without a result")
           [[ "${{ steps.commit.outcome }}" == success ]] || problems+=("the check rows were not committed")
           if (( ${#problems[@]} )); then
-            python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
               "Omenix F&O participant-OI watch (GitHub Actions): ${problems[*]}; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
           [[ "${{ steps.check.outcome }}" == success && "${{ steps.commit.outcome }}" == success ]]

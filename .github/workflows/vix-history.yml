@@ -74,6 +74,6 @@ jobs:
       - name: "One line to #fno-desk when the run failed: each step's outcome"
         if: ${{ !cancelled() && (steps.fill.outcome != 'success' || steps.sweep.outcome != 'success' || failure()) }}
         run: |
-          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O India VIX month ${MONTH:-unknown}: fill ${{ steps.fill.outcome }}, sweep ${{ steps.sweep.outcome }}, commit ${{ steps.commit.outcome }} (NSE, Drive, the checks or the push: the log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1

@@ -19,8 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from fno.record_scan.record_files import NamedFiles, RecordSource, StagedRecords, TrackedRecords  # noqa: E402
-from fno.record_scan.wiring import build_record_scanner, send_alert  # noqa: E402
+from fno.shared.record_scan.record_files import NamedFiles, RecordSource, StagedRecords, TrackedRecords  # noqa: E402
+from fno.shared.record_scan.wiring import build_record_scanner, send_alert  # noqa: E402
 
 REFUSED = "record scan: REFUSED, {count} finding(s); do not commit or send these files (values are not shown)"
 CLEAN = "record scan: clean ({files} files)"

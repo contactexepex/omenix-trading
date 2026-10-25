@@ -63,6 +63,6 @@ jobs:
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() && !inputs.probe_only }}
         run: >
-          python -c "from fno.composition import build_alert_sender;
+          python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O filings archive: the GitHub Actions run failed; see
           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

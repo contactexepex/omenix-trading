@@ -94,5 +94,5 @@ jobs:
           [ "$FII_TABLE" = "true" ] || failed="$failed FII statistics table (no line of its own);"
           if [ -z "$failed" ]; then echo "every failed step already spoke (its alert)"; exit 0; fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O flow history:$failed see $RUN_URL"

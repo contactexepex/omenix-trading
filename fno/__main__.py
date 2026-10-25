@@ -1,7 +1,7 @@
 import sys
 
-from .cli import main
-from .env_file import load_env_file
+from fno.ingestion.cli import main
+from fno.shared.env_file import load_env_file
 
 
 def run(argv: list[str] | None = None) -> int:

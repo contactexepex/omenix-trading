@@ -51,5 +51,5 @@ jobs:
       - name: Alert the desk channel when the data checks failed
         if: ${{ failure() }} # O10's watcher sees an alert step on every failure
         run: |
-          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O data checks (O9b): sync ${{ steps.sync.outcome }}, tests ${{ steps.tests.outcome }} (a Drive copy missing or changed, or a moved table failing its test); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

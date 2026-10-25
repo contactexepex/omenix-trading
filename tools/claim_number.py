@@ -19,9 +19,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from fno.numbering.claim import CLAIMABLE, ClaimNotPushed, ClaimRequest  # noqa: E402
-from fno.numbering.git_main import GitFailed  # noqa: E402
-from fno.numbering.wiring import build_number_claimer  # noqa: E402
+from fno.shared.numbering.claim import CLAIMABLE, ClaimNotPushed, ClaimRequest  # noqa: E402
+from fno.shared.numbering.git_main import GitFailed  # noqa: E402
+from fno.shared.numbering.wiring import build_number_claimer  # noqa: E402
 
 CLAIMED = "claimed: {category} {number} -> {name}\nnext: {step}"
 NOT_CLAIMED = "number claim: NOT claimed ({reason}). Nothing was pushed: do not write the file; fix it and claim again."
