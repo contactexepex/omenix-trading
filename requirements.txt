@@ -2,11 +2,7 @@ requests>=2.31
 PyYAML>=6.0
 pytest>=8.0
 pytest-xdist>=3.6       # parallel tests: python -m pytest -q -n auto (CLAUDE.md gate line)
-numpy>=2.0              # experiment bootstraps and controls (numpy default_rng, protocol section 7)
-Pillow>=10.0            # the forecast report's picture: trims the browser screenshot (story FL1-1c)
 google-auth>=2.35       # raw-file archive on Google Drive (service account); used only when configured
 cryptography>=42        # test certificates for the feed TLS fix (A16h); recent google-auth needs it too
 # Groww Trade API (market data only): requirements-groww.txt
-jsonschema>=4.23        # market read models: validation against the pinned W11 contract (story P6)
-psycopg[binary]>=3.2    # market read models: the Azure Postgres publisher (story P6; tests use a throwaway server)
 xlrd==2.0.2             # NSE's FII derivatives statistics, Excel 97 files (story A23; owner allowed, pinned)

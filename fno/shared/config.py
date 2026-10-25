@@ -8,10 +8,11 @@ from typing import Any
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+# Repository root: config.py sits at fno/shared/config.py, so the root is three levels up (where config.yaml lives).
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT / "config.yaml"
 
-# Top-level keys the app's config.yaml may hold. A story that adds a setting adds its key here, with a test.
+# Top-level keys the ingestion app's config.yaml may hold. A story that adds a setting adds its key here, with a test.
 ALLOWED_APP_KEYS = frozenset(
     {
         "provider",
@@ -21,15 +22,6 @@ ALLOWED_APP_KEYS = frozenset(
         "charges",
         "slack",
         "risk_free_rate",
-        "risk",
-        "scorecard_review",
-        "desk",
-        "daily",
-        "forecast_lab",
-        "budget",
-        "health",
-        "ai_books",
-        "school",
     }  # fmt: skip
 )
 
