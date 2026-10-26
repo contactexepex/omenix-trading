@@ -134,11 +134,10 @@ safety properties hold (fail-closed identity, no default window, first copy wins
 disclosed). The FAIL rests on finding 8 (measured, and wrongly described in the gap list) and on three untested
 wiring paths.
 
-## Addendum 3: story + code, SHA f6120cc (the implementer's declared formal round-2 artifact)
+## Addendum 3: story + code, SHA f6120cc (round 3, authorised by the owner after the two-round limit)
 
-**FAIL on two should-fix findings, no blocking finding left; lane 1, judge 1 of 2.** 1dd32d9 was also declared
-"round 2 of 2" and judged in Addendum 2. The orchestrator or owner decides whether this addendum counts as round 2 or
-as evidence for the owner. My gates: 229 passed; ruff, check_imports, check_numbers and code size are clean, and the
+**FAIL on two should-fix findings, no blocking finding left; lane 1, judge 1 of 2.** The owner authorised this full re-review
+after round 2 (1dd32d9, Addendum 2), as the orchestrator relayed. My gates: 229 passed; ruff, check_imports, check_numbers and code size are clean, and the
 only `ruff format` finding is the pre-existing `test_paths.py`. Only `pipeline-staging.yml` changed under `.github/`.
 
 Earlier findings:
