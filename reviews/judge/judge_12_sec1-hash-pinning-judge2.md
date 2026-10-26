@@ -56,3 +56,28 @@ Text gates: doc-reading tests 53 passed; record scan clean.
 
 The "a hash proves the file is the one we locked, not that it is safe" risk and the test-tools-in-runtime risk are
 honest, and correctly out of scope.
+
+## Addendum 1: round 2, `a8efd5b815bd3947bede207367fc991d1115fd0c` (story text)
+
+**PASS**, lane 1, judge #2: the story may proceed to the build. Text gates: doc-reading tests 53 passed; record scan
+clean.
+
+| Round-1 finding | Verdict | Evidence (story, round 2) |
+|---|---|---|
+| S1 (a) the token-minting OAuth setup | FIXED | `requirements-oauth.lock`, with the install line quoted in `ops/gdrive_oauth_setup.py` (build item 1) |
+| S1 (b), (c), (d) | FIXED | `cache-dependency-path` points at the lock; the Groww doc and the `groww.py` error text point at locked installs; the cloud setup script and the runner image are in the gap list |
+| S2 `--only-binary :all:` | FIXED | the 14 workflow installs; the Groww routine is the documented exception, confined to its session |
+| S3 scanner coverage | FIXED | pip, pip3, `python -m pip` and `uv pip`, multi-line `run: |` blocks, `.github/**`, `ops/**`, docs and `fno/**/*.py`, `cache-dependency-path`, with a plant fixture that must fail |
+| S4 reverse check | FIXED | every input requirement name must have a lock pin |
+| Minors (uv trust root, unpinned pip, drifting counts) | FIXED | in the risks and build item 5 |
+
+### For the build round (not findings now)
+
+1. Check the plant in the evidence, not only that the test exists. I will plant `python -m pip install foo` in a
+   `run: |` block, `pip3 install x` in an `ops/` script, and a `requirements.txt` line with no lock pin, and expect each
+   to fail.
+2. The OAuth script was "from any folder; it needs nothing else" (`ops/gdrive_oauth_setup.py` docstring). A locked
+   install needs the lock file, so say where the owner gets it (the repo checkout). Consider `--only-binary :all:` on
+   that install too: it is the token-minting moment, and pure-Python wheels exist for its set (unverified here; check
+   at build).
+3. Claim 5's DOC2 minors are checked line by line in the build round.
