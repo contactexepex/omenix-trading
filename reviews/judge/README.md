@@ -27,3 +27,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 14 | SEC1b minors (relock pin, pipx, portable header) | 1 | PASS (e01d717) | `judge_14_sec1b-minors.md` |
 | 15 | SEC1b minors (judge #2) | 1 | PASS (e01d717) | `judge_15_sec1b-minors-judge2.md` |
 | 16 | P1d first stage-only runbook (judge #2) | 1 | PASS (7e7c035) | `judge_16_p1d-runbook-judge2.md` |
+| 17 | R1 resilience layer, story (judge #2) | 1 | FAIL (round 1, 5 should-fix) | `judge_17_r1-resilience-judge2.md` |
