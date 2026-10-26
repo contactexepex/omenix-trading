@@ -71,3 +71,14 @@ Name how the cap is built. Today the library's `wait_before` returns `max(wait, 
 stop" (an edit to merged R1a: flag it, test it, plant it), or (b) the Drive classifier clamping the header to 120 s
 before it reaches the policy, with Drive's ceiling set above 120 s. (b) needs no library change. Either is fine; the
 build must plant "a 300 s header stops the call" and "a 300 s header waits 300 s".
+
+## Addendum 3: `b057f5aa6ddf09a3d8cf889fc3f435e0eabbe039` (supersedes `d68df6e`)
+
+**PASS**, lane 1, judge #2. The delta is two edits to `R1c-drive.md`:
+- **The pipeline markers are reclassified, and correctly.** `pipeline/dry_run.py:36-37` puts the derived file, then
+  `records.mark(PROCESSED, ...)`, so it is "own record after the put". `pipeline/dispatcher.py:58` marks `FIRED` only
+  after `trigger.fire` returned, and claims that a job started, not a file.
+- **The module map** reconciles the three enumerations.
+
+I would classify none of my traced paths differently. The minor from Addendum 2 (name how the 120 s cap is built)
+stands.
