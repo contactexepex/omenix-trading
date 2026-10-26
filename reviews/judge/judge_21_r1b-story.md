@@ -73,3 +73,27 @@ The changes from today, judged against "never weaker":
 
 Minor, for the stop rule: "a run longer than its predecessor by more than the jitter allows" will fire on ordinary NSE
 latency. Compare the number of waits and tries, not wall-clock duration.
+
+## Addendum 2: SHA 95488d2 (wait-for-probe; a re-review after round 2)
+
+**FAIL on one should-fix and two clarifications. Also, a correction to my Addendum 1.** In Addendum 1 I accepted
+"other threads refused during the probe" as stricter. Judge #2 showed that this loses data: the 14:55-15:10 quote
+window runs three index threads through `nse_json`, so the refused threads lose their capture moment, where today all
+three proceed. I weighed only politeness, not data completeness. That acceptance is withdrawn.
+
+The fix, waiting for the probe instead of being refused, is right for a probe that succeeds: nobody loses data, and
+one request goes first. Remaining:
+
+1. **Should fix: a probe with no answer re-pauses the host, which loses data the same way.** Under the story, a probe
+   that times out re-opens the breaker for the same 15 minutes, and the waiting callers get `SourceCoolingOff`. Today a
+   timeout neither counts nor pauses (`RequestPacer.observe` is never called without a status), so after a pause ends,
+   one timeout does not stop the other calls. By the data axis that judge #2 rightly applied, "re-open with the same
+   cool-down" is weaker than today. Fix: treat a no-answer probe as today does, as not a refusal. Close, or at least
+   release the waiters to proceed. Then `record_unanswered` is not needed.
+2. **Clarify: spacing after the waiters wake.** When the probe closes, the waiting callers must still take their
+   per-host 1 s slots (today's spacing). They must not all fire at once. State it, and claim 6's concurrency test
+   should assert the gaps.
+3. **Clarify: what ends a wait.** Say what a waiter gets when its bounded wait (20 s or 60 s) runs out, and that the
+   waiters are always released when the probe's thread raises anything (a `finally`). Then no caller can hang.
+
+Everything else in Addendum 1 stands.
