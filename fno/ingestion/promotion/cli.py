@@ -24,8 +24,8 @@ def add_promotion_parsers(subparsers) -> None:
                             ("promote", "promote staged files through the checks into the Record")):  # fmt: skip
         parser = subparsers.add_parser(name, help=help_text)
         parser.add_argument("dataset", choices=PROMOTABLE_DATASETS)
-        parser.add_argument("--from", dest="start", type=date.fromisoformat, default=None,
-                            help="YYYY-MM-DD (default: the dataset's first day)")  # fmt: skip
+        parser.add_argument("--from", dest="start", type=date.fromisoformat, required=True,
+                            help="YYYY-MM-DD first session (required: never all history)")  # fmt: skip
         parser.add_argument("--to", dest="end", type=date.fromisoformat, default=today_local() - timedelta(days=1),
                             help="YYYY-MM-DD (default: yesterday)")  # fmt: skip
         parser.set_defaults(func=cmd_stage if name == "stage" else cmd_promote)
@@ -61,7 +61,7 @@ def cmd_promote(args, out=print_now) -> int:
     finally:
         out(recorder.commit(f"promote {args.dataset}"))
     out("\n".join(report.lines()))
-    if report.problems():
+    if report.problems():  # notes (failed copies on days the Record holds) are log lines only
         lines = "; ".join(report.problems()[:ALERT_LINES])
         out(build_alert_sender().send(REJECTED_ALERT.format(dataset=args.dataset, lines=lines)))
     return 0 if report.complete else 1

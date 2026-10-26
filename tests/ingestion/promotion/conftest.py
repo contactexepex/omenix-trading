@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from fno.ingestion.promotion.gate import RevisionSink
 from fno.ingestion.research_data.calendar import load_session_calendar
 from fno.ingestion.storage.raw_source import ParticipantOiSource, RawFileRefused
 from fno.ingestion.storage.raw_store import LocalFolderStore, RawFileStore
@@ -39,6 +40,19 @@ class SpyStore(RawFileStore):
         return self.store.folders(folder)
 
 
+class RecordingSink(RevisionSink):
+    """Remembers the later versions the gate offered; `new` says which bytes count as new (default: all)."""
+
+    def __init__(self):
+        self.offered: list[tuple[str, bytes, datetime]] = []
+
+    def capture(self, path, data, found_at):
+        if any(d == data for _, d, _ in self.offered):
+            return False
+        self.offered.append((path, data, found_at))
+        return True
+
+
 class FakeNse(ParticipantOiSource):
     """Serves the bytes in `files` by archive path; a path in `refused` raises the source's per-file refusal."""
 
@@ -54,6 +68,11 @@ class FakeNse(ParticipantOiSource):
 @pytest.fixture
 def calendar():
     return load_session_calendar(FIXTURE_CALENDAR)
+
+
+@pytest.fixture
+def sink():
+    return RecordingSink()
 
 
 @pytest.fixture

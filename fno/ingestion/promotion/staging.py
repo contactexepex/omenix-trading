@@ -45,21 +45,25 @@ class StagingArea:
     def stage(self, source: str, path: str, data: bytes, fetched_at: datetime) -> bool:
         """Saves one fetch; False (nothing written) when the newest staged copy of this file already has these bytes."""
         path_parts(source)
-        latest = self.copies(source, path, limit=1)
-        if latest and latest[0].data == data:
+        latest = self.latest(source, path)
+        if latest and latest.data == data:
             return False
         self.store.put(f"{source}/{stamp_of(fetched_at)}/{path}", data)
         return True
 
-    def copies(self, source: str, path: str, limit: int | None = None) -> list[StagedCopy]:
-        """The staged copies of an archive path from one source, newest fetch first (at most `limit`)."""
+    def copies(self, source: str, path: str) -> list[StagedCopy]:
+        """The staged copies of an archive path from one source, earliest fetch first: the order the gate promotes in
+        (the first passing copy becomes the record, as the first archived copy does today)."""
+        return [copy for _, copy in self._found(source, path)]
+
+    def latest(self, source: str, path: str) -> StagedCopy | None:
+        """The newest staged copy (read last-first, so a stage of a new fetch lists but reads only one file)."""
+        return next((copy for _, copy in self._found(source, path, newest_first=True)), None)
+
+    def _found(self, source: str, path: str, newest_first: bool = False):
         path_parts(source)
-        stamps = sorted(((t, n) for n in self.store.folders(source) if (t := _parse_stamp(n))), reverse=True)
-        found: list[StagedCopy] = []
+        stamps = sorted(((t, n) for n in self.store.folders(source) if (t := _parse_stamp(n))), reverse=newest_first)
         for fetched_at, name in stamps:
             data = self.store.get(f"{source}/{name}/{path}")
             if data is not None:
-                found.append(StagedCopy(source, fetched_at, path, data))
-                if limit is not None and len(found) >= limit:
-                    break
-        return found
+                yield fetched_at, StagedCopy(source, fetched_at, path, data)

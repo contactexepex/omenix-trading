@@ -1,5 +1,5 @@
 """The Record is written by the gate only, enforced structurally (docs/PIPELINE_DESIGN.md): inside the promotion
-package only the staging area and the gate may call `.put(`, so a fetcher module cannot write anything else."""
+package only the staging area and the gate may reference `.put`, so a fetcher module cannot write anything else."""
 
 from __future__ import annotations
 
@@ -10,16 +10,16 @@ PACKAGE = Path(__file__).parents[3] / "fno" / "ingestion" / "promotion"
 MAY_WRITE = {"staging.py", "gate.py"}
 
 
-def put_calls(path: Path) -> int:
+def put_references(path: Path) -> int:
+    """Every `.put` attribute access, called or aliased (`w = store.put`)."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    return sum(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "put"
-               for n in ast.walk(tree))  # fmt: skip
+    return sum(isinstance(n, ast.Attribute) and n.attr == "put" for n in ast.walk(tree))
 
 
-def test_only_the_staging_area_and_the_gate_write():
+def test_only_the_staging_area_and_the_gate_reference_put():
     files = sorted(PACKAGE.glob("*.py"))
     assert len(files) >= 7
-    writers = {p.name for p in files if put_calls(p)}
+    writers = {p.name for p in files if put_references(p)}
     assert writers == MAY_WRITE
 
 

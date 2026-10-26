@@ -6,9 +6,17 @@ from __future__ import annotations
 
 import os
 
-from fno.ingestion.promotion.checks import ContentDayCheck, FreshnessCheck, PromotionCheck, SchemaCheck
+from fno.ingestion.promotion.checks import (
+    ContentDayCheck,
+    ExceptionCheck,
+    FreshnessCheck,
+    PromotionCheck,
+    SchemaCheck,
+    SessionCheck,
+)
 from fno.ingestion.promotion.datasets import PROMOTABLE
 from fno.ingestion.promotion.gate import PromotionGate
+from fno.ingestion.promotion.revision_sink import ArchiveRevisionSink
 from fno.ingestion.promotion.runs import PromotionRun, Stager
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.raw_store import AreaStore
@@ -18,6 +26,7 @@ from fno.ingestion.storage.wiring import (
     build_nse_source,
     build_owner_drive,
     build_owner_drive_store,
+    build_revision_archive,
     build_session_calendar,
     coverage_datasets,
 )
@@ -42,10 +51,13 @@ def build_stager(dataset: str) -> Stager:
     return Stager(source, build_staging_area(), NSE_TAG, build_session_calendar(), build_file_exceptions())
 
 
-def checks_for(dataset: str, validate, max_lag_days: int | None = None) -> list[PromotionCheck]:
-    """The dataset's content check, its identity check where its content check does not read a date, and the owner's
-    numeric window only when `promotion.max_lag_days` is set (none by default: open decision 1)."""
-    checks: list[PromotionCheck] = [SchemaCheck(validate)]
+def checks_for(dataset: str, validate, calendar, exceptions, max_lag_days: int | None = None) -> list[PromotionCheck]:
+    """Everything the librarian applies today (calendar session, sourced exceptions, the dataset's content check), the
+    identity check where the content check reads no date, and the owner's numeric window only when
+    `promotion.max_lag_days` is set (none by default: open decision 1)."""
+    source = PROMOTABLE[dataset].source
+    checks: list[PromotionCheck] = [SessionCheck(calendar, source), ExceptionCheck(exceptions, source.dataset)]
+    checks.append(SchemaCheck(validate))
     if PROMOTABLE[dataset].content_days is not None:
         checks.append(ContentDayCheck(PROMOTABLE[dataset].content_days))
     if max_lag_days is not None:
@@ -54,11 +66,14 @@ def checks_for(dataset: str, validate, max_lag_days: int | None = None) -> list[
 
 
 def build_promotion_run(dataset: str, max_lag_days: int | None = None, env=os.environ) -> PromotionRun:
-    """Staging -> checks -> the Record, for one dataset."""
+    """Staging -> checks -> the Record (and later versions to the revisions area), for one dataset."""
     source_type = PROMOTABLE[dataset].source
     record = build_owner_drive_store(env)
     if record is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
     validate = next(d.validate for d in coverage_datasets() if d.source is source_type)
-    gate = PromotionGate(build_staging_area(env), record, NSE_TAG, checks_for(dataset, validate, max_lag_days))
-    return PromotionRun(gate, source_type, build_session_calendar(), build_file_exceptions())
+    calendar, exceptions = build_session_calendar(), build_file_exceptions()
+    checks = checks_for(dataset, validate, calendar, exceptions, max_lag_days)
+    sink = ArchiveRevisionSink(build_revision_archive(env))
+    gate = PromotionGate(build_staging_area(env), record, NSE_TAG, checks, sink)
+    return PromotionRun(gate, source_type, calendar, exceptions)

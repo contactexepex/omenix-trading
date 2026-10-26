@@ -49,10 +49,12 @@ class StageReport:
 class Stager:
     def __init__(self, source: NseArchiveSource, staging: StagingArea, tag: str, calendar: SessionCalendar,
                  exceptions: dict[tuple[str, date], str], clock: Callable[[], datetime] = now_utc):  # fmt: skip
+        if not isinstance(staging, StagingArea):  # the fetcher can hold Staging and nothing else
+            raise TypeError(f"a Stager writes only to a StagingArea, not {type(staging).__name__}")
         self.source, self.staging, self.tag = source, staging, tag
         self.calendar, self.exceptions, self.clock = calendar, exceptions, clock
 
-    def stage(self, start: date | None, end: date) -> StageReport:
+    def stage(self, start: date, end: date) -> StageReport:
         report = StageReport(self.source.dataset)
         for day in session_days(type(self.source), self.calendar, start, end):
             if (self.source.dataset, day) in self.exceptions:
@@ -76,7 +78,7 @@ class Stager:
             report.unchanged.append(day)
 
 
-DONE = (Verdict.PROMOTED, Verdict.ALREADY_RECORDED)  # the Record holds the file
+RECORDED = (Verdict.PROMOTED, Verdict.ALREADY_RECORDED)  # the Record holds the file
 
 
 def _problem_line(day: date, result: Promotion) -> str:
@@ -94,17 +96,26 @@ class PromotionReport:
         return [day for day, result in self.results if result.verdict is verdict]
 
     @property
+    def revisions(self) -> int:
+        return sum(result.revisions for _, result in self.results)
+
+    @property
     def complete(self) -> bool:
-        return all(r.verdict in DONE for _, r in self.results)
+        return all(r.verdict in RECORDED for _, r in self.results)
 
     def problems(self) -> list[str]:
-        return [_problem_line(day, r) for day, r in self.results if r.verdict not in DONE]
+        """Days with no record after this run (alerted, exit 1)."""
+        return [_problem_line(day, r) for day, r in self.results if r.verdict not in RECORDED]
+
+    def notes(self) -> list[str]:
+        """Copies that failed a check on a day the Record already holds: in the log, never an alert."""
+        return [f"note {day}: left in Staging: {'; '.join(r.notes)}" for day, r in self.results if r.notes]
 
     def lines(self) -> list[str]:
         counts = ", ".join(f"{len(self.days(v))} {v.value}" for v in Verdict)
         verdict = "complete" if self.complete else "INCOMPLETE: see the lines above"
-        return [f"{self.dataset}: {counts}, {self.excepted} with a sourced exception", *self.problems(),
-                f"result: {verdict}"]  # fmt: skip
+        head = f"{self.dataset}: {counts}, {self.revisions} later versions kept as revisions, {self.excepted} excepted"
+        return [head, *self.problems(), *self.notes(), f"result: {verdict}"]
 
 
 class PromotionRun:
@@ -112,12 +123,14 @@ class PromotionRun:
                  exceptions: dict[tuple[str, date], str]):  # fmt: skip
         self.gate, self.source, self.calendar, self.exceptions = gate, source, calendar, exceptions
 
-    def promote(self, start: date | None, end: date) -> PromotionReport:
+    def promote(self, start: date, end: date) -> PromotionReport:
+        """Every session in the range (the librarian's days): a day with a sourced exception and nothing staged is
+        counted; one with a staged file is refused by the gate's exception check."""
         report = PromotionReport(self.source.dataset)
         for day in session_days(self.source, self.calendar, start, end):
-            if (self.source.dataset, day) in self.exceptions:
-                report.excepted += 1
-                continue
             result = self.gate.promote(self.source.path_for(day), day, self.source.filename_for(day))
-            report.results.append((day, result))
+            if result.verdict is Verdict.NOT_STAGED and (self.source.dataset, day) in self.exceptions:
+                report.excepted += 1
+            else:
+                report.results.append((day, result))
         return report

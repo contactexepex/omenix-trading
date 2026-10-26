@@ -10,7 +10,9 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from fno.ingestion.promotion.staging import StagedCopy
-from fno.ingestion.storage.coverage import Validator
+from fno.ingestion.research_data.calendar import SessionCalendar
+from fno.ingestion.storage.coverage import Validator, archive_range
+from fno.ingestion.storage.raw_source import NseArchiveSource
 from fno.shared.models import IST
 
 
@@ -44,6 +46,38 @@ class SchemaCheck(PromotionCheck):
         except ValueError as exc:
             return str(exc)
         return None
+
+
+class SessionCheck(PromotionCheck):
+    """The librarian's first rule: only a session of NSE's calendar, inside the days the source's archive keeps
+    files for (`librarian.py` `archive_range` and `is_session`), is ever archived."""
+
+    name = "session"
+
+    def __init__(self, calendar: SessionCalendar, source: type[NseArchiveSource]):
+        self.calendar, self.source = calendar, source
+
+    def problem(self, candidate: Candidate) -> str | None:
+        first, last = archive_range(self.source, None, candidate.day)
+        if not first <= candidate.day <= last:
+            return f"{candidate.filename}: {candidate.day} is outside the days this archive keeps files for"
+        if not self.calendar.is_session(candidate.day):
+            return f"{candidate.filename}: {candidate.day} is not an NSE session"
+        return None
+
+
+class ExceptionCheck(PromotionCheck):
+    """The librarian's second rule: a day with a sourced exception (never published, or refused content) has no file in
+    the archive, so a staged file for it is not promoted."""
+
+    name = "exception"
+
+    def __init__(self, exceptions: dict[tuple[str, date], str], dataset: str):
+        self.exceptions, self.dataset = exceptions, dataset
+
+    def problem(self, candidate: Candidate) -> str | None:
+        reason = self.exceptions.get((self.dataset, candidate.day))
+        return None if reason is None else f"{candidate.filename}: {candidate.day} has a sourced exception: {reason}"
 
 
 class ContentDayCheck(PromotionCheck):

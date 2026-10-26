@@ -6,6 +6,8 @@ today's readers do not read a date from them."""
 
 from __future__ import annotations
 
+import csv
+import io
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
@@ -19,7 +21,7 @@ from fno.ingestion.storage.raw_source import (
     ParticipantVolumeSource,
 )
 from fno.ingestion.storage.source_lists import dataset_name
-from fno.shared.fo_bhavcopy import read_fo_file
+from fno.shared.fo_bhavcopy import csv_text, read_fo_file
 from fno.shared.nse_files.nse_files import read_equity_bhavcopy
 
 ContentDays = Callable[[str, bytes], set[date]]
@@ -31,7 +33,10 @@ def fo_content_days(filename: str, data: bytes) -> set[date]:
 
 
 def equity_content_days(filename: str, data: bytes) -> set[date]:
-    return {bar.day for bar in read_equity_bhavcopy(data, filename)}
+    """The `TradDt` of ALL rows (not only the EQ and BE rows the equity reader keeps: a row of any series dated another
+    day makes the file another session's)."""
+    read_equity_bhavcopy(data, filename)  # the layout check; raises BadFile
+    return {date.fromisoformat(row["TradDt"]) for row in csv.DictReader(io.StringIO(csv_text(filename, data)))}
 
 
 @dataclass(frozen=True)

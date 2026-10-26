@@ -23,12 +23,13 @@ def test_same_bytes_again_is_not_a_second_copy(staging_store):
     assert len(area.copies("nse", PATH)) == 1
 
 
-def test_newer_fetch_is_a_new_copy_listed_first_and_the_old_one_stays(staging_store):
+def test_newer_fetch_is_a_new_copy_listed_after_the_old_one_which_stays(staging_store):
     area = StagingArea(staging_store)
     area.stage("nse", PATH, b"old", moment(THURSDAY))
     area.stage("nse", PATH, b"new", moment(THURSDAY) + timedelta(hours=1))
-    assert [c.data for c in area.copies("nse", PATH)] == [b"new", b"old"]
-    assert [c.data for c in area.copies("nse", PATH, limit=1)] == [b"new"]
+    assert [c.data for c in area.copies("nse", PATH)] == [b"old", b"new"]  # earliest fetch first
+    assert area.latest("nse", PATH).data == b"new"
+    assert area.latest("nse", "nse/other/path.csv") is None
 
 
 def test_empty_staging_and_other_sources_and_stray_folders(staging_store):

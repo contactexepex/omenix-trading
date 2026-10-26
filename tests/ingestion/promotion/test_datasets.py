@@ -13,7 +13,7 @@ from fno.ingestion.promotion.gate import PromotionGate, Verdict
 from fno.ingestion.promotion.staging import StagedCopy, StagingArea
 from fno.ingestion.promotion.wiring import checks_for
 from fno.ingestion.storage.wiring import coverage_datasets
-from tests.ingestion.promotion.conftest import THURSDAY, WEDNESDAY, moment
+from tests.ingestion.promotion.conftest import THURSDAY, WEDNESDAY, RecordingSink, moment
 from tests.ingestion.promotion.samples import equity_file, fo_udiff_file, participant_file
 
 DAY, OTHER = THURSDAY, WEDNESDAY
@@ -23,9 +23,15 @@ def validator(dataset):
     return next(d.validate for d in coverage_datasets() if d.source is PROMOTABLE[dataset].source)
 
 
-def promote(dataset, data, staging_store, record_store, day=DAY, lag=None):
+def checks(dataset, calendar, lag=None):
+    return checks_for(dataset, validator(dataset), calendar, {}, lag)
+
+
+def promote(dataset, data, staging_store, record_store, calendar, day=DAY, lag=None):
     source = PROMOTABLE[dataset].source
-    gate = PromotionGate(StagingArea(staging_store), record_store, "nse", checks_for(dataset, validator(dataset), lag))
+    gate = PromotionGate(
+        StagingArea(staging_store), record_store, "nse", checks(dataset, calendar, lag), RecordingSink()
+    )
     StagingArea(staging_store).stage("nse", source.path_for(day), data, moment(day))
     return gate.promote(source.path_for(day), day, source.filename_for(day))
 
@@ -43,57 +49,79 @@ FILE_CHECKED_DATASETS = ["participant-oi", "participant-volume", "fo-bhavcopy", 
 
 
 @pytest.mark.parametrize("dataset", FILE_CHECKED_DATASETS)
-def test_the_correct_file_is_promoted(dataset, staging_store, record_store):
+def test_the_correct_file_is_promoted(dataset, staging_store, record_store, calendar):
     good, _, _ = wrong_day_and_undated(dataset)
-    assert promote(dataset, good, staging_store, record_store).verdict is Verdict.PROMOTED
+    assert promote(dataset, good, staging_store, record_store, calendar).verdict is Verdict.PROMOTED
     assert record_store.saved
 
 
 @pytest.mark.parametrize("dataset", FILE_CHECKED_DATASETS)
-def test_a_file_for_another_session_is_rejected(dataset, staging_store, record_store):
+def test_a_file_for_another_session_is_rejected(dataset, staging_store, record_store, calendar):
     _, wrong, _ = wrong_day_and_undated(dataset)
-    assert promote(dataset, wrong, staging_store, record_store).verdict is Verdict.REJECTED
+    assert promote(dataset, wrong, staging_store, record_store, calendar).verdict is Verdict.REJECTED
     assert record_store.saved == []
 
 
 @pytest.mark.parametrize("dataset", FILE_CHECKED_DATASETS)
-def test_an_undated_file_is_rejected(dataset, staging_store, record_store):
+def test_an_undated_file_is_rejected(dataset, staging_store, record_store, calendar):
     _, _, undated = wrong_day_and_undated(dataset)
-    assert promote(dataset, undated, staging_store, record_store).verdict is Verdict.REJECTED
+    assert promote(dataset, undated, staging_store, record_store, calendar).verdict is Verdict.REJECTED
     assert record_store.saved == []
 
 
 @pytest.mark.parametrize("data", [b"", b"<html>blocked</html>"])
 @pytest.mark.parametrize("dataset", sorted(PROMOTABLE))
-def test_garbage_and_empty_files_are_rejected_by_every_promotable_dataset(dataset, data, staging_store, record_store):
-    assert promote(dataset, data, staging_store, record_store).verdict is Verdict.REJECTED
+def test_garbage_and_empty_files_are_rejected_by_every_promotable_dataset(
+    dataset, data, staging_store, record_store, calendar
+):
+    assert promote(dataset, data, staging_store, record_store, calendar).verdict is Verdict.REJECTED
     assert record_store.saved == []
 
 
-def test_a_file_with_one_row_from_another_day_is_rejected_whole(staging_store, record_store):
+def test_a_file_with_one_row_from_another_day_is_rejected_whole(staging_store, record_store, calendar):
     mixed = fo_udiff_file(DAY, OTHER)
-    assert promote("fo-bhavcopy", mixed, staging_store, record_store).verdict is Verdict.REJECTED
+    assert promote("fo-bhavcopy", mixed, staging_store, record_store, calendar).verdict is Verdict.REJECTED
 
 
-def test_no_numeric_window_by_default_so_a_late_back_fill_of_the_right_session_is_promoted(staging_store, record_store):
+def test_no_numeric_window_by_default_so_a_late_back_fill_of_the_right_session_is_promoted(
+    staging_store, record_store, calendar
+):
     source = PROMOTABLE["participant-oi"].source
-    old = DAY - timedelta(days=400)
-    StagingArea(staging_store).stage("nse", source.path_for(old), participant_file(old), moment(DAY))
-    gate = PromotionGate(
-        StagingArea(staging_store), record_store, "nse", checks_for("participant-oi", validator("participant-oi"))
+    StagingArea(staging_store).stage(
+        "nse", source.path_for(OTHER), participant_file(OTHER), moment(DAY + timedelta(days=60))
     )
-    assert gate.promote(source.path_for(old), old, source.filename_for(old)).verdict is Verdict.PROMOTED
+    gate = PromotionGate(
+        StagingArea(staging_store), record_store, "nse", checks("participant-oi", calendar), RecordingSink()
+    )
+    assert gate.promote(source.path_for(OTHER), OTHER, source.filename_for(OTHER)).verdict is Verdict.PROMOTED
 
 
 @pytest.mark.parametrize(("lag", "verdict"), [(None, Verdict.PROMOTED), (3, Verdict.PROMOTED), (1, Verdict.REJECTED)])
-def test_a_configured_window_is_applied_and_the_default_has_none(lag, verdict, staging_store, record_store):
+def test_a_configured_window_is_applied_and_the_default_has_none(lag, verdict, staging_store, record_store, calendar):
     source = PROMOTABLE["participant-oi"].source
-    StagingArea(staging_store).stage(
-        "nse", source.path_for(DAY), participant_file(DAY), moment(DAY + timedelta(days=3))
+    fetched = moment(DAY + timedelta(days=3))
+    StagingArea(staging_store).stage("nse", source.path_for(DAY), participant_file(DAY), fetched)
+    gate = PromotionGate(
+        StagingArea(staging_store), record_store, "nse", checks("participant-oi", calendar, lag), RecordingSink()
     )
-    checks = checks_for("participant-oi", validator("participant-oi"), lag)
-    gate = PromotionGate(StagingArea(staging_store), record_store, "nse", checks)
     assert gate.promote(source.path_for(DAY), DAY, source.filename_for(DAY)).verdict is verdict
+
+
+def test_every_promotable_dataset_carries_the_librarians_rules(calendar):
+    for dataset in PROMOTABLE:
+        names = [c.name for c in checks(dataset, calendar)]
+        assert names[:3] == ["session", "exception", "schema"] and "freshness" not in names
+
+
+def test_an_equity_file_with_a_row_of_another_series_dated_another_day_is_rejected(
+    staging_store, record_store, calendar
+):
+    from fno.shared.nse_files.nse_files import EQUITY_COLUMNS
+    from tests.ingestion.promotion.samples import zipped
+
+    rows = [",".join(EQUITY_COLUMNS), f"{DAY},ABC,EQ,10,11,9,100,10", f"{OTHER},XYZ,SM,10,11,9,100,10"]
+    data = zipped("\n".join(rows))
+    assert promote("cm-bhavcopy", data, staging_store, record_store, calendar).verdict is Verdict.REJECTED
 
 
 def test_promotable_datasets_are_exactly_the_five_in_the_story():

@@ -31,7 +31,7 @@ def test_without_drive_settings_the_wiring_says_which_to_set(monkeypatch):
 def test_the_cli_knows_stage_and_promote_for_the_promotable_datasets():
     args = build_parser().parse_args(["promote", "participant-oi", "--from", "2026-10-01"])
     assert args.func is cli.cmd_promote
-    assert build_parser().parse_args(["stage", "fo-bhavcopy"]).func is cli.cmd_stage
+    assert build_parser().parse_args(["stage", "fo-bhavcopy", "--from", "2026-10-01"]).func is cli.cmd_stage
 
 
 class StubStager:
@@ -47,7 +47,7 @@ class StubStager:
 def run_stage(monkeypatch, stager):
     lines = []
     monkeypatch.setattr(wiring, "build_stager", lambda dataset: stager)
-    args = build_parser().parse_args(["stage", "participant-oi"])
+    args = build_parser().parse_args(["stage", "participant-oi", "--from", "2026-10-01"])
     return cli.cmd_stage(args, out=lines.append), "\n".join(lines)
 
 
@@ -93,7 +93,7 @@ def run_promote(monkeypatch, report, error=None):
     monkeypatch.setattr(storage_wiring, "build_manifest_recorder", lambda: recorder)
     monkeypatch.setattr(composition, "build_alert_sender", lambda: alerts)
     monkeypatch.setattr(wiring, "build_promotion_run", lambda dataset, lag: StubRun())
-    args = build_parser().parse_args(["promote", "participant-oi"])
+    args = build_parser().parse_args(["promote", "participant-oi", "--from", "2026-10-01"])
     return cli.cmd_promote(args, out=lines.append), recorder, alerts, "\n".join(lines)
 
 
@@ -119,3 +119,11 @@ def test_promote_that_promoted_everything_sends_no_alert(monkeypatch):
 def test_promote_stops_on_a_refused_sign_in_but_still_commits(monkeypatch):
     code, recorder, _, text = run_promote(monkeypatch, None, error=DriveSignInRefused("expired"))
     assert code == 1 and "sign-in" in text and recorder.what is not None
+
+
+def test_from_is_required_so_no_run_scans_all_history():
+    import pytest
+
+    for command in ("stage", "promote"):
+        with pytest.raises(SystemExit):
+            build_parser().parse_args([command, "participant-oi"])

@@ -23,7 +23,7 @@ The answer to all three is a **two-stage pipeline with a quality gate between fe
 
 | Zone | What it holds | Who writes it | Mutable? |
 |---|---|---|---|
-| **Staging** (landing) | Every raw fetch, from every source, tagged with source + fetch time | the fetchers | append-only, overwritable by a newer fetch of the same thing |
+| **Staging** (landing) | Every raw fetch, from every source, tagged with source + fetch time | the fetchers | append-only: a newer fetch is a new copy beside the old |
 | **Record** (system-of-record) | Only files that passed the quality gate | the **promotion gate only** | **write-once** (first promotion wins; receipts prove it) |
 | **Derived** | Tables/features built from the record (RV, flows, panels) | derived-step jobs | write-once |
 
@@ -124,9 +124,10 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 
 ## Incremental build plan (each phase: gate + judge)
 
-1. **Staging/Record split** *(built; see below)* — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
-   existing fetchers to write Staging; add a minimal promotion gate that promotes what already passes (freshness +
-   schema + idempotency). *(foundation)*
+1. **Staging/Record split** *(built; see below)* — introduce the Staging Drive area and a staging-only writer; a
+   minimal promotion gate that promotes what already passes (the librarian's rules, schema, identity, idempotency).
+   Moving each existing fetcher to write Staging is **deferred**, one workflow at a time with the owner's go-ahead.
+   *(foundation)*
 2. **News source + dedup** — Google News RSS + a couple of publisher feeds → Staging; promotion-gate clustering/dedup;
    store clusters + corroboration. *(first new source; where dedup matters)*
 3. **BSE filings** — second filings source into Staging + cross-check in the gate.
@@ -135,24 +136,24 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 
 ## Phase 1 as built (staging/record split, `fno/ingestion/promotion/`)
 
-Contract, claims and gap list: `docs/stories/P1-staging-record-split.md`. In short:
+Contract, claims, gap list and evidence: `docs/stories/P1-staging-record-split.md`. In short:
 
-- **Additive.** The existing fetch-to-Record paths and workflows are unchanged. `python -m fno stage <dataset>` fetches
-  NSE's files into the Drive `staging` area only; `python -m fno promote <dataset>` runs staged files through the gate
-  into the write-once Record (Drive `raw` with its manifest row). The only new workflow, `pipeline-staging.yml`, is
-  `workflow_dispatch` only. Switching a live workflow to stage-then-promote is a separate change, with the owner's go-ahead.
+- **Additive.** Existing fetch-to-Record paths and workflows are unchanged. `python -m fno stage <dataset> --from D`
+  fetches NSE's files into the Drive `staging` area only; `python -m fno promote <dataset> --from D` runs staged files
+  through the gate into the write-once Record. The only new workflow, `pipeline-staging.yml`, is `workflow_dispatch`
+  only. Switching a live workflow to stage-then-promote is a separate change with the owner's go-ahead.
 - **Datasets:** participant-oi, participant-volume, fii-stats, fo-bhavcopy, cm-bhavcopy. index-close and
-  security-delivery stay on the direct path (no verified date in their files yet).
-- **Staging layout:** `<source>/<fetch time UTC>/<archive path>`; a newer fetch is a new write-once copy beside the old
-  one; identical bytes are not staged twice. Staging has no receipts (it is not a record) and no retention rule yet.
-- **Only the gate writes the Record, by construction:** the Stager holds a `StagingArea` only; the Record store is given
-  to `PromotionGate` only; a test asserts only `staging.py` and `gate.py` call `.put(` in the package.
-- **Gate:** equal to the Record = skip; else the newest staged copy that passes every check is written; a passing copy
-  that differs from the Record is reported as a revision, never written; failing copies stay in Staging with their reasons.
-  `promote` commits its manifest rows and posts non-promoted files to #fno-desk.
-- **Default checks (behavior-preserving, no number):** the dataset's content check (same function the librarian uses) and,
-  where that check reads no date, `ContentDayCheck`: every row's date must equal the session the path claims, else the
-  file is rejected (also if undated or unreadable).
+  security-delivery stay on the direct path (date column not confirmed against a real file).
+- **Staging layout:** `<source>/<fetch time, UTC YYYYMMDDTHHMMSSZ>/<archive path>`; every fetch is its own write-once
+  copy; identical bytes are not staged again. No receipts (not a record), no retention rule yet.
+- **Only the gate writes the Record, in code, not at the credential level:** the Stager holds a `StagingArea` only; the
+  Record store goes to `PromotionGate` only. Credential separation is **not** in Phase 1 (the same owner Drive
+  credential can still write `raw/`), so the design's security property is not yet met.
+- **Gate = the librarian's rules on staged files:** calendar session and archive range, sourced exceptions, the dataset's
+  content check, and an identity check where that check reads no date (every row's date == the claimed session).
+  **First copy wins:** the earliest-fetched passing copy is the record; later passing copies with other bytes go to the
+  existing A11 revisions area; a Record already holding the path is never touched; failing copies stay in Staging.
+- **Reporting:** a day with no record after a run is a problem (alert, exit 1, repeated while it lasts); a failing copy
+  on a day the Record holds is a log note only. `--from` is required, so no run scans all history.
 - **Owner decision 1 seam:** `FreshnessCheck(max_lag_days)` is wired only when `config.yaml` sets
-  `promotion.max_lag_days`; it ships `null` (no window). The owner's numbers plug in there, per dataset later.
-
+  `promotion.max_lag_days`; it ships `null` (no window).
