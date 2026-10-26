@@ -1,3 +1,6 @@
+import threading
+import time
+
 import pytest
 
 from fno.shared.resilience.breaker import Admission, BreakerSettings, CircuitBreaker, State
@@ -141,12 +144,6 @@ def test_settings_are_validated():
 
 
 def test_exactly_one_probe_among_concurrent_checks():
-    import threading
-
-    from fno.shared.resilience.breaker import Admission
-
-    import time
-
     wall = WallClock()
     breaker = CircuitBreaker("nse", settings_for("nse").breaker, wall)
     breaker.record_refusal()
