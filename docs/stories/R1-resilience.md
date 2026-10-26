@@ -143,10 +143,29 @@ when those sources exist. Each step preserves today's behaviour first (today's n
 
 ## Gap list
 
-- **Gated:** no build before V1 (the real stage-only run) passes and both judges PASS this text.
+- **Gate lifted (orchestrator, owner's plan change):** the build proceeds without waiting for the V1 real stage-only run; that run and every real Drive write stay deferred to the owner's go-live approval.
 - The failure-rate breaker (over a window) is specified but ships as consecutive-only first; the build story says so.
 - A source that blocks by IP for days is outside what a breaker can fix; the alert, the growing cool-down and the
   deferral log make it visible.
 - GitHub's runner IPs are shared and not ours to rotate; politeness (spacing, backoff, identity) is the only lever.
 - Overlapping runs can probe twice and a stale checkout can miss a transition (stated above, accepted).
 - Window waits stay as they are; nothing here makes a hand-run Groww call legal in market hours.
+
+## R1a build evidence (library only; no module uses it yet)
+
+Package `fno/shared/resilience/`: `outcomes`, `retry`, `breaker`, `guarded`, `rate_limit`, `transition_log`, `settings`;
+config key `resilience` (empty by default, so today's numbers apply); `.gitattributes` `merge=union` for
+`research/data/resilience/*.csv`. Tests in `tests/shared/resilience/` (57 new; whole suite 312 passed; ruff,
+`check_imports`, `check_numbers`, `test_code_size` clean).
+
+- Claims 1-5 and 7 are covered by `test_retry`, `test_breaker`, `test_guarded`, `test_rate_limit`, `test_settings` and
+  `test_union_merge`. Claim 6 (Deferred writes nothing) and claim 8 (static no-second-loop test) belong to R1b/R1c,
+  where a module first uses the library; claim 9 is untouched because nothing calls the library yet.
+- Parity: settings tests assert the NSE and Drive default waits equal today's tables, and that every jitter cap is at
+  least 2 x the largest wait (so jitter only ever lengthens a wait).
+- Mutation checks, 12 of 12 caught (examples: breaker threshold off by one, jitter below the floor, a second probe
+  allowed, retries wiping the exhausted count for Drive).
+- Bug found by a test and fixed: retried attempts reset the failure count of `count_exhausted` sources, so Drive's
+  breaker never opened.
+- Build note for R1b: `fno/shared/numbering/claim.py` retries `git push`; it is listed as internal in the allowlist,
+  not described as having no external call.
