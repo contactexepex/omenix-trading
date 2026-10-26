@@ -1,8 +1,9 @@
 # Ingestion pipeline design: staging → promotion → system-of-record
 
-**Status: DRAFT / proposal (owner + Claude, 27 Oct 2026).** Not yet built. This is the owning document for the
+**Status: DRAFT / proposal (owner + Claude, 26 Oct 2026).** Not yet built. This is the owning document for the
 multi-source ingestion architecture; everywhere else links here. It will be refined with the owner, then implemented
-incrementally (each phase through the gate + judge).
+incrementally (each phase through the gate + judge). Phase 1's contract (claims, gap list, default freshness rule) is
+`docs/stories/P1-staging-record-split.md`.
 
 ## Why
 
@@ -22,12 +23,13 @@ The answer to all three is a **two-stage pipeline with a quality gate between fe
 
 | Zone | What it holds | Who writes it | Mutable? |
 |---|---|---|---|
-| **Staging** (landing) | Every raw fetch, from every source, tagged with source + fetch time | the fetchers | append-only, overwritable by a newer fetch of the same thing |
+| **Staging** (landing) | Every raw fetch, from every source, tagged with source + fetch time | the fetchers | append-only: a newer fetch is a new copy beside the old |
 | **Record** (system-of-record) | Only files that passed the quality gate | the **promotion gate only** | **write-once** (first promotion wins; receipts prove it) |
 | **Derived** | Tables/features built from the record (RV, flows, panels) | derived-step jobs | write-once |
 
 Staging and Record are **separate Drive areas**. A fetcher can only write Staging. Nothing but the promotion gate
-writes Record. This is the core rule: **ingestion never commits or overrides the system-of-record directly.**
+writes Record. This is the core rule and the **target**: **ingestion never commits or overrides the system-of-record
+directly.** It is not yet globally true: see "Phase 1 as built" for what is enforced today.
 
 ## Flow
 
@@ -97,8 +99,9 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
 ## Security (public repo)
 
 - Fetchers hold **no broker key** (Groww runs as a routine with the key in its session env, never in GitHub).
-- Fetchers can write **only Staging**; the write-once Record is written **only** by the promotion gate — so an abused
-  public workflow can at worst drop garbage in Staging, which the gate rejects.
+- **Target:** fetchers can write **only Staging**; the write-once Record is written **only** by the promotion gate — so
+  an abused public workflow can at worst drop garbage in Staging, which the gate rejects. **Not met yet** (Phase 1:
+  code-level only, one shared Drive credential; see "Phase 1 as built").
 - Actions pinned to full SHAs; no third-party actions; fork PRs require approval and cannot reach secrets (no
   `pull_request` triggers); the record scan blocks committing any secret/PII.
 - GitHub masks secrets in logs; code prints exception class names only, never credential-bearing text.
@@ -123,11 +126,26 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 
 ## Incremental build plan (each phase: gate + judge)
 
-1. **Staging/Record split** — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
-   existing fetchers to write Staging; add a minimal promotion gate that promotes what already passes (freshness +
-   schema + idempotency). *(foundation)*
+1. **Staging/Record split** — introduce the Staging Drive area and a staging-only writer; a minimal promotion gate that
+   promotes what already passes (the librarian's rules, schema, identity, idempotency). *(foundation; built for 5
+   datasets, see below.)* Moving each existing fetcher to write Staging is **not done**: one workflow at a time, with
+   the owner's go-ahead.
 2. **News source + dedup** — Google News RSS + a couple of publisher feeds → Staging; promotion-gate clustering/dedup;
    store clusters + corroboration. *(first new source; where dedup matters)*
 3. **BSE filings** — second filings source into Staging + cross-check in the gate.
 4. **Yahoo EOD cross-check** — corroborate NSE closes; authoritative-source-wins on conflict.
 5. **Harden + document** — finalise the Record contract with the forecasting engine.
+
+## Phase 1 as built
+
+The owning document for Phase 1 (what it does, claims, gap list, evidence) is `docs/stories/P1-staging-record-split.md`.
+Three facts matter for the rest of this design:
+
+- Only five datasets can go stage-then-promote (participant-oi, participant-volume, fii-stats, fo-bhavcopy,
+  cm-bhavcopy), by hand, through the dispatch-only workflow `pipeline-staging.yml`. All live workflows still write the
+  Record directly.
+- "Only the gate writes the Record" holds **in code** (the new `stage` command can reach Staging only). It is **not** a
+  credential boundary: one owner Drive credential writes both areas, so the Security section's target is not met yet.
+  Separating the credentials (a Record-only credential for the gate's workflow) needs the owner.
+- The shipped freshness rule is the date-identity check (a file's own date must be its session); a numeric window is the
+  owner's decision 1 and is off unless `promotion.max_lag_days` is set in `config.yaml`.

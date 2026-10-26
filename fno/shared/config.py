@@ -16,6 +16,7 @@ DEFAULT_CONFIG_PATH = ROOT / "config.yaml"
 ALLOWED_APP_KEYS = frozenset(
     {
         "provider",
+        "promotion",
         "quotes",
         "lot_sizes",
         "slack",

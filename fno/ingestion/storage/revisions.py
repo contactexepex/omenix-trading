@@ -127,8 +127,9 @@ class RevisionArchive:
         self.stored: list[Revision] = []  # versions saved by this archive since it was made
         self.not_archived: list[str] = []  # paths offered with no raw file to compare with
 
-    def capture(self, path: str, published: PublishedFile) -> Revision | None:
-        """The new revision saved, or None when the bytes are a version already archived (or there is no raw file)."""
+    def capture(self, path: str, published: PublishedFile, found_at: datetime | None = None) -> Revision | None:
+        """The new revision saved, or None when the bytes are a version already archived (or there is no raw file).
+        `found_at`: when the bytes were fetched, if not now (the promotion gate saves versions staged earlier)."""
         source = source_of(path, self.index.sources)
         sha256 = hashlib.sha256(published.data).hexdigest()
         raw_sha256 = self._raw_sha256(source, path)
@@ -137,7 +138,7 @@ class RevisionArchive:
             return None
         if sha256 == raw_sha256 or sha256 in {r.sha256 for r in self.index.for_path(path)}:
             return None
-        revision = self._revision(source, path, published, sha256)
+        revision = self._revision(source, path, published, sha256, found_at)
         self.revisions.put(revision.revision_path, published.data)  # bytes first: a row always has its file
         self.index.append(source, revision)
         self.stored.append(revision)
@@ -150,8 +151,10 @@ class RevisionArchive:
         data = self.raw.get(path)  # not fingerprinted yet: hash the archived bytes themselves
         return None if data is None else hashlib.sha256(data).hexdigest()
 
-    def _revision(self, source, path: str, published: PublishedFile, sha256: str) -> Revision:
-        found_at = self.clock()
+    def _revision(
+        self, source, path: str, published: PublishedFile, sha256: str, found_at: datetime | None
+    ) -> Revision:
+        found_at = found_at.astimezone(IST) if found_at else self.clock()
         modified = published.last_modified.astimezone(IST) if published.last_modified else None
         day = source.day_for_path(path)
         return Revision(day, path, sha256, len(published.data), modified or found_at, modified, found_at)

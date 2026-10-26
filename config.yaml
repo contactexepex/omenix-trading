@@ -21,6 +21,11 @@ lot_sizes:
   FINNIFTY: 60
   MIDCPNIFTY: 120
 
+# The staging -> promotion gate (docs/PIPELINE_DESIGN.md). `max_lag_days` is the owner's numeric freshness window (open
+# decision 1): unset (null) means no window, only the identity check (a file's own date must be its session).
+promotion:
+  max_lag_days: null
+
 # F&O alerts go only to #fno-desk, never to #market-brief.
 slack:
   channel_name: fno-desk
