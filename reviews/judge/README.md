@@ -17,3 +17,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 4 | P1b stage-only input (pipeline-staging.yml) | 1 | PASS (64faaa1) | `judge_4_p1b-stage-only.md` |
 | 5 | P1b stage-only input (judge #2) | 1 | PASS | `judge_5_p1b-stage-only-input-judge2.md` |
 | 6 | H1 credential isolation (design) | 1 | FAIL (round 1, 3 should-fix) | `judge_6_h1-design.md` |
+| 7 | H1 credential isolation, design (judge #2) | 1 | FAIL (round 1) | `judge_7_h1-credential-isolation-judge2.md` |
