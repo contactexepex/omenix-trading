@@ -82,3 +82,18 @@ build must plant "a 300 s header stops the call" and "a 300 s header waits 300 s
 
 I would classify none of my traced paths differently. The minor from Addendum 2 (name how the 120 s cap is built)
 stands.
+
+## Addendum 4: `ddbcf60149bd1ba776886f3d33e8c09b3c3567bf` (supersedes `b057f5a`)
+
+**PASS**, lane 1, judge #2. Text only.
+- **My minor: FIXED, option (b).** The Drive classifier clamps the header to `DRIVE_RETRY_AFTER_CAP_SECONDS` (120 s);
+  Drive's library ceiling is set to 600 s, so its stop never fires; a test pins both. No R1a edit.
+- **The quote side file's reader is correct as cited** (`drive_only_store.py:48-62`):
+  - the flag false returns `None` before any private read;
+  - the flag true with no file raises `RawQuoteMissing`;
+  - a hash mismatch raises `RawQuoteHashMismatch`.
+
+  The three reader-side tests are the right pins. The dashboard as an outside reader is correctly left to the owner.
+
+For the build, the plants I listed in Addendum 2 apply, plus "the 600 s ceiling lowered to 120 s, so the stop fires"
+(the cap test must fail).
