@@ -22,3 +22,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 9 | DOC2 credential posture, docs (judge #2) | 1 | PASS (3b766c8; third pass, see file) | `judge_9_doc2-credential-posture-judge2.md` |
 | 10 | P1c stage-only labels | 1 | PASS (ebfafca) | `judge_10_p1c-labels.md` |
 | 11 | P1c stage-only labels (judge #2) | 1 | PASS (round 2, ebfafca) | `judge_11_p1c-stage-only-labels-judge2.md` |
+| 12 | SEC1 hash-pinned requirements, story (judge #2) | 1 | FAIL (round 1, 4 should-fix) | `judge_12_sec1-hash-pinning-judge2.md` |
