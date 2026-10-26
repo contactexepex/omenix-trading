@@ -28,4 +28,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 15 | SEC1b minors (judge #2) | 1 | PASS (e01d717) | `judge_15_sec1b-minors-judge2.md` |
 | 16 | P1d first stage-only runbook (judge #2) | 1 | PASS (7e7c035) | `judge_16_p1d-runbook-judge2.md` |
 | 17 | R1 resilience layer, story (judge #2) | 1 | FAIL (round 2, 2 should-fix; owner decides) | `judge_17_r1-resilience-judge2.md` |
-| 18 | R1 resilience layer (story text) | 1 | FAIL (round 2, 8ffc937: 2 should-fix; owner decides) | `judge_18_r1-resilience.md` |
+| 18 | R1 resilience layer (story text) | 1 | PASS (story, 163011b delta check after round 2) | `judge_18_r1-resilience.md` |

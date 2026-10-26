@@ -92,3 +92,19 @@ limit in the claim.
 
 For the owner: findings 7 and 8 are each a one-paragraph correction, and the rest of the design is sound. I recommend
 allowing the implementer to fix both and giving me a quick re-check, rather than treating it as a dispute.
+
+## Addendum 2: SHA 163011b (delta check, at the orchestrator's discretion after round 2)
+
+**PASS (story text), lane 1, judge 1.** 8ffc937..163011b changes only the story (+26/-14).
+- **7 FIXED.** Waits are today's per-attempt tables (NSE 5/15/45, Drive 2/8/30/60) as floors, with jitter added only
+  upward: `t_n + random(0, t_n)`. Claim 2 asserts the lower bound per attempt and per source, and says the tables are
+  not `base * 2^n`.
+- **8 FIXED.** For NSE every 403 and 429 counts, as `RequestPacer.observe` does today. The second consecutive one
+  opens the breaker and ends the call, as `raw_source.py:166` does. Claim 3 tests that two 429s open it and no third
+  request is sent.
+- **Minor FIXED.** Claim 8 now states its detection limit.
+
+Notes, not findings (for the build stories):
+- "capped": the cap must be at least `2 * max(t_n)`, or it pulls a wait below its floor. Assert it in the config test.
+- `numbering/claim.py` is called "an internal numbering tool with no external call", but it retries `git push` to
+  GitHub. That is fine to leave out of R1's scope; just describe it accurately.
