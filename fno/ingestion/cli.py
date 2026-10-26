@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import date, timedelta
 
 from fno.ingestion.circulars.cli import add_circulars_parser
@@ -13,6 +14,7 @@ from fno.ingestion.flow_history.cli import add_flows_parser
 from fno.ingestion.fo_masters.cli import add_fo_masters_parser
 from fno.ingestion.global_cues.cli import add_global_cues_parser
 from fno.ingestion.intraday.cli import add_intraday_parser
+from fno.ingestion.pause_memory import attach_pause_memory
 from fno.ingestion.pipeline.cli import add_pipeline_parser
 from fno.ingestion.preopen.cli import add_preopen_parser
 from fno.ingestion.promotion.cli import add_promotion_parsers
@@ -170,6 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    attach_pause_memory(sys.argv[1:] if argv is None else argv)
     try:
         return args.func(args)
     except CalendarError as gap:  # story O8c: any command stopped by NSE's calendar prints one named line

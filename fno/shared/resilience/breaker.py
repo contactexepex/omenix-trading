@@ -66,8 +66,10 @@ class CircuitBreaker:
             return
         self.state, self.opened_at, self.cool_down = State.OPEN, last.at, last.cool_down_seconds
 
-    def check(self) -> Admission:
-        """Asks leave to call. Raises Deferred (nothing sent) while open and cooling or while a probe is out."""
+    def check(self, force_probe: bool = False) -> Admission:
+        """Asks leave to call. Raises Deferred (nothing sent) while open and cooling or while a probe is out.
+        `force_probe`: a live-window command (story R1b2) is admitted as the probe even inside the cool-down, so a pause
+        carried over from an earlier run cannot cost a window that cannot be redone its one attempt."""
         with self._lock:
             if self.state is State.CLOSED:
                 return Admission.CALL
@@ -75,7 +77,7 @@ class CircuitBreaker:
                 raise Deferred(self.source, "circuit half-open: a probe is already out")
             assert self.opened_at is not None
             reopens_at = self.opened_at + timedelta(seconds=self.cool_down)
-            if self.clock() < reopens_at:
+            if self.clock() < reopens_at and not force_probe:
                 raise Deferred(self.source, f"circuit open until {reopens_at.isoformat(timespec='seconds')}")
             self.state = State.HALF_OPEN
             self._log(HALF_OPEN)

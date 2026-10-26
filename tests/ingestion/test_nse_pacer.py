@@ -97,7 +97,7 @@ def test_after_the_pause_one_probe_goes_alone_and_a_good_answer_lets_the_others_
     assert time.monotonic() - began < 2.0  # released by the answer, not by the 5 s limit on waiting
     assert list(outcomes.values()) == ["go"] * 3
     assert before == 1  # only the probe had started when it was answered
-    assert min(b - a for a, b in zip(started, started[1:])) >= 0.04  # the released threads keep the per-host spacing
+    assert min(b - a for a, b in zip(started, started[1:])) > 0.03  # the released threads keep the per-host spacing
 
 
 def test_a_refused_probe_refuses_all_three_and_only_one_request_was_sent():

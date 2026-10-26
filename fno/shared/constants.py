@@ -99,3 +99,21 @@ ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the healt
 
 # Design 04 4.4: host clock vs Slack's and GitHub's server times (fno/shared/server_clock.py)
 CLOCK_SKEW_WARNING_SECONDS = 5.0
+
+# Story R1b2: a pause on a host is remembered between runs. A run reads the committed log and appends to the run-local,
+# git-ignored one; the last workflow step merges the run-local rows into the committed file.
+PAUSE_LOG_PATH = "research/data/resilience/paced-hosts.csv"
+PAUSE_LOG_RUN_PATH = "research/data/resilience/.run/paced-hosts.csv"
+# A command is live when its source overwrites in place or shows only the current value within the window the next run
+# would read it, so a missed run cannot be redone: it keeps its one attempt even inside a carried-over cool-down.
+# Spelled as the command words after `fno` (`fno quotes record`). A static test pins the set.
+LIVE_WINDOW_COMMANDS = frozenset({
+    "quotes record",
+    "participant-oi watch",
+    "participant-oi check-once",
+    "closes read",
+    "preopen record",
+    "fo-masters",
+    "data-snapshot fii-dii-cash-by-session",
+    "data-snapshot fpi-daily-by-session",
+})  # fmt: skip
