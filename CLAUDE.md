@@ -52,8 +52,8 @@ email addresses, API keys or tokens.
 The repository's job is to fetch data and archive it write-once to Google Drive, with one SHA-256 receipt per Drive
 file kept in GitHub. The entry points are `python -m fno <command>` (run `python -m fno <command> --help` for each);
 `.github/workflows/` holds thirteen GitHub Actions workflows, one per data source, that call these commands on a
-schedule. **The schedules are commented out ("DISABLED for migration; re-enable at cutover"); the workflows run only
-by `workflow_dispatch` for now.** Each workflow fetches only its own source and commits only its own output paths
+schedule. **The schedules were re-enabled at cutover (26 Oct 2026); each workflow now runs on its cron schedule and by
+`workflow_dispatch`.** Each workflow fetches only its own source and commits only its own output paths
 (manifest rows, receipts and run logs); it never edits a recorded file. Research only: no workflow places, modifies or
 cancels orders, and the Groww-reading ones honour the market-hours rule above.
 

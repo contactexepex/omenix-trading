@@ -85,8 +85,9 @@ skipped (`backfill.py`), so a re-run is safe but wasteful.
 
 ## Status
 
-**Prepared, not live.** Like the thirteen GitHub Actions workflows ("DISABLED for migration; re-enable at cutover"),
-this routine is enabled at cutover: set the Groww key in the session environment, schedule the daily 21:40 IST session,
+**Prepared, not live.** The thirteen GitHub Actions workflows were re-enabled at cutover (26 Oct 2026; two steps that
+fire Claude routines stay `if: false` in `participant-oi-release.yml` and `participant-oi-sweep.yml`). This routine is
+not: to enable it, set the Groww key in the session environment, schedule the daily 21:40 IST session,
 and run the one-time historical backfill once.
 
 ### Known limitation (honest)

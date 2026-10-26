@@ -47,8 +47,8 @@ tests/               unit and integration tests
 
 ## Workflows (what each fetches)
 
-Thirteen workflows in `.github/workflows/`, one per data source. **Their schedules are commented out ("DISABLED for
-migration; re-enable at cutover"); they run only by `workflow_dispatch` for now.** Each fetches only its own source,
+Thirteen workflows in `.github/workflows/`, one per data source. **Their schedules were re-enabled at cutover (26 Oct 2026);
+each runs on its cron schedule and by `workflow_dispatch`** (rule: `CLAUDE.md`, "Ingestion workflows"). Each fetches only its own source,
 archives it to Drive, and commits only its own output paths (manifest rows, receipts, run logs).
 
 | Workflow | Command | Fetches |
