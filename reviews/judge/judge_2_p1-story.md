@@ -198,3 +198,11 @@ Full regression set (27 plants from Addendum 3) re-run on 056a0e6: all caught ex
 plant (the store's own path check still refuses bad tags; no finding).
 
 Note (not a finding): the story's Evidence line says 232 tests; 234 pass on 056a0e6.
+
+## Addendum 5: final SHA be69c3a (supersedes 056a0e6)
+
+**PASS, lane 1, judge 1 of 2.** 056a0e6..be69c3a adds one test in `tests/ingestion/promotion/test_gate.py` (+13 lines,
+judge #2's S5 case) and changes no production code. My gates on be69c3a: 235 passed; ruff, check_imports,
+check_numbers and code size are clean. My 7 targeted plants re-run on be69c3a: all caught (#12 conflict counted as
+recorded, #13 no-op sink, notes hidden, re-put without a proving copy, conflict swallowed, and both reader plants).
+The Addendum 4 verdict carries over to be69c3a.

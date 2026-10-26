@@ -28,3 +28,11 @@
 ## Plants
 
 None: text-only change, judged by reading (JUDGE.md merge procedure).
+
+## Addendum 1: SHA 01dae73
+
+**PASS.** Finding 1 FIXED: `docs/GROWW_CANDLE_ROUTINE.md:88` now says the thirteen workflows were re-enabled at cutover
+and keeps the routine's own "Prepared, not live". Finding 2 FIXED there: it names the two `if: false` routine-firing
+steps (`participant-oi-release.yml`, `participant-oi-sweep.yml`). No "DISABLED for migration" or "commented out" claim
+is left in any Markdown outside `conversations/` and `reviews/`. Doc-reading tests: 15 passed; record scan clean on
+all 3 files; the diff touches only those 3 Markdown files.
