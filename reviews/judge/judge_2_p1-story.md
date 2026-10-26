@@ -92,3 +92,44 @@ Plants: 29 planted, 25 caught, 4 survived (9a-d).
 
 Notes: Process: code was pushed on top of a story that had FAILED, with its round-1 findings not addressed. This is
 the second departure from quality rule 1. Rounds: per the orchestrator, round 2 (the last) is the next artifact SHA.
+
+## Addendum 2: story + code, SHA 1dd32d9 (round 2 of 2, final)
+
+**FAIL, lane 1, judge 1 of 2. Two rounds are used, so the owner decides (JUDGE.md "Rounds").** My gates: 219 passed;
+ruff, check_imports, check_numbers and code size are clean. The only `ruff format` finding is the pre-existing
+`tests/ingestion/test_paths.py`. Only one workflow was added, dispatch only, and no existing workflow is touched.
+
+Round-1 findings: 1 FIXED (claim 1 now covers `stage` only, story:56-59). 2 FIXED: credential sharing is disclosed
+honestly in the gap list (story:73-76) and in the design, and the AST test is presented as code-level enforcement
+only, not a security boundary. 3 FIXED (first copy wins and later versions go to the A11 sink; my plants caught all).
+4 FIXED (problem vs note rule, `--from` required, tested). 5 FIXED (all rows, caught). 6 FIXED. 7 FIXED (UTC, stated).
+
+Interim findings (759153c):
+
+8. **Blocking, still open: staging lookups are quadratic.** The layout and code are unchanged (`staging.py:51,63-69`).
+   I re-measured on 1dd32d9 and got the same numbers: staging 250 files costs 31,125 gets and 1,000 files cost
+   499,500; each lookup costs n gets, and each Drive `get` walks the folder chain. The gap list (story:83) still says
+   "one Drive folder listing per file", which the code contradicts. Fix the layout to `<source>/<archive path>/<stamp>`.
+   If the owner instead accepts the cost for dispatch-only use, the gap line must state the measured cost, and this
+   becomes a should-fix before any back-fill or schedule.
+9. **Should fix, partly open.** My second plant run: 27 plants, 21 caught, 6 survived.
+   (a) `cmd_promote` with the config window forced to None: 219 pass. This survived both of my reviews, so the
+   owner-decision seam is still untested end to end.
+   (b) NEW: wiring a no-op revision sink in `build_promotion_run`: 219 pass, so a wiring slip would silently lose every
+   later NSE version.
+   (c) NEW: removing `notes()` from `PromotionReport.lines`: 219 pass, so claim 5's "printed in the log" is untested.
+   (d) Minor: `ALERT_LINES` 5 changed to 50, and `stamp_of` without UTC conversion, both survive.
+   (e) Minor: removing the layout call in `equity_content_days` survives, because `SchemaCheck` already runs the
+   same reader. The call is a duplicate: drop it or say why it stays.
+10. **Should fix, partly open.** Build-plan item 1 is fixed. The design's "Phase 1 as built" section still repeats
+    the story (one functionality, one owning document; keep one line and the link). The workflow header
+    (`pipeline-staging.yml:4`) still says "freshness and schema checks", but freshness is off by default.
+11. **Minor, open.** One unpublished day makes `stage` exit 1, and then the workflow's `promote` step never runs.
+
+Plants: 27 planted on 1dd32d9, 21 caught, 6 survived (9a-e).
+
+Notes: Confirmed against the code: the gate applies the librarian's session, archive-range and exception rules
+(planted and caught), and `RevisionArchive.capture(found_at=None)` keeps its default behaviour. For the owner: the core
+safety properties hold (fail-closed identity, no default window, first copy wins, never overwrite, credential gap
+disclosed). The FAIL rests on finding 8 (measured, and wrongly described in the gap list) and on three untested
+wiring paths.
