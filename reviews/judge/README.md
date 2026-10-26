@@ -40,4 +40,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 27 | R1b2 persisted pause, code (judge #2) | 1 | PASS (round 2, 53c6478) | `judge_27_r1b2-code-judge2.md` |
 | 28 | R1b2 persisted pause (code) | 1 | PASS (round 2, 53c6478) | `judge_28_r1b2-code.md` |
 | 29 | R1c Drive session, story (judge #2) | 1 | PASS (round 1, d68df6e) | `judge_29_r1c-drive-judge2.md` |
-| 30 | R1c Drive session (story text) | 1 | RETRACTED SHA (not a round; see addendum 1) | `judge_30_r1c-story.md` |
+| 30 | R1c Drive session (story text) | 1 | PASS (story, d68df6e) | `judge_30_r1c-story.md` |

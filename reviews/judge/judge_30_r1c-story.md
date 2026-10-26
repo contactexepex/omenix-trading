@@ -45,3 +45,31 @@ right that it is **weaker than today on data**. Today the header is ignored and 
 may succeed; stopping early gives up attempts. I weighed it on reasoning about Google's likely refusals instead of on
 the "never weaker" rule. The orchestrator's corrected rule (cap the wait at 120 s and keep today's 4 tries) is what I
 will check on the new SHA.
+
+## Addendum 2: complete SHA d68df6e (round 1 of 2)
+
+**PASS (story text), lane 1, judge 1.** Story plus the R1 amendment.
+- **Finding 1 FIXED.** The write-path table now covers every mechanism and every writer I named. I re-read each cited
+  line on `main`; the save comes before the record in every case:
+
+  | Writer | Order |
+  |---|---|
+  | `global_cues/collector.py` | put at :112, log at :113 |
+  | `preopen.py` | :182 then :183 |
+  | `archived_copies.py:52` | logs only when `data is not None` |
+  | `candle_archive.py` | put at :54, then `_append` |
+  | `snapshot_files.py` and `settle.py` | put at :27, ledger at `settle.py:48` |
+  | `filings/archive.py` | put at :43, `manifest.record` at :53 |
+  | the quote recorder | the raw CSV at :260, and `RAW_FILE_SAVED=False` set at :274 when that save failed, before the sidecar at :284, then the marker at :286 |
+  | `receipt_repair.py` | reads the file back from Drive (:41), then writes the receipt |
+  | `index_store.py:37-39` | put or `replace_contents` (index files hold no record) |
+  | `pipeline/records.py:31` and `row_log.py` | the file is itself the record |
+
+  Each mechanism has its own required test.
+- **Retry-After, corrected and now never weaker.** The wait is a floor capped at 120 s, and all five tries are kept, as
+  today (`(*RETRY_WAITS, None)` makes five). Worst case: 4 x 120 + 5 x 60 = 780 s, under the 900 s total cap.
+
+Build note: today's `RetryPolicy` **stops** on a `Retry-After` above its ceiling (`retry.py` `_give_up_reason`). To keep
+the five tries, either the Drive classifier caps `retry_after` at 120 s before returning its verdict (no library
+change), or the library gains a cap-instead-of-stop option. Say which, and plant against it: a `Retry-After` of 300 s
+must still give 5 tries.
