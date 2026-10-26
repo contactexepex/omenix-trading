@@ -52,3 +52,22 @@ fewer attempts at the Record store than today.
 `441f66c` was retracted as incomplete while this review was in flight, so the verdict above is **advisory** and does
 not count toward the two-round limit. The complete superseding SHA starts round 1. S1 (the `Retry-After` wait capped at
 120 s, keeping all the tries) and S2 (every write path, with `receipt_repair`) are the checklist for it.
+
+## Addendum 2: round 1 (clean, per the orchestrator's ruling), `d68df6e8805d5e1ba90637bca3f1510974d13207`
+
+**PASS**, lane 1, judge #2. Text only; the delta from `441f66c` is `R1c-drive.md` and the R1 amendment.
+
+| Advisory finding | Verdict | Evidence (round-1 text) |
+|---|---|---|
+| S1 `Retry-After` stops the call | FIXED | wait = `min(max(t_n + jitter, Retry-After), DRIVE_RETRY_AFTER_CAP_SECONDS = 120)`, **all five tries kept**; the worst case stays 780 s, under the 900 s total; the cap is honestly marked as unmeasured, with per-workflow Drive call counts on the go-live list |
+| S2 every write path | FIXED | one table of 7 mechanisms with file:line for the file-then-record order, matching my independent trace site by site (`receipt_repair.py:40,47` included). Also listed: the own-log writers (global cues, candles, snapshots, filings, quote recorder), and the two honest special cases (the quote sidecar writes `RAW_FILE_SAVED=False` when the CSV save fails; the deferral log claims no file). One test per mechanism |
+
+The no-Drive-breaker ruling and the R1 amendment are consistent.
+
+### Minor
+
+Name how the cap is built. Today the library's `wait_before` returns `max(wait, retry_after)` with no cap, and
+`retry_after_ceiling_seconds` **stops** the call above it. So R1c needs either (a) a library option "cap instead of
+stop" (an edit to merged R1a: flag it, test it, plant it), or (b) the Drive classifier clamping the header to 120 s
+before it reaches the policy, with Drive's ceiling set above 120 s. (b) needs no library change. Either is fine; the
+build must plant "a 300 s header stops the call" and "a 300 s header waits 300 s".
