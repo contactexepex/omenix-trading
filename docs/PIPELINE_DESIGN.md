@@ -14,8 +14,8 @@ three more things:
    single flaky source does not create a gap, and so corroboration raises confidence.
 2. **Never let a fetcher corrupt the record** — a fetched file must *prove* itself before it becomes a source of
    truth the forecasting engine trusts.
-3. **Safe to run in a public repo** — no business logic, no secrets in the repo; even an abused workflow must not be
-   able to poison the system-of-record.
+3. **Safe to run in a public repo** — no business logic, no secrets in the repo; outsiders cannot write Drive at all
+   (fork pull requests cannot read secrets). See "Security" for what protects the Record from a bad merged change.
 
 The answer to all three is a **two-stage pipeline with a quality gate between fetch and record.**
 
@@ -27,9 +27,10 @@ The answer to all three is a **two-stage pipeline with a quality gate between fe
 | **Record** (system-of-record) | Only files that passed the quality gate | the **promotion gate only** | **write-once** (first promotion wins; receipts prove it) |
 | **Derived** | Tables/features built from the record (RV, flows, panels) | derived-step jobs | write-once |
 
-Staging and Record are **separate Drive areas**. A fetcher can only write Staging. Nothing but the promotion gate
-writes Record. This is the core rule and the **target**: **ingestion never commits or overrides the system-of-record
-directly.** It is not yet globally true: see "Phase 1 as built" for what is enforced today.
+Staging and Record are **separate subfolders** (`staging/`, `raw/`) of the one shared Drive folder. In the new
+stage-then-promote path a fetcher writes only Staging and nothing but the promotion gate writes the Record: this is the
+core rule, **enforced in code only** (accepted owner decision, 26 Oct 2026; see "Security"). It is not yet true of the
+live workflows: see "Phase 1 as built".
 
 ## Flow
 
@@ -99,9 +100,19 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
 ## Security (public repo)
 
 - Fetchers hold **no broker key** (Groww runs as a routine with the key in its session env, never in GitHub).
-- **Target:** fetchers can write **only Staging**; the write-once Record is written **only** by the promotion gate — so
-  an abused public workflow can at worst drop garbage in Staging, which the gate rejects. **Not met yet** (Phase 1:
-  code-level only, one shared Drive credential; see "Phase 1 as built").
+- **Accepted owner decision (26 Oct 2026): one shared Drive folder, one shared credential, separation in code only.**
+  Staging and the Record are subfolders of the same Drive folder, and every workflow uses the same owner Drive
+  credential (full Drive scope). The owner chose not to pursue credential, account or repository isolation (cost and
+  complexity). So a fetcher's credential **can** write the Record: an abused or wrongly changed workflow **could**
+  overwrite or delete it. This design does not claim otherwise.
+- What does protect the Record, honestly: **outsiders cannot write Drive at all** (the repository is public, but fork
+  pull requests cannot read secrets and no workflow uses a `pull_request` trigger). Against a bad change that reaches
+  `main`, the protection is **process**: the required judge review (a rule of this project), the **public-record scan**
+  on every commit and the **quality gates** (tests, lint, size and number checks). **Branch protection on `main` is
+  recommended but was not confirmed on when this was written** (26 Oct log), so the judge review is not yet a
+  technical block. Drive files are write-once in our code and every Record file has a SHA-256 receipt in GitHub, so
+  tampering is detectable by comparing a file with its receipt (a change that also rewrites the receipt would not be
+  caught by that alone).
 - Actions pinned to full SHAs; no third-party actions; fork PRs require approval and cannot reach secrets (no
   `pull_request` triggers); the record scan blocks committing any secret/PII.
 - GitHub masks secrets in logs; code prints exception class names only, never credential-bearing text.
@@ -145,7 +156,8 @@ Three facts matter for the rest of this design:
   cm-bhavcopy), by hand, through the dispatch-only workflow `pipeline-staging.yml`. All live workflows still write the
   Record directly.
 - "Only the gate writes the Record" holds **in code** (the new `stage` command can reach Staging only). It is **not** a
-  credential boundary: one owner Drive credential writes both areas, so the Security section's target is not met yet.
-  Separating the credentials (a Record-only credential for the gate's workflow) needs the owner.
+  credential boundary, by the owner's accepted decision (Security section): one shared credential writes both areas.
+  `staging/` is a subfolder of the shared Drive folder (`promotion/wiring.py`: `AreaStore(build_owner_drive(env),
+  "staging")`), the Record is `raw/` in the same folder.
 - The shipped freshness rule is the date-identity check (a file's own date must be its session); a numeric window is the
   owner's decision 1 and is off unless `promotion.max_lag_days` is set in `config.yaml`.
