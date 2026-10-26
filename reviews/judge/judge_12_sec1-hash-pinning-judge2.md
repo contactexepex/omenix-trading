@@ -132,3 +132,22 @@ Not caught:
 The first real dispatch is still the proof on the runner (the story says so). Whether the owner's own machine
 installs the OAuth lock binary-only depends on that machine (wheels exist for Python 3.11 and 3.13; I checked Linux
 only).
+
+## Addendum 3: delta, `817686e8b5532dd27ab52ebe5a53a81f0f2dd4e0` (supersedes `7ed5fe0`)
+
+**PASS**, lane 1, judge #2. The delta: `relock.sh` writes `# uv-version:` into every lock, and a test requires it;
+`tools/` is scanned; `packaging>=24.0` is a direct requirement. Checked:
+- The pins are identical in all three locks; only comment lines differ.
+- Gates: 254 passed; `ruff check`, `check_imports`, `test_code_size` clean.
+- Plants: removing the uv-version header is caught; a `pip install` written in `tools/` is caught. Dropping
+  `packaging` from `requirements.txt` is not caught, which is correct: pytest still brings it into the lock, so
+  nothing breaks.
+- Minor 2 of Addendum 2 (`packaging`): FIXED.
+
+### Minor (not blocking)
+
+1. `ops/relock.sh` uses `sed -i.bak "1i # uv-version: …"`. That is GNU sed syntax; BSD/macOS sed needs `1i\` followed
+   by a newline, so on a macOS maintainer machine the relock stops with an error. It fails loudly and never writes a
+   bad lock, because `set -eu` stops the script. Use a portable form, e.g. `{ printf '# uv-version: %s\n' "$v"; cat
+   "$output"; } > "$output.new" && mv "$output.new" "$output"`.
+2. Minors 1 (`pipx`) and 3 (`PIPELINE_DESIGN.md:127` wording) of Addendum 2 are still open; they ride the next touch.
