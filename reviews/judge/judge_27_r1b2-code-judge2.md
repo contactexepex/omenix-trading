@@ -39,3 +39,13 @@ files formatted. The record scan passes on a sample pause-log row (`paced:www.ns
 Sessions outside the workflows (routines, the owner's PC) append to their own ignored `.run/` file and never commit it.
 A later command in the same checkout restores from it, so a pause seen there persists locally until the file is
 deleted. That is harmless and never weaker; it is worth one line in the story.
+
+## Addendum 1: round 2, `53c647884728a51e87ed5563274e21884fa0ada8` (supersedes `c3b50d8`)
+
+**PASS**, lane 1, judge #2. The delta from `c3b50d8` is tests, one comment in `ops/commit_pause_log.sh` and the story;
+no behaviour code changed (`git diff c3b50d8 HEAD -- fno ops .github`: the comment only). Gates: 490 passed; `ruff
+check`, `check_imports`, `test_code_size` clean.
+
+- **S1: FIXED.** Plant Q14 (`attach_pause_memory(...)` in `cli.main` replaced by `pass`) now fails 4 tests. Forcing
+  `live_window=False` fails 4 tests, so the live/non-live assertions bite.
+- **Judge 1's UTC-default test:** a monotonic default clock fails 1 test.
