@@ -15,7 +15,14 @@ set -eu
 cd "$(git rev-parse --show-toplevel)"
 command -v uv >/dev/null 2>&1 || { echo "relock FAILED: uv is not installed (see astral.sh)" >&2; exit 1; }
 
+# The uv that made the committed hashes. A different uv stops the script unless you mean to move the pin: change this
+# line in the same commit as the locks, so the version in each lock header and this line always agree.
+expected_uv=0.11.32
 uv_version=$(uv --version | cut -d' ' -f2)
+[ "$uv_version" = "$expected_uv" ] || {
+    echo "relock FAILED: uv $uv_version found, this script is pinned to uv $expected_uv (edit expected_uv to move it)" >&2
+    exit 1
+}
 lock() {
     output=$1
     shift

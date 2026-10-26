@@ -16,7 +16,7 @@ three more things:
    truth the forecasting engine trusts.
 3. **Safe to run in a public repo** — no business logic, no secrets in the repo; no outsider writes Drive
    through a fork or a pull request (fork pull requests cannot read secrets). See "Security" for what protects the
-   Record, and for the paths that remain (a bad merged change, a compromised dependency).
+   Record, and for the paths that remain (a bad merged change, a dependency that was malicious when locked).
 
 The answer to all three is a **two-stage pipeline with a quality gate between fetch and record.**
 
@@ -124,8 +124,8 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
   gate read `raw/` directly), so a changed file is detected when read (a change that also
   rewrites the receipt is not caught by that alone).
 - Residual risk, stated plainly: the shared token has **full Drive scope**, so it covers the owner's whole Drive, not
-  only `raw/`; anyone who can merge to `main` or is a repository admin can reach it; a compromised dependency installed
-  in any job can use it; and recovery is limited (Drive's trash and version history only, no separate backup of the
+  only `raw/`; anyone who can merge to `main` or is a repository admin can reach it; a dependency that was already malicious
+  when locked, or any other open root listed above, can use it; and recovery is limited (Drive's trash and version history only, no separate backup of the
   Record). Receipts detect a changed file, they do not restore it. A **forged but well-formed** staged file is not
   detected by the gate, and a fetcher's credential could also delete the genuine staged copy; cross-source checks
   (Phase 4) or re-fetching from the authoritative source at promotion would narrow this, and are not built.
