@@ -22,3 +22,15 @@ only); tests; the story. This is code the live workflows run, judged against the
   assert), so that a regression fails in seconds. This can ride with R1b2.
 - After the merge, the story's active log comparison of the first scheduled runs applies (`R1b-nse-source.md`,
   "Verification").
+
+## Addendum 1: SHA 0c0af47 (round 2; supersedes 9034093)
+
+**PASS, lane 1, judge 1.** 9034093..0c0af47 changes `nse_pacer.py` (13 lines), the pacer tests and the story.
+- **The hang note is fixed.** Bounded joins and `run_bounded` turn the two concurrency plants that used to hang into
+  failures. I re-planted both: "waiters don't wait" fails in 27 s and "expired wait doesn't close" in 12 s, where
+  before both hung.
+- **A real race is fixed.** Before, `observe` set the message after `record_refusal`, so a thread refused in that
+  window raised `SourceCoolingOff("")`. Now the status is stored before the breaker can open, and the message is built
+  when it is raised. It is still today's text, for the refusal that opened the host. Plant: moving the store back
+  after `record_refusal` fails 1 test.
+- Gates: 432 passed; ruff, check_imports, check_numbers and format clean.
