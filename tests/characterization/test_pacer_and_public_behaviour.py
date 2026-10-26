@@ -204,3 +204,42 @@ def test_spacing_holds_across_threads():
         thread.join()
     starts.sort()
     assert min(b - a for a, b in zip(starts, starts[1:])) >= 0.04
+
+
+def test_a_403_is_retried_after_a_cookie_warm_up_because_nse_refuses_the_first_call(monkeypatch):
+    data, sleeps, calls = client(monkeypatch, [Reply(403), Reply(200)])
+    assert data.nse_json("/api/x") == {"ok": 1}
+    assert calls == [public.NSE + "/api/x", public.NSE + "/option-chain", public.NSE + "/api/x"]  # refused, warmed, ok
+
+
+def test_every_non_200_is_retried_the_same_way_even_a_404_or_a_503(monkeypatch):
+    for status in (404, 429, 500, 503):
+        data, sleeps, calls = client(monkeypatch, [Reply(status), Reply(200)])
+        assert data.nse_json("/api/x") == {"ok": 1} and sleeps == [1.5, 0.4], status
+
+
+def test_a_warm_up_failure_is_ignored_and_the_warm_up_happens_once(monkeypatch):
+    import requests
+
+    sleeps, calls = [], []
+    monkeypatch.setattr(public.time, "sleep", sleeps.append)
+    data = public.PublicData()
+    queue = [Reply(403), Reply(403), Reply(200)]
+
+    def get(url, **kw):
+        calls.append(url)
+        if url.endswith("/option-chain"):
+            raise requests.ConnectionError("warm-up down")
+        return queue.pop(0)
+
+    data.session = type("S", (), {"get": staticmethod(get)})()
+    assert data.nse_json("/api/x") == {"ok": 1}
+    assert sum(u.endswith("/option-chain") for u in calls) == 1 and sleeps == [1.5, 3.0, 0.4]
+
+
+def test_the_pacer_sees_the_warm_up_so_a_403_then_a_warm_200_does_not_count_two_in_a_row():
+    p = RequestPacer()
+    p.observe(HOST, 403)  # the refused first call
+    p.observe(HOST, 200)  # the warm-up page answers
+    p.observe(HOST, 403)
+    p.wait_turn(HOST)  # still not paused: the 200 reset the count
