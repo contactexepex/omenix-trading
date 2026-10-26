@@ -21,3 +21,10 @@ the four Drive settings), so every step already holds it. I accepted the reason 
 it, and I have now verified it myself. The label fixes themselves are still correct. The fix expected: restate the
 reason truthfully (for example, a manual dispatch whose red run the dispatcher sees, revisited when scheduled), or add
 the alert.
+
+## Addendum 2: SHA ebfafca
+
+**PASS.** f1d71af..ebfafca changes only the P1b story's follow-up paragraph (-3/+2 lines). The false Slack-secret
+clause is deleted. The remaining reason (a manual dispatch, a red run the dispatcher sees, nobody waiting on an
+unattended run, revisit when scheduled) is true. The workflow is identical to f1d71af, which I verified in round 1:
+labels only, every step condition unchanged.
