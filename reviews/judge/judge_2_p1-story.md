@@ -133,3 +133,48 @@ Notes: Confirmed against the code: the gate applies the librarian's session, arc
 safety properties hold (fail-closed identity, no default window, first copy wins, never overwrite, credential gap
 disclosed). The FAIL rests on finding 8 (measured, and wrongly described in the gap list) and on three untested
 wiring paths.
+
+## Addendum 3: story + code, SHA f6120cc (the implementer's declared formal round-2 artifact)
+
+**FAIL on two should-fix findings, no blocking finding left; lane 1, judge 1 of 2.** 1dd32d9 was also declared
+"round 2 of 2" and judged in Addendum 2. The orchestrator or owner decides whether this addendum counts as round 2 or
+as evidence for the owner. My gates: 229 passed; ruff, check_imports, check_numbers and code size are clean, and the
+only `ruff format` finding is the pre-existing `test_paths.py`. Only `pipeline-staging.yml` changed under `.github/`.
+
+Earlier findings:
+- #8 FIXED. The layout is `<source>/<archive path>/<stamp>` (`staging.py:73-76`). My counting store, re-run: 1,000
+  files staged, 0 extra reads while staging, and 1 read per lookup (before: 499,500). The old layout planted back
+  makes 54 tests fail.
+- #9a, #9d and the `ALERT_LINES` plant: FIXED (all caught now).
+- #10 FIXED. The design keeps a pointer plus 3 facts, Security says "not met yet", and the workflow header is
+  corrected.
+- #11 FIXED. Staging uses `continue-on-error`, `promote` always runs, and a final step fails the run.
+- Round 1, 1-7: still fixed.
+- Pushback accepted: alerts are not deduplicated across runs. The rule is defined (story, "What a run examines"), the
+  workflow is dispatch-only, and the ledger is in the gap list.
+- The new manifest re-put is checked as safe: Drive `put` of the same bytes is a no-op
+  (`google_drive_upload.py:37-41`), and `ManifestFolder.record` ignores the same row and refuses a different SHA
+  (`manifest_folder.py:72-83`), which the gate maps to `CONFLICT`.
+
+Findings:
+
+12. **Should fix: a conflict on a write-once record does not have to be reported.** With `CONFLICT` added to `RECORDED`
+    (`runs.py:81`), all 229 tests pass: a record-or-manifest mismatch would then exit 0 with no alert. The code is
+    right today (`CONFLICT` is not in `RECORDED`); the test is missing. Add a `PromotionReport` or CLI test: a conflict
+    gives exit 1 and an alert.
+13. **Should fix: the revision sink's wiring is untested (flagged in Addendum 2, 9b).** A no-op sink in
+    `build_promotion_run` (`wiring.py:77-78`) still passes all 229 tests, so a wiring slip would lose every later NSE
+    version silently. `test_wired_pipeline.py` should stage two passing versions and assert that one lands in the
+    revisions area with an index row.
+
+Minor, not blocking: `notes()` removed from the report lines survives, so the "printed in the log" claim is
+untested; re-putting the held file without a passing copy survives, but is harmless (same bytes); the duplicate
+layout call in `equity_content_days` is kept.
+
+Plants: 27 planted on f6120cc, 23 caught, 4 survived (12, 13, the two minor ones above). A plant dropping
+`path_parts(source)` in `_name` also survived, but the store's own path check still refuses bad tags, so it is no
+finding.
+
+Notes: For the owner (strong evidence: measured and planted): no blocking finding remains. The safety properties hold,
+the cost problem is fixed, and the credential gap is disclosed. What is left is two missing tests that guard lane-1
+behaviour; the code itself is correct. That is 2 small tests to a PASS.
