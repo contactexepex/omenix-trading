@@ -5,6 +5,7 @@
 #      and the date-identity check into the write-once Record (Drive `raw` with its manifest row); later versions go to
 #      the revisions area; it commits the manifest rows and posts any day left without a record to #fno-desk.
 #      No numeric freshness window runs unless config.yaml sets promotion.max_lag_days (owner decision, unset).
+# Promote is off by default: a first dispatch only stages (the Drive staging area, never the Record).
 # Research data only; never trades; no Groww. Secrets: the Drive and Slack ones; none is printed or written to a file.
 name: pipeline-staging
 
@@ -20,6 +21,10 @@ on:
         description: "Days back from today (IST), up to yesterday, to stage and promote"
         type: string
         default: "7"
+      promote:
+        description: "Also promote the staged files into the write-once Record (off: stage only, which writes the Drive staging area and nothing else)."
+        type: boolean
+        default: false
       dry_run:
         description: "Prove the CLI loads; write nothing to Drive, no commit, no Slack."
         type: boolean
@@ -71,7 +76,7 @@ jobs:
           [[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "days must be a number"; exit 1; }
           python -m fno stage "$DATASET" --from "$(TZ=Asia/Kolkata date -d "-$DAYS days" +%F)"
       - name: Promote what passes the checks into the Record
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && inputs.promote }}
         run: |
           python -m fno promote "$DATASET" --from "$(TZ=Asia/Kolkata date -d "-$DAYS days" +%F)"
       - name: Fail the run when staging stopped (the promote step has run either way)
