@@ -29,4 +29,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 16 | P1d first stage-only runbook (judge #2) | 1 | PASS (7e7c035) | `judge_16_p1d-runbook-judge2.md` |
 | 17 | R1 resilience layer, story (judge #2) | 1 | PASS (story 163011b, delta after round 2) | `judge_17_r1-resilience-judge2.md` |
 | 18 | R1 resilience layer (story text) | 1 | PASS (story, 163011b delta check after round 2) | `judge_18_r1-resilience.md` |
-| 19 | R1a resilience library | 1 | FAIL (round 1, 1 should-fix: story text) | `judge_19_r1a-library.md` |
+| 19 | R1a resilience library | 1 | PASS (0929993) | `judge_19_r1a-library.md` |

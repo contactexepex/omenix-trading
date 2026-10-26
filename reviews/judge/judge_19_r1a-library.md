@@ -32,3 +32,11 @@ Minor (optional, can ride with R1b):
 - Drive gets a new breaker (threshold 5). Today Drive has none. That is not weaker, but it is new behaviour on the
   Record's store. R1c must show what a deferred Drive write leaves behind (a put done but no manifest row; the gate's
   re-put path).
+
+## Addendum 1: SHA 0929993 (round 2)
+
+**PASS, lane 1, judge 1.** ee441a9..0929993 changes only `docs/stories/R1-resilience.md` (+11/-7); code and tests are
+identical, so my gates and the 38 caught plants from round 1 stand. Finding 1 is FIXED: `:8` and the Design heading
+(`:51`) no longer assert the V1 gate. A "Gate change" paragraph (`:10`) records who (the orchestrator, on the owner's
+directive), when (27 Oct 2026 IST) and why, plus the safeguards now required for R1b-R1d: characterization tests with
+plants, and a post-merge dry run. The `claim.py` wording is corrected. The minor notes from round 1 carry to R1b/R1c.
