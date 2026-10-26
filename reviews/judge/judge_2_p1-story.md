@@ -177,3 +177,24 @@ finding.
 Notes: For the owner (strong evidence: measured and planted): no blocking finding remains. The safety properties hold,
 the cost problem is fixed, and the credential gap is disclosed. What is left is two missing tests that guard lane-1
 behaviour; the code itself is correct. That is 2 small tests to a PASS.
+
+## Addendum 4: delta check f6120cc..056a0e6 (final SHA, inside the round 3 the owner authorised)
+
+**PASS, lane 1, judge 1 of 2.** Delta: tests plus one reader change in `datasets.py`. No layout, gate, wiring or
+workflow code changed. My gates on 056a0e6: 234 passed; ruff, check_imports, check_numbers and code size are clean
+(the only `ruff format` finding is the pre-existing `test_paths.py`). Lookup cost re-measured: 1 read per lookup with
+1,000 files staged.
+
+| Finding | Verdict | Evidence (my own plant on 056a0e6) |
+|---|---|---|
+| 12 CONFLICT counted as recorded | FIXED | `CONFLICT` added to `RECORDED`: 1 failed |
+| 13 no-op revision sink in the wiring | FIXED | no-op sink in `build_promotion_run`: 1 failed |
+| Minor: notes in the log | FIXED | `notes()` dropped from `lines()`: 1 failed |
+| Minor: re-put without a proving copy | FIXED | `if True:` re-put: 1 failed |
+| Minor: duplicate layout call | FIXED | removed; `SchemaCheck` keeps the layout check |
+| Reader change (missing or empty `TradDt`) | SAFE | `fromisoformat("")` raises `ValueError`, and `ContentDayCheck` turns that into a rejection reason. Plants "skip rows without a date" and "EQ/BE rows only" fail 1 and 2 tests |
+
+Full regression set (27 plants from Addendum 3) re-run on 056a0e6: all caught except the redundant `path_parts(source)`
+plant (the store's own path check still refuses bad tags; no finding).
+
+Note (not a finding): the story's Evidence line says 232 tests; 234 pass on 056a0e6.
