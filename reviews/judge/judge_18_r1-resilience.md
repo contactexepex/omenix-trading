@@ -54,3 +54,41 @@ behaviour.
 
 The placeholder numbers (N=5, 30 min, 2 s base, 60 s cap, 5 min total) are fairly labelled as reasoning only, and are
 owner decisions. Keeping Groww under the market-hours rule is correct.
+
+## Addendum 1: SHA 8ffc937 (round 2 of 2)
+
+**FAIL, round 2. Two rounds are used, so the owner decides. Nothing blocking is left, but 2 should-fix findings break
+the story's own rule, "R1 is never weaker than today".**
+
+Fixed:
+- **1 (blocking) FIXED.** `grep -rl "sleep(" fno` gives 17 modules, and every one has a row and a fate in the new
+  inventory; window waits are kept with their reason. The 5 extra modules I counted pass an injected `sleep` along
+  (`close_read/wiring.py`, `preopen/wiring.py`, `google_drive.py`, `quotes/indices_cli.py`, `numbering/claim.py`),
+  so the 17 is right.
+- **2 FIXED.** Classification is per source; a Drive 403 with a rate-limit reason is RETRY.
+- **3 FIXED.** The 401 re-sign stays outside the policy.
+- **4 FIXED.** One CSV per source with `merge=union` (the pattern exists: `.gitattributes`), and every failure mode I
+  asked about is stated.
+- **5 FIXED.** Idempotent writes: the re-check, the reserved ID and the 409 are kept, and an exactly-one-file test is
+  claimed.
+- **6 FIXED.** The per-day budget is persisted through the attempt-log pattern.
+
+New findings (should fix):
+- **7. "Equal jitter" can wait less than today.** The formula is `d/2 + random(0, d/2)` with `d = min(cap, base * 2^n)`.
+  Its lower bound `d/2` is below today's fixed waits unless `base` is doubled: with base 5 the first NSE wait is
+  2.5-5 s against today's 5 s. And today's waits (5, 15, 45) and Drive's (2, 8, 30, 60) are not `base * 2^n` at all,
+  so "today's numbers as the first configuration" cannot be expressed in that formula. Fix: make today's per-attempt
+  waits the floors (for example, wait_n = today_n + random(0, today_n)) and claim a test that every wait is at least
+  today's wait for the same attempt.
+- **8. NSE 429s would hit the host more than today.** Today two 429s in a row stop the download at once and pause the
+  host (`raw_source.py:166`, `REFUSALS_BEFORE_PAUSE`). In R1, 429 is RETRY and the breaker counts only BLOCK or
+  exhausted retries. So an NSE host answering 429 gets up to 4 tries per file before the breaker counts once. Fix:
+  for NSE, a 429 counts toward the breaker like a 403, and a second consecutive 429 ends the call. Add that case to
+  claim 1 or 3's tests.
+
+Minor: claim 8's static test finds `sleep(` call sites. A loop that waits through another name (such as `claim.py`'s
+injected `pause`, a git-push race retry to GitHub, rightly out of scope) would not be found. State that detection
+limit in the claim.
+
+For the owner: findings 7 and 8 are each a one-paragraph correction, and the rest of the design is sound. I recommend
+allowing the implementer to fix both and giving me a quick re-check, rather than treating it as a dispute.
