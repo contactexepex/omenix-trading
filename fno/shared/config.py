@@ -18,6 +18,7 @@ ALLOWED_APP_KEYS = frozenset(
         "provider",
         "promotion",
         "quotes",
+        "resilience",
         "lot_sizes",
         "slack",
     }  # fmt: skip

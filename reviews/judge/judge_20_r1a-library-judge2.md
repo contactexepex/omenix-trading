@@ -66,3 +66,26 @@ The diff from `ee441a9` is `docs/stories/R1-resilience.md` only; the code and te
 (`:8`, `:10` and `:51` now state the lifted gate and the replacement checks). Verdict unchanged: **FAIL**, round 1,
 on B1 (not thread-safe), S1 (no persisted day ledger behind claim 5) and S2 (two unpinned behaviours). All of them
 apply to `0929993` as is.
+
+## Addendum 2: round 2, `37bfa45bc9b4707d2ea67ac215e4b068a940d974`
+
+**PASS**, lane 1, judge #2. Gates: 319 passed; `ruff check`, `check_imports`, `test_code_size` clean; the
+resilience tests passed in 15 of 15 repeated runs, so they are not flaky.
+
+| Round-1 finding | Verdict | My evidence |
+|---|---|---|
+| B1 thread safety | FIXED | My 8-thread script: the new `RateLimit` now keeps calls 0.3 s apart, equal to `RequestPacer`. 16 threads calling `check()` concurrently get exactly 1 `PROBE` (3 of 3 runs). Plants: removing the `RateLimit` lock, removing the breaker lock and dropping the sleep each fail a test |
+| S1 persisted day ledger | FIXED | `FileDayLedger` (IST day, two instances over one file); plants on the day filter and on `record` are caught |
+| S2 the two unpinned behaviours | FIXED | plants A13 (404 between 403s) and A18 (404 probe) now fail 1 test each |
+| S3 doc | FIXED (Addendum 1) | |
+
+Plants: 9 on this SHA, 9 caught (also the per-minute window and a lost breaker alert).
+
+### Notes for R1d (not findings now)
+
+1. `FileDayLedger` outlives the process only if its file does. On Actions, and in a fresh routine container, the file
+   must be committed (with `merge=union`, like the transition log) or the 150-sign-ins-a-day budget is per run again.
+   R1d must name the file's path and commit step.
+2. `used_today` raises on a malformed line (`fromisoformat`). A union merge cannot corrupt a line, so this is acceptable;
+   but R1d should decide whether a bad line fails closed (refuse) or is skipped.
+3. Carried from round 1: Groww's half-open would defer concurrent snapshot reads during the probe.

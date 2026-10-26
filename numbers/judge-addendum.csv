@@ -33,3 +33,5 @@ number,name,session,claimed_at_utc
 19.2,r1a-final,session_01XH9HVtRFBtdQWYQmdk9gnM,2026-10-26T22:23:01Z
 20.1,r1a-refreeze,session_017eR6mx3pkKHVdszkoscVM6,2026-10-26T22:23:16Z
 19.3,r1a-thread-miss,session_01XH9HVtRFBtdQWYQmdk9gnM,2026-10-26T22:24:06Z
+19.4,r1a-threadsafe,session_01XH9HVtRFBtdQWYQmdk9gnM,2026-10-26T22:28:15Z
+20.2,r1a-round-2,session_017eR6mx3pkKHVdszkoscVM6,2026-10-26T22:28:31Z
