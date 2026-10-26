@@ -49,8 +49,7 @@ shipped value is unset (`null`), so it is off. Per-dataset windows would be a ma
    rows written are still committed.
 6. **Live collection unchanged**: no existing workflow, schedule or fetch path is edited. Phase 1 adds the `stage` and
    `promote` commands and one new workflow `pipeline-staging.yml`, `workflow_dispatch` only, no schedule.
-7. **Tests** (good, bad, boundary, empty) each with a broken-code proof, listed in the Claims table once code is
-   pushed: stale / wrong-session / undated file rejected and correct file promoted, per dataset in the table above.
+7. **Tests** (good, bad, boundary, empty) each with a broken-code proof: see "Evidence" below.
 8. **Doc fixes**: `docs/PIPELINE_DESIGN.md` dated 26 Oct 2026 (was 27); no claim about how many workflows are enabled.
 
 ## Gap list: not covered by Phase 1, with the reason
@@ -64,3 +63,34 @@ shipped value is unset (`null`), so it is off. Per-dataset windows would be a ma
 - **Speed**: one Drive folder listing per staged file; acceptable for a daily run, unmeasured for a long back-fill.
 - **No real-data run is possible in the build container** (no Drive credentials): the first real run is
   `pipeline-staging.yml` by hand after the merge, dry-run first.
+
+## Evidence (code pushed; builder's runs, the judges re-run their own)
+
+Gates on the branch: 206 tests pass; `ruff check fno tests tools ops`, `tools/check_imports.py`, `tools/check_numbers.py`,
+`tests/test_code_size.py` pass; the commit's record scan is clean.
+
+| Claim | Code | Test | Mutation the builder ran -> result |
+|---|---|---|---|
+| 1 | `promotion/wiring.py`, `runs.Stager`, `gate.py` | `test_design_rules.py` (AST: only `staging.py`/`gate.py` call `.put(`; Stager takes no record/gate); `test_wiring_cli::test_the_wired_staging_area...` | a `.put(` added to `runs.py` -> 1 failed |
+| 2 | `staging.py` | `test_staging.py` | (judge to plant) |
+| 3 | `gate.py` | `test_gate.py` (8 tests) | gate skips its checks -> 24 failed |
+| 4 identity | `checks.ContentDayCheck`, `datasets.py`, `wiring.checks_for` | `test_datasets.py`: per dataset good promoted, other-session rejected, undated rejected; garbage and empty rejected for all 5; mixed-date file rejected whole; fii-stats title identity via `parse_fii_rows` | drop `ContentDayCheck` from wiring -> 3 failed; `days != {day}` loosened to `day in days` -> 1 failed; "no date" branch disabled -> 1 failed |
+| 4 no default window | `wiring.checks_for` (lag `None`), `config.yaml` `promotion.max_lag_days: null` | `test_no_numeric_window_by_default...` (400-day-late right session promoted), `test_a_configured_window...` (None/3 promote, 1 rejects), `test_config::test_the_promotion_window...` | default lag set to 7 -> 1 failed |
+| 5 | `promotion/cli.py` | `test_wiring_cli.py` | (judge to plant) |
+| 6 | no edit under `.github/workflows/` except the new file | `git diff main --stat` | n/a |
+
+Participant-oi, participant-volume: the dataset's own content check rejects a wrong/missing title date (test above uses
+the real validator on a synthetic file in NSE's layout). fo-bhavcopy / cm-bhavcopy tests use small synthetic files, not
+real NSE files (no NSE access here); the real-file check is the first dispatch of `pipeline-staging.yml`.
+
+Real output sample (committed code, synthetic files, local folders as Drive): three sessions staged, the 22 Oct file
+contains the 21 Oct data:
+
+```
+nse/derivatives/participant-oi: staged 3, unchanged 0, 0 with a sourced exception
+result: complete
+nse/derivatives/participant-oi: 2 promoted, 0 already recorded, 0 not staged, 1 rejected, 0 differs from record, 0 with a sourced exception
+rejected 2026-10-22: fao_participant_oi_22102026.csv: the title says 'as on Oct 21 2026', the file is for 2026-10-22
+result: INCOMPLETE: see the lines above
+record holds: ['2026-10-21', '2026-10-23']
+```

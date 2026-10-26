@@ -124,7 +124,7 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 
 ## Incremental build plan (each phase: gate + judge)
 
-1. **Staging/Record split** — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
+1. **Staging/Record split** *(built; see below)* — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
    existing fetchers to write Staging; add a minimal promotion gate that promotes what already passes (freshness +
    schema + idempotency). *(foundation)*
 2. **News source + dedup** — Google News RSS + a couple of publisher feeds → Staging; promotion-gate clustering/dedup;
@@ -132,3 +132,27 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 3. **BSE filings** — second filings source into Staging + cross-check in the gate.
 4. **Yahoo EOD cross-check** — corroborate NSE closes; authoritative-source-wins on conflict.
 5. **Harden + document** — finalise the Record contract with the forecasting engine.
+
+## Phase 1 as built (staging/record split, `fno/ingestion/promotion/`)
+
+Contract, claims and gap list: `docs/stories/P1-staging-record-split.md`. In short:
+
+- **Additive.** The existing fetch-to-Record paths and workflows are unchanged. `python -m fno stage <dataset>` fetches
+  NSE's files into the Drive `staging` area only; `python -m fno promote <dataset>` runs staged files through the gate
+  into the write-once Record (Drive `raw` with its manifest row). The only new workflow, `pipeline-staging.yml`, is
+  `workflow_dispatch` only. Switching a live workflow to stage-then-promote is a separate change, with the owner's go-ahead.
+- **Datasets:** participant-oi, participant-volume, fii-stats, fo-bhavcopy, cm-bhavcopy. index-close and
+  security-delivery stay on the direct path (no verified date in their files yet).
+- **Staging layout:** `<source>/<fetch time UTC>/<archive path>`; a newer fetch is a new write-once copy beside the old
+  one; identical bytes are not staged twice. Staging has no receipts (it is not a record) and no retention rule yet.
+- **Only the gate writes the Record, by construction:** the Stager holds a `StagingArea` only; the Record store is given
+  to `PromotionGate` only; a test asserts only `staging.py` and `gate.py` call `.put(` in the package.
+- **Gate:** equal to the Record = skip; else the newest staged copy that passes every check is written; a passing copy
+  that differs from the Record is reported as a revision, never written; failing copies stay in Staging with their reasons.
+  `promote` commits its manifest rows and posts non-promoted files to #fno-desk.
+- **Default checks (behavior-preserving, no number):** the dataset's content check (same function the librarian uses) and,
+  where that check reads no date, `ContentDayCheck`: every row's date must equal the session the path claims, else the
+  file is rejected (also if undated or unreadable).
+- **Owner decision 1 seam:** `FreshnessCheck(max_lag_days)` is wired only when `config.yaml` sets
+  `promotion.max_lag_days`; it ships `null` (no window). The owner's numbers plug in there, per dataset later.
+

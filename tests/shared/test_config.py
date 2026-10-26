@@ -21,6 +21,11 @@ def test_allowed_keys_load(tmp_path: Path) -> None:
     assert cfg["quotes"] == {"provider": "auto"}
 
 
+def test_the_promotion_window_is_an_allowed_key_and_unset_in_the_shipped_config() -> None:
+    assert "promotion" in ALLOWED_APP_KEYS
+    assert load_app_config()["promotion"] == {"max_lag_days": None}  # no numeric window until the owner decides
+
+
 def test_unknown_key_is_rejected(tmp_path: Path) -> None:
     path = _write(tmp_path, "provider: sample\nmystery_setting: 1\n")
     with pytest.raises(ConfigError) as caught:
