@@ -114,7 +114,7 @@ Confirmed: no numeric window (`config.yaml` `null`; plant M15 caught); no existi
 new workflow is dispatch-only, with the same pinned SHAs as the other 13 and secrets only via `env`; staging cannot
 reach `raw` (plant M13 caught).
 
-## Addendum 2: round 2 (formal, the last), story + code at `1dd32d949cd4341548687b7dc71a4e33f0dbc3a2`
+## Addendum 2 (superseded by Addendum 3: the SHA was replaced as the round-2 artifact), story + code at `1dd32d949cd4341548687b7dc71a4e33f0dbc3a2`
 
 **FAIL**: one blocking finding (B2, added after first publication; see the note under it) and one should-fix (S1).
 After two rounds the owner decides (JUDGE.md).
@@ -178,3 +178,47 @@ formatted. The diff outside `promotion/` is `pipeline-staging.yml` (new), `confi
 B2 needs a layout change in `staging.py` (small, but it is the Staging contract) and S1 about 4 lines. The rest of
 Phase 1 meets every criterion I set. If the owner allows a
 scoped re-check, I would verify B2 and S1 alone: each fix, its test, and a plant of it.
+
+## Addendum 3: round 2 (formal; the orchestrator's designated artifact), story + code at `f6120cc132d1fb80edc70036e0d7e4a0695a5dbb`
+
+**PASS**, lane 1, judge #2 of two. Round record, stated openly:
+- `af1fc7d`: round 1.
+- `759153c`: advisory (interim).
+- `1dd32d9`: Addendum 2; the implementer declared it round 2, then the orchestrator and implementer superseded it
+  with this SHA.
+- `f6120cc`: the formal round 2.
+
+Addendum 2's findings are the checklist below. Gates re-run by me: 229 passed; `ruff check`, `check_imports`,
+`check_numbers`, `test_code_size` clean; new files formatted. Outside `promotion/`, only `pipeline-staging.yml`
+(new), `config.py` (+1 key) and `revisions.py` (optional `found_at`) change. No existing workflow is touched.
+
+| Finding | Verdict | Evidence |
+|---|---|---|
+| B2 quadratic staging reads | MET | layout is now `<source>/<archive path>/<stamp>`, one listing per path; my counting script: 50/100/200 days -> 50/100/200 gets (was 2,500/10,000/40,000) |
+| S1 missing receipt | MET | `gate.py` re-puts `held` when a passing copy equals it; my repro: run 2 ALREADY_RECORDED with 1 row (was 0); plant F1 caught |
+| B1 first copy wins | MET | plants F4, F5 caught |
+| calendar, exceptions, identity, schema | MET | plants F9, F10, F13, F16 caught |
+| m1, m3 | MET | `.put` attribute AST check; wording "equal to the newest staged copy" |
+| m2 fo legacy | MET | gap list: pre-2024 `NseLegacyFoSource` not promotable |
+| m4 conflict / gate tag | MET | `RawFileConflict` becomes a CONFLICT verdict (plant F3 caught); wired end-to-end test (plant F8 caught) |
+| m5 workflow comment | MET | names the real checks; no window unless configured |
+| m6 design duplication | MET | "Phase 1 as built" is a pointer plus facts; the target and not-met lines are explicit |
+
+### Minor (not blocking; for a follow-up)
+
+1. Plant F14 survives: counting CONFLICT as recorded (exit 0, no alert) breaks no test. The code is right today
+   (CONFLICT is not in `RECORDED`, so it alerts). Add a test that a CONFLICT day is a problem.
+2. Plant F2 survives: re-putting `held` with no matching passing copy breaks no test. Harmless, since the bytes are
+   the same and the row describes held bytes, but the guard is unpinned.
+3. `pipeline-staging.yml`: the stage step has `continue-on-error: true` and a closing `exit 1`. Correct (promote
+   still runs, and the run still fails), but the first real dispatch should confirm the run turns red.
+
+### Plants
+
+16 planted on this SHA, 14 caught. Survivors: F2 and F14 (minor 1-2).
+
+### Merge conditions (JUDGE.md)
+
+Run the gates on the merged tree. The first real run is `pipeline-staging.yml` by hand, dry-run first, then one
+dataset over 7 days; record the result in the merge follow-up. The two-judge rule still applies: this PASS is mine
+only.
