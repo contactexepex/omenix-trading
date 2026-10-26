@@ -73,3 +73,18 @@ Build note: today's `RetryPolicy` **stops** on a `Retry-After` above its ceiling
 the five tries, either the Drive classifier caps `retry_after` at 120 s before returning its verdict (no library
 change), or the library gains a cap-instead-of-stop option. Say which, and plant against it: a `Retry-After` of 300 s
 must still give 5 tries.
+
+## Addendum 3: SHA b057f5a (module map; supersedes d68df6e)
+
+**PASS (story text), lane 1, judge 1.** d68df6e..b057f5a changes only the story (+11/-2).
+- The pipeline correction is right. `pipeline/records.py:31` is the processed marker, and it follows the derived put
+  (`pipeline/dry_run.py:36-37`, put then `mark(PROCESSED)`), which I re-read. The `fired` marker claims a job start,
+  not a file.
+- The module map is complete by mechanism. Four modules from my grep are not named, but each builds its store through
+  a mapped builder:
+  - `circulars/wiring.py` and `preopen/wiring.py` through `build_data_store`, so the data put (their writers are
+    already in that row);
+  - `quotes/index_wiring.py` and `quotes/window_wiring.py` through `build_drive_only_quote_store`, so the quote
+    sidecar.
+
+  Optional: name them in the map, so a reader counting modules finds all 18.
