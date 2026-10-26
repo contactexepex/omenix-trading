@@ -17,7 +17,7 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 ROOT = Path(__file__).resolve().parent.parent
-INSTALL = re.compile(r"(?:\bpip3?|\bpython3?\s+-m\s+pip|\buv\s+pip)\s+install\b")
+INSTALL = re.compile(r"(?:\bpip3?|\bpython3?\s+-m\s+pip|\buv\s+pip|\bpipx)\s+install\b")
 LOCK_ARGUMENT = re.compile(r"(?:-r|--requirement)[ =]+\S*\.lock\b")
 SHELL_VARIABLE = re.compile(r'^\s*(\w+)="([^"]*)"', re.MULTILINE)
 CACHE_PATH = re.compile(r"cache-dependency-path:\s*(\S+)")
@@ -139,9 +139,11 @@ def test_all_fourteen_workflow_installs_are_present_and_locked():
 
 
 @pytest.mark.parametrize("lock", sorted(LOCKS))
-def test_each_lock_names_the_uv_version_that_made_it(lock):
+def test_each_lock_names_the_uv_version_that_made_it_and_relock_sh_is_pinned_to_it(lock):
     first = (ROOT / lock).read_text("utf-8").splitlines()[0]
     assert re.fullmatch(r"# uv-version: \d+\.\d+\.\d+", first), first
+    pinned = re.search(r"^expected_uv=(\S+)$", (ROOT / "ops/relock.sh").read_text("utf-8"), re.MULTILINE)
+    assert pinned and first == f"# uv-version: {pinned.group(1)}"
 
 
 @pytest.mark.parametrize("lock", sorted(LOCKS))
@@ -163,7 +165,7 @@ def test_plant_a_plain_install_in_a_run_block_is_caught():
 
 
 @pytest.mark.parametrize(
-    "command", ["pip3 install x", "uv pip install x", "python3 -m pip install -r requirements.txt"]
+    "command", ["pip3 install x", "uv pip install x", "python3 -m pip install -r requirements.txt", "pipx install x"]
 )
 def test_plant_other_pip_spellings_are_caught(command):
     assert install_problems("ops/x.sh", f"#!/bin/sh\n{command}\n", need_binary=False)
