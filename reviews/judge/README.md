@@ -32,4 +32,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 19 | R1a resilience library | 1 | PASS (37bfa45, thread-safe) | `judge_19_r1a-library.md` |
 | 20 | R1a resilience library (judge #2) | 1 | PASS (round 2, 37bfa45) | `judge_20_r1a-library-judge2.md` |
 | 21 | R1b NSE source (story text) | 1 | FAIL (95488d2: no-answer probe; see addendum 2) | `judge_21_r1b-story.md` |
-| 22 | R1b NSE source, story (judge #2) | 1 | PASS (story 95488d2, delta after round 2) | `judge_22_r1b-nse-source-judge2.md` |
+| 22 | R1b NSE source, story (judge #2) | 1 | PASS (final story 68b5e15) | `judge_22_r1b-nse-source-judge2.md` |

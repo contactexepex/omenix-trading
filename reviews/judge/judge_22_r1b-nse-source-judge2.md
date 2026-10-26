@@ -107,3 +107,14 @@ alone and the others wait". Claim 6 requires both concurrency tests (3 threads w
 
 For the R1b1 build, I will plant at least: the refuse-instead-of-wait path; a wait with no timeout bound; a timed-out
 probe doubling the cool-down; and a breaker per session instead of per process.
+
+## Addendum 3: final story, `68b5e15` (supersedes `95488d2`)
+
+**PASS**, lane 1, judge #2. The delta is story text only:
+- **R2-1 fix unchanged:** other callers wait for the probe and are not refused.
+- **Where the waiting lives:** in `NsePacer` (a condition per host under its lock), so the library change stays at
+  `record_unanswered()` and the jitter fraction. That is sound: the library's `check()` keeps its simple contract.
+- **Data cost, now stated:** an unanswered probe keeps the host closed for 15 more minutes. That is the rule I asked
+  for in round 1 (S2), and it is now disclosed honestly.
+- **Stop rule:** it compares tries and waits per fetch against the table plus 25%, not the run's duration. That is a
+  better test.
