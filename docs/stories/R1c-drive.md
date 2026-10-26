@@ -74,9 +74,18 @@ maps to a row above: `storage/wiring.py`, `fo_masters/wiring.py`, `vix_history/w
 `intraday/backfill_wiring.py` and `pipeline/wiring.py` (own logs and ledgers, written after the put). No module is
 unmapped, and no site disagreed on file-first.
 
-Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): if the CSV save fails, the sidecar is
-still written with `RAW_FILE_SAVED=False`, and readers honour that flag, so the sidecar's record says the file is
-absent; it is the one record that can be written when the file is not, and it says so. **The deferral log**
+Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): the one row-equivalent that is designed to be writable without its
+file. If the CSV save fails, the sidecar is still written with `RAW_FILE_SAVED=False` (`recorder.py:274`; absent means
+saved). The safety rests on the reader, and this repository has exactly one reader of the sidecar,
+`DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`): a flag of false returns `None` without touching Drive (the file
+is not counted and no receipt or row is derived from it); a flag of true with no file in the private store raises
+`RawQuoteMissing`, and a file whose SHA-256 differs from the sidecar's `csv_sha256` raises `RawQuoteHashMismatch`, so the
+reader also reconciles the claim with Drive's real state. Readers outside this repository (the dashboard) are not
+checked here; that is an open question for the owner. **Reader-side tests (required, part of the list below):** flag
+false returns `None` and makes no Drive read; flag true and the file missing raises `RawQuoteMissing`; a mismatched hash
+raises.
+
+**The deferral log**
 (`intraday/backfill.py:108`) records sessions put off and claims no file.
 
 A file without a row remains possible after a crash between `put` and the record; the librarian's re-put
@@ -85,7 +94,7 @@ A file without a row remains possible after a crash between `put` and the record
 **Tests, one per mechanism and per own-record writer** (a Drive that fails every try on the call after the create leaves
 the file and no record, and raises the exception callers catch; the repeat run writes the record once): the archive put,
 the data put, receipt repair, the revision archive, the global-cue collector, the candle archive, the snapshot files and
-ledger, the filings archive, the quote sidecar flag, and the index file. If any path is found writing its record first,
+ledger, the filings archive, the quote sidecar flag (writer side, and the three reader-side tests above), and the index file. If any path is found writing its record first,
 that is a bug to fix in R1c.
 
 ## Stated differences from today (all deliberate)
