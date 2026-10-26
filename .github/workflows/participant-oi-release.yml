@@ -106,3 +106,7 @@ jobs:
           python -c "from fno.ingestion.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O participant-OI release (GitHub Actions) failed; see
           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"
+      - name: Commit the pause log (story R1b2; the last step, never fails the run)
+        if: ${{ always() && !inputs.dry_run }}
+        continue-on-error: true
+        run: bash ops/commit_pause_log.sh
