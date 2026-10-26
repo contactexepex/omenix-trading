@@ -166,3 +166,11 @@ def test_a_file_whose_reader_finds_no_dates_is_rejected():
         ContentDayCheck(lambda name, data: set()).problem(Candidate(copy, DAY, "x.csv"))
         == "x.csv: the file carries no date"
     )
+
+
+def test_an_equity_file_without_the_date_column_is_a_rejection_not_a_crash():
+    from tests.ingestion.promotion.samples import zipped
+
+    name = "BhavCopy_NSE_CM_0_0_0_20261022_F_0000.csv.zip"
+    with pytest.raises(ValueError):
+        equity_content_days(name, zipped("TckrSymb,SctySrs\nABC,EQ"))

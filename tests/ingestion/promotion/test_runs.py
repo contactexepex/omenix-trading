@@ -126,3 +126,12 @@ def test_a_stager_cannot_be_given_a_record_store(record_store, calendar):
 
     with pytest.raises(TypeError, match="StagingArea"):
         Stager(FakeNse(), record_store, "nse", calendar, {})
+
+
+def test_the_report_lines_show_notes_and_revisions(staging_store, record_store, calendar):
+    area = StagingArea(staging_store)
+    path = SOURCE.path_for(THURSDAY)
+    area.stage("nse", path, GOOD, moment(THURSDAY))
+    area.stage("nse", path, b"<html>", moment(THURSDAY).replace(hour=15))
+    lines = run_for(staging_store, record_store, calendar, validate).promote(THURSDAY, THURSDAY).lines()
+    assert any(line.startswith("note ") for line in lines) and "later versions kept as revisions" in lines[0]

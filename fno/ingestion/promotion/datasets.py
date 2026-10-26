@@ -22,7 +22,6 @@ from fno.ingestion.storage.raw_source import (
 )
 from fno.ingestion.storage.source_lists import dataset_name
 from fno.shared.fo_bhavcopy import csv_text, read_fo_file
-from fno.shared.nse_files.nse_files import read_equity_bhavcopy
 
 ContentDays = Callable[[str, bytes], set[date]]
 
@@ -35,8 +34,8 @@ def fo_content_days(filename: str, data: bytes) -> set[date]:
 def equity_content_days(filename: str, data: bytes) -> set[date]:
     """The `TradDt` of ALL rows (not only the EQ and BE rows the equity reader keeps: a row of any series dated another
     day makes the file another session's)."""
-    read_equity_bhavcopy(data, filename)  # the layout check; raises BadFile
-    return {date.fromisoformat(row["TradDt"]) for row in csv.DictReader(io.StringIO(csv_text(filename, data)))}
+    rows = csv.DictReader(io.StringIO(csv_text(filename, data)))
+    return {date.fromisoformat(row.get("TradDt") or "") for row in rows}  # a missing or empty date is a ValueError
 
 
 @dataclass(frozen=True)

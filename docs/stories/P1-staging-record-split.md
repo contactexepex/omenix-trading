@@ -99,7 +99,7 @@ The failure is therefore still reported, once per run, without failing it.
 
 ## Evidence (builder's runs; the judges re-run their own)
 
-Gates on the branch: 229 tests pass; `ruff check fno tests tools ops`, `tools/check_imports.py`, `tools/check_numbers.py`,
+Gates on the branch: 232 tests pass; `ruff check fno tests tools ops`, `tools/check_imports.py`, `tools/check_numbers.py`,
 `tests/test_code_size.py` pass; the commit's record scan is clean.
 
 | Claim | Code | Tests | Mutation run by the builder -> result |

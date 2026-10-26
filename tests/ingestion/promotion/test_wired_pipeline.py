@@ -84,3 +84,15 @@ def test_cmd_promote_passes_the_config_key_to_the_wiring(monkeypatch, tmp_path, 
     args = build_parser().parse_args(["--config", str(path), "promote", "participant-oi", "--from", "2026-10-01"])
     assert cli.cmd_promote(args, out=lambda line: None) == 1
     assert capture.lag == expected
+
+
+def test_the_wired_gate_sends_a_later_version_to_the_revision_archive(monkeypatch, wired, tmp_path):
+    from datetime import UTC, datetime
+
+    archive = StubArchive()
+    monkeypatch.setattr(wiring, "build_revision_archive", lambda env: archive)
+    drive, _ = wired
+    later = participant_file(SESSION).replace(b"2026", b"2026 ", 1)  # other bytes, same session and layout
+    wiring.build_staging_area({}).stage("nse", SOURCE.path_for(SESSION), later, datetime(2026, 12, 1, tzinfo=UTC))
+    report = wiring.build_promotion_run("participant-oi", env={}).promote(SESSION, SESSION)
+    assert report.revisions == 1 and len(archive.sink.offered) == 1
