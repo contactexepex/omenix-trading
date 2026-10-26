@@ -165,3 +165,51 @@ def test_a_request_that_cannot_be_built_is_not_retried(http_fakes):
 def test_head_requests_follow_the_same_policy(http_fakes):
     source, _, waits = run(http_fakes, [response(http_fakes, 503), response(http_fakes, 200)])
     assert source.last_written(PATH) is None and waits == [5]
+
+
+# ---- Retry-After parsing and the error text callers read --------------------------------------------------------
+
+
+def test_retry_after_forms():
+    from datetime import UTC, datetime
+
+    from fno.ingestion.storage.retry_policy import retry_after_seconds
+
+    now = datetime(2026, 10, 12, 10, 0, tzinfo=UTC)
+    assert retry_after_seconds("30", now) == 30.0
+    assert retry_after_seconds(" 7 ", now) == 7.0
+    assert retry_after_seconds("Mon, 12 Oct 2026 10:01:00 GMT", now) == 60.0
+    assert retry_after_seconds("Mon, 12 Oct 2026 09:00:00 GMT", now) is None  # already past
+    assert retry_after_seconds("soon", now) is None and retry_after_seconds(None, now) is None
+    assert retry_after_seconds("-5", now) is None and retry_after_seconds("", now) is None
+
+
+def test_an_http_date_retry_after_is_measured_from_the_source_clock(http_fakes):
+    from datetime import UTC, datetime
+
+    now = datetime(2026, 10, 12, 10, 0, tzinfo=UTC)
+    script = [response(http_fakes, 503, **{"Retry-After": "Mon, 12 Oct 2026 10:00:40 GMT"}), response(http_fakes, 200)]
+    source, _, waits = run(http_fakes, script, now=now)
+    assert source.fetch(PATH) == b"data" and waits == [40.0]
+
+
+def test_the_failure_messages_callers_and_logs_read(http_fakes):
+    source, _, _ = run(http_fakes, [response(http_fakes, 403)])
+    with pytest.raises(RawFileRefused) as refused:
+        source.fetch(PATH)
+    assert str(refused.value) == f"NSE archive: {PATH}: HTTP 403 after 1 try"
+    source, _, _ = run(http_fakes, [response(http_fakes, 503, **{"Retry-After": "500"})])
+    with pytest.raises(RawSourceUnavailable) as stopped:
+        source.fetch(PATH)
+    assert str(stopped.value) == f"NSE archive: {PATH}: HTTP 503 (Retry-After 500) after 1 try"
+    source, _, _ = run(http_fakes, [response(http_fakes, 503)] * 4)
+    with pytest.raises(RawSourceUnavailable) as gave_up:
+        source.fetch(PATH)
+    assert str(gave_up.value) == f"NSE archive: {PATH}: HTTP 503 after 4 tries"
+
+
+def test_a_429_with_a_retry_after_over_the_cap_stops_at_once_as_unavailable(http_fakes):
+    source, session, waits = run(http_fakes, [response(http_fakes, 429, **{"Retry-After": "300"})])
+    with pytest.raises(RawSourceUnavailable) as raised:
+        source.fetch(PATH)
+    assert not isinstance(raised.value, RawSourceCoolingOff) and waits == [] and session.calls == 1

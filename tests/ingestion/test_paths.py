@@ -5,6 +5,7 @@ Regression guard for the split: moving a module deeper changes `__file__` depth,
 the real root. The data-path roots must resolve to the repository root (where config.yaml lives),
 never inside the `fno/` package.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

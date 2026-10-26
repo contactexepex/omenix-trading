@@ -168,3 +168,39 @@ def test_recovery_on_the_second_try(monkeypatch):
 def test_an_empty_200_counts_as_a_failure(monkeypatch):
     data, sleeps, _ = client(monkeypatch, [Reply(200, text="  "), Reply(200)])
     assert data.nse_json("/api/x") == {"ok": 1} and sleeps == [1.5, 0.4]
+
+
+def test_every_paced_session_in_the_process_shares_one_pacer_and_so_one_pause():
+    from fno.shared import http_pacing
+
+    first, second = PacedSession(), PacedSession()
+    assert first.pacer is second.pacer is http_pacing.SHARED_PACER
+    assert PacedSession(RequestPacer()).pacer is not http_pacing.SHARED_PACER  # an explicit pacer is its own
+
+
+def test_the_pacers_default_spacing_table_is_one_second_for_both_nse_hosts():
+    from fno.shared.http_pacing import DEFAULT_SPACING_SECONDS, HOST_SPACING_SECONDS
+
+    assert HOST_SPACING_SECONDS == {"www.nseindia.com": 1.0, "nsearchives.nseindia.com": 1.0}
+    assert DEFAULT_SPACING_SECONDS == 1.0
+
+
+def test_spacing_holds_across_threads():
+    import threading
+    import time
+
+    p = RequestPacer(spacing={HOST: 0.05})
+    starts, lock = [], threading.Lock()
+
+    def work():
+        p.wait_turn(HOST)
+        with lock:
+            starts.append(time.monotonic())
+
+    threads = [threading.Thread(target=work) for _ in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    starts.sort()
+    assert min(b - a for a, b in zip(starts, starts[1:])) >= 0.04
