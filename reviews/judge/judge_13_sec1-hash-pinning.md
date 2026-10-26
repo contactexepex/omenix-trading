@@ -33,3 +33,21 @@ Minor:
 ## Plants
 
 None yet (story text). The build review will plant an unhashed `pip install` and a stale lock.
+
+## Addendum 1: SHA a8efd5b (round 2)
+
+**PASS (story text), lane 1, judge 1.** Both findings and the minor point are fixed:
+- **1** A third lock, `requirements-oauth.lock` (from a one-line `requirements-oauth.txt`), is planned for
+  `ops/gdrive_oauth_setup.py`. The scanner now covers `ops/**`, `docs/**/*.md` and `fno/**/*.py` text, not just
+  `ops/*.sh`. Reproduced: `google-auth-oauthlib` locks universally to 14 packages, and a binary-only hash-checked dry
+  run installs all 14.
+- **2** Reverse check (every source requirement has a pin in its lock) added to the tests.
+- **Minor** `cache-dependency-path` is to name the lock, and a test checks it.
+
+Also verified: the new `--only-binary :all:` on the 14 workflow installs works today. A dry run
+(`--only-binary :all: --require-hashes`, Linux Python 3.13) of the base universal lock resolves and hash-checks all
+20 packages, so nothing in the Drive-token path needs a source build. The roots-of-trust and Groww exceptions are
+stated honestly.
+
+The build review will plant an unhashed install (one plain, one inside a `run: |` block), a source requirement
+without a lock pin, and a non-lock `cache-dependency-path`.
