@@ -1,8 +1,8 @@
 # Ingestion pipeline design: staging → promotion → system-of-record
 
-**Status: DRAFT / proposal (owner + Claude, 27 Oct 2026).** Not yet built. This is the owning document for the
-multi-source ingestion architecture; everywhere else links here. It will be refined with the owner, then implemented
-incrementally (each phase through the gate + judge).
+**Status: DRAFT / proposal (owner + Claude, 27 Oct 2026); Phase 1 built on branch `story/P1-staging-promotion`
+(see "Phase 1 as built").** This is the owning document for the multi-source ingestion architecture; everywhere else
+links here. It is refined with the owner and implemented incrementally (each phase through the gate + judge).
 
 ## Why
 
@@ -123,7 +123,7 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 
 ## Incremental build plan (each phase: gate + judge)
 
-1. **Staging/Record split** — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
+1. **Staging/Record split** *(built, see below)* — introduce the Staging Drive area + a `RawFileStore` variant that writes Staging; move
    existing fetchers to write Staging; add a minimal promotion gate that promotes what already passes (freshness +
    schema + idempotency). *(foundation)*
 2. **News source + dedup** — Google News RSS + a couple of publisher feeds → Staging; promotion-gate clustering/dedup;
@@ -131,3 +131,43 @@ delivered as deduped clusters with corroboration counts. *(To be firmed up with 
 3. **BSE filings** — second filings source into Staging + cross-check in the gate.
 4. **Yahoo EOD cross-check** — corroborate NSE closes; authoritative-source-wins on conflict.
 5. **Harden + document** — finalise the Record contract with the forecasting engine.
+
+## Phase 1 as built (staging/record split, `fno/ingestion/promotion/`)
+
+**Scope.** The dated NSE datasets the librarian already archives (`participant-oi`, `index-close`, `fo-bhavcopy`,
+`cm-bhavcopy`, `security-delivery`, `participant-volume`, `fii-stats`). The reference-list snapshots and the other
+workflows are not moved yet.
+
+**Additive, not a reroute.** The 13 live workflows still fetch straight into the Record (Drive `raw` area). Phase 1 adds
+the second path beside them: `python -m fno stage <dataset>` and `python -m fno promote <dataset>`, run by hand through
+the new dispatch-only workflow `pipeline-staging.yml` (no schedule). Switching a live workflow from "fetch to Record" to
+"stage, then promote" is a separate, deliberate change per workflow, after the gate has promoted real files for a
+while; it needs the owner's go-ahead. Both paths write the Record through the same write-once store, so they cannot
+disagree silently: a different file for a recorded path raises a conflict, it never overwrites.
+
+**Staging layout (Drive area `staging`).** `<source>/<fetch time UTC>/<archive path>`. Each fetch is a new write-once
+object (the Drive store cannot overwrite a raw file), so "a newer fetch replaces an older one" means the gate reads the
+newest copy first; the old copies stay. The source tag and fetch time are in the path. A fetch whose bytes equal the
+newest staged copy is not staged again.
+
+**The fetcher cannot write the Record.** The stager is wired (`promotion/wiring.py`) with an `AreaStore` on `staging`
+only; it holds no reference to the Record. `tests/ingestion/promotion/test_wiring_cli.py` asserts every Drive path it
+writes starts with `staging/`.
+
+**The gate (`PromotionGate`).** For one archive path, it takes the staged copies of the authoritative source (`nse`),
+newest first, and:
+1. a copy equal to the Record's file: `already recorded` (idempotent, nothing written);
+2. else runs every `PromotionCheck` (freshness, schema); a copy that fails any is skipped with its reasons;
+3. the newest passing copy is written to the Record (`promoted`), unless the Record holds other bytes: then `differs
+   from record` (a revision for the existing revision path; never written);
+4. no staged copy: `not staged`; every copy failing: `rejected` (left in Staging).
+`promote` commits the manifest rows it wrote and posts every non-promoted file to #fno-desk (first five named).
+
+**Checks built.** *Freshness*: a file cannot be for a session after its fetch day (IST), and a daily run also requires
+the fetch within `--max-lag-days` of the session (default 7, `DEFAULT_MAX_LAG_DAYS`; `--backfill` lifts the lag limit;
+the default is a placeholder until the owner sets the tolerance, open decision 1). *Schema*: the dataset's own content
+check, the same function the librarian and the coverage check use, so row-count and layout rules live in one place.
+Cross-source agreement, authority ranking and news dedup arrive with the phases that bring a second source.
+
+**Not in Phase 1 (stated, not hidden).** No second source exists yet, so the gate promotes only `nse` copies. Staging
+copies are never deleted (no retention rule yet). Staging has no receipts: it is not a record.

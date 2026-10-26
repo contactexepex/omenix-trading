@@ -15,6 +15,7 @@ from fno.ingestion.global_cues.cli import add_global_cues_parser
 from fno.ingestion.intraday.cli import add_intraday_parser
 from fno.ingestion.pipeline.cli import add_pipeline_parser
 from fno.ingestion.preopen.cli import add_preopen_parser
+from fno.ingestion.promotion.cli import add_promotion_parsers
 from fno.ingestion.providers import get_provider
 from fno.ingestion.quotes.cli import add_quotes_parser
 from fno.ingestion.research_data.calendar import CalendarError
@@ -163,6 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_circulars_parser(sub)
     add_flows_parser(sub)
     add_preopen_parser(sub)
+    add_promotion_parsers(sub)
     return p
 
 
