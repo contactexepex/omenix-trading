@@ -54,9 +54,11 @@ None (no code). Code plants follow in the code round.
 2. JUDGE.md quality rule 1 was broken once: code `46307f09` on `story/P1-staging-promotion` was pushed before the
    story review. It was disclosed and superseded; I did not judge it.
 
-## Addendum 1: round 2, story + code at `759153c6be16cd2a16595e43786fe8c2e7e5a3ea`
+## Addendum 1: advisory, interim story + code at `759153c6be16cd2a16595e43786fe8c2e7e5a3ea`
 
-**FAIL** (round 2, last judge round: the owner decides, via the orchestrator). Gates re-run by me: 206 passed;
+**Relabelled advisory** (orchestrator ruling, 26 Oct 2026, 20:52 UTC: 759153c was an interim build. The implementer had
+sent it to me as "ready for review", so I judged it). This does not count as a round. The formal round 2 is the
+implementer's declared round-2 SHA, judged in Addendum 2 against these findings. Advisory verdict: **FAIL**. Gates re-run by me: 206 passed;
 `ruff check`, `check_imports`, `check_numbers`, `test_code_size` clean. `check_records` (LICENSE) and `ruff format
 --check` (`tests/ingestion/test_paths.py`) fail identically on `main`, so they predate this branch.
 
