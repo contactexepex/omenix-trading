@@ -116,7 +116,8 @@ reach `raw` (plant M13 caught).
 
 ## Addendum 2: round 2 (formal, the last), story + code at `1dd32d949cd4341548687b7dc71a4e33f0dbc3a2`
 
-**FAIL**, with one should-fix left (S1, below) and no blocking finding. After two rounds the owner decides (JUDGE.md).
+**FAIL**: one blocking finding (B2, added after first publication; see the note under it) and one should-fix (S1).
+After two rounds the owner decides (JUDGE.md).
 Gates re-run by me: 219 passed; `ruff check`, `check_imports`, `check_numbers`, `test_code_size` clean; new files
 formatted. The diff outside `promotion/` is `pipeline-staging.yml` (new), `config.py` (+1 key) and `revisions.py`
 (optional `found_at`, default unchanged). No existing workflow is touched.
@@ -137,6 +138,17 @@ formatted. The diff outside `promotion/` is `pipeline-staging.yml` (new), `confi
 
 ### Findings
 
+- **B2 (blocking; Drive load grows without bound): the staging layout makes every promote cost quadratic.**
+  `Stager._stage_day` stamps each file with its own `clock()` (`runs.py:75`), so each staged file is a new
+  `nse/<stamp>/` folder. `StagingArea.copies` (`staging.py`) lists every stamp folder under the source, then does a
+  `get` for the path in each one. All 5 datasets share `nse/`. Measured with a counting store, one stage per day:
+  50 days -> 2,500 gets to promote them, 100 -> 10,000, 200 -> 40,000 (n^2). Each real `get` is at least one Drive
+  lookup. After about 1 year of 5 datasets (about 1,250 folders), each daily 7-day promote costs about 8,750 lookups
+  and keeps growing; a back-fill is in the millions. The gap list's "one Drive folder listing per file" understates
+  this. Fix: key Staging by archive path first (`<archive path>/<source>/<stamp>`, or a per-path folder), so copies of
+  one path are a single listing, and add a test that bounds `get` calls per promoted path.
+  *Disclosure:* I missed this in my first pass. The orchestrator's message (20:53 UTC) mentioned a "measured
+  quadratic-layout blocker" with no details. The analysis and numbers above are my own (counting-store script).
 - **S1 (should fix; receipts): the gate never repairs a Record file that has no manifest row.**
   `librarian.py:76-78` re-puts the same bytes when the file is stored but not in the manifest. `gate.py` returns
   ALREADY_RECORDED without any `put`. The story's Principle says the gate applies the librarian's rules, so this
@@ -163,5 +175,6 @@ formatted. The diff outside `promotion/` is `pipeline-staging.yml` (new), `confi
 
 ### Note for the owner (reasoning only)
 
-The S1 fix is about 4 lines plus a test. The rest of Phase 1 meets every criterion I set. If the owner allows a
-scoped re-check, I would verify S1 alone: the fix, the test, and a plant of the fix.
+B2 needs a layout change in `staging.py` (small, but it is the Staging contract) and S1 about 4 lines. The rest of
+Phase 1 meets every criterion I set. If the owner allows a
+scoped re-check, I would verify B2 and S1 alone: each fix, its test, and a plant of it.
