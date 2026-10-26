@@ -185,3 +185,18 @@ Branch `story/R1b1-nse-layer`. In-process only; no workflow change; no breaker l
 - **Gates:** ruff, `check_imports`, `check_numbers`, size test clean; 431 tests pass.
 - **Not in this step:** claim 7's static `sleep(` allowlist (the old loops are gone from the NSE path; the allowlist
   test arrives with R1c/R1d when the last loops move), the transition log and alerts (R1b2).
+
+### R1b1 round 2 (judge 2, round 1 on 9034093: one should-fix, two minors; each checked and accepted)
+
+- **S1 hang -> fail:** the threaded tests are now bounded: threads are daemons, every join has a timeout and asserts
+  `not is_alive()`, and calls that could block run through `run_bounded` (fails after 10 s instead of hanging pytest).
+  Shown on the plants judge 2 named: an unbounded wait (P2) and an expired wait that leaves the host half-open (P12) now
+  each **fail one test in about 13 s** (before: the suite hung); "waiters do not wait" fails in under a second.
+- **Minor 1:** `observe()` set the cooling-off message after the breaker had opened, so a thread refused in that window
+  raised `SourceCoolingOff("")`. The status is now recorded before the breaker can open and the message is built when it
+  is raised, from the breaker's current cool-down. A test forces the window; with the order reversed it fails.
+- **Minor 2:** `COOL_OFF_SECONDS == 900` is listed as an adaptation above (the constant is gone; the 899/901 behaviour
+  tests still pin the 15 minutes, and the settings test pins 900).
+- Carried to R1b2: the breaker clock is `EPOCH + monotonic`, wrong for a log shared across processes; R1b2 uses real UTC
+  (a restored breaker also has no refusal status, so its message is built from the log's cool-down alone).
+- Gates: ruff, imports, numbers, size clean; 432 tests pass.

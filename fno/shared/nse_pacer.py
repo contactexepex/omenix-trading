@@ -40,7 +40,7 @@ class _Host:
     rate: RateLimit
     breaker: CircuitBreaker
     answered: threading.Condition = field(default_factory=threading.Condition)
-    message: str = ""
+    last_refusal: int = 0  # the status of the refusal that opened the host; the message is built when it is raised
 
 
 class NsePacer:
@@ -67,7 +67,7 @@ class NsePacer:
             except Deferred:
                 if state.breaker.state is State.HALF_OPEN:  # another thread has just become the probe: wait for it
                     continue
-                raise SourceCoolingOff(state.message) from None
+                raise SourceCoolingOff(self._message(host, state)) from None
             break
         state.rate.acquire()
 
@@ -75,10 +75,8 @@ class NsePacer:
         """The answer to a request: a refusal counts, anything else resets the run and ends a probe."""
         state = self._host(host)
         if status in REFUSAL_STATUS_CODES:
+            state.last_refusal = status  # before the breaker can open: another thread may be refused at once
             state.breaker.record_refusal()
-            state.message = COOLING_OFF_MESSAGE.format(
-                host=host, status=status, minutes=round(state.breaker.cool_down / 60)
-            )  # fmt: skip
         else:
             state.breaker.record_other()
         self._release(state)
@@ -96,6 +94,11 @@ class NsePacer:
             state.answered.wait_for(lambda: state.breaker.state is not State.HALF_OPEN, self.probe_wait_seconds)
             if state.breaker.state is State.HALF_OPEN:  # the probe never answered in time: treat it as unanswered
                 state.breaker.record_other()
+
+    @staticmethod
+    def _message(host: str, state: _Host) -> str:
+        minutes = round(state.breaker.cool_down / 60)
+        return COOLING_OFF_MESSAGE.format(host=host, status=state.last_refusal, minutes=minutes)
 
     @staticmethod
     def _release(state: _Host) -> None:

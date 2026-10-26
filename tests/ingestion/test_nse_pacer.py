@@ -18,6 +18,27 @@ from fno.shared.nse_pacer import NsePacer
 WWW, ARCHIVES = "www.nseindia.com", "nsearchives.nseindia.com"
 
 
+BOUND = 10.0  # seconds: a regression that blocks must fail a test in seconds, not hang the suite
+
+
+def run_bounded(call, bound=BOUND):
+    """Runs `call` on a daemon thread and fails the test if it has not finished in `bound` seconds (a blocked wait would
+    otherwise hang pytest); returns the call's exception, or None."""
+    caught = []
+
+    def target():
+        try:
+            call()
+        except BaseException as exc:  # noqa: BLE001
+            caught.append(exc)
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(bound)
+    assert not thread.is_alive(), "the call is still blocked"
+    return caught[0] if caught else None
+
+
 class Pause:
     """A pacer whose host has just been refused twice and whose 15 minutes are over: the next request is the probe."""
 
@@ -60,11 +81,12 @@ def three_threads(pause, probe_answer):
         else:
             pause.pacer.observe(WWW, 200)
 
-    threads = [threading.Thread(target=work, args=(n,)) for n in "abc"]
+    threads = [threading.Thread(target=work, args=(n,), daemon=True) for n in "abc"]
     for t in threads:
         t.start()
     for t in threads:
-        t.join(10)
+        t.join(BOUND)
+        assert not t.is_alive(), "a thread is still blocked waiting for the probe"
     return outcomes, sorted(started), sum(before_answer)
 
 
@@ -109,8 +131,9 @@ def test_a_waiter_gives_up_on_a_probe_that_never_answers_and_goes_ahead():
     pause = Pause(probe_wait=0.2)
     pause.pacer.wait_turn(WWW)  # this is the probe; it never answers
     began = time.monotonic()
-    pause.pacer.wait_turn(WWW)  # a waiter: bounded, then it proceeds as a normal call
+    assert run_bounded(lambda: pause.pacer.wait_turn(WWW)) is None  # a waiter: bounded, then it proceeds as normal
     assert 0.15 <= time.monotonic() - began < 2.0
+    pause.pacer.wait_turn(WWW)  # and the host is closed afterwards (a half-open host would block again)
 
 
 def test_a_probe_that_raises_releases_the_waiters(monkeypatch):
@@ -130,14 +153,14 @@ def test_a_probe_that_raises_releases_the_waiters(monkeypatch):
         except requests.ConnectionError as exc:
             errors.append(exc)
 
-    thread = threading.Thread(target=run_probe)
+    thread = threading.Thread(target=run_probe, daemon=True)
     thread.start()
     time.sleep(0.05)  # the probe is in flight
     began = time.monotonic()
-    pause.pacer.wait_turn(WWW)  # blocks until the failed probe releases it, long before probe_wait (5 s)
+    assert run_bounded(lambda: pause.pacer.wait_turn(WWW), 3.0) is None  # released by the failed probe, not by the 5 s
     assert time.monotonic() - began < 1.0
-    thread.join()
-    assert len(errors) == 1
+    thread.join(BOUND)
+    assert not thread.is_alive() and len(errors) == 1
 
 
 def test_the_hosts_are_kept_apart():
@@ -206,3 +229,23 @@ def test_the_old_pacer_and_retry_table_are_gone_from_the_code():
     root = Path(__file__).resolve().parents[2] / "fno"
     text = "\n".join(p.read_text("utf-8") for p in root.rglob("*.py") if "resilience" not in p.parts)
     assert "class RequestPacer" not in text and "RETRY_WAITS = (5, 15, 45)" not in text
+
+
+def test_a_thread_refused_the_instant_the_host_opens_gets_the_whole_message():
+    pacer = NsePacer(spacing={WWW: 0.0}, clock=lambda: 0.0)
+    pacer.wait_turn(WWW)
+    pacer.observe(WWW, 403)
+    pacer.wait_turn(WWW)
+    state, messages = pacer._host(WWW), []
+    opens = state.breaker.record_refusal
+
+    def opens_then_another_thread_asks():
+        opens()
+        try:
+            pacer.wait_turn(WWW)  # in the window between the host opening and observe() returning
+        except SourceCoolingOff as refused:
+            messages.append(str(refused))
+
+    state.breaker.record_refusal = opens_then_another_thread_asks
+    pacer.observe(WWW, 429)
+    assert messages == [f"{WWW} refused requests (HTTP 429); not calling it for 15 minutes"]
