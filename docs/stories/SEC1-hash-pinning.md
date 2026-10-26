@@ -138,3 +138,9 @@ in `relock.sh`; it was not. Fixed: `relock.sh` now writes `# uv-version: <versio
 test requires it (a lock without it fails; the builder ran that mutation). Also: `tools/` is now scanned, and
 `packaging` (imported by the test) is a direct entry in `requirements.txt` instead of arriving through `pytest`.
 Counts are unchanged (21/438, 53/1,561, 14/353); dry runs pass again on 3.11 and 3.13. Tests: 254.
+
+Round-1 minors from Judge 2 (`7ed5fe0` PASS): `pipx install` is now in the scanner (and in its plant list); the
+`PIPELINE_DESIGN.md` lines on a "compromised dependency" now say "malicious when locked / the other open roots"; and
+`ops/relock.sh` is pinned to the `uv` that made the committed hashes (`expected_uv`, a test requires it to equal the version
+in every lock header), so a different `uv` stops the script until the pin is moved in the same commit. Tests: 20 in
+`tests/test_pinned_installs.py`.
