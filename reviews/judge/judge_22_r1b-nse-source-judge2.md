@@ -93,3 +93,17 @@ log, with a stop rule, is the real check.
   `SourceCoolingOff`, and only 1 request was sent.
 
 Recommendation to the owner (reasoning only): a small, local change; allow the fix and a check of just this point.
+
+## Addendum 2: delta check, `95488d218c63054509cc0e631efd0fd07d3d3d5d` (after round 2)
+
+**PASS** on the R1b story, lane 1, judge #2. The delta from `7a1ee0e` is the probe paragraph, the stated difference
+and claim 6.
+
+**R2-1: FIXED.** The first `wait_turn` after the pause is the probe. Every other `wait_turn` on that host blocks until
+its answer, for at most that request's timeout (20 s for `nse_json`, 60 s for a file). They then proceed if it closed
+the breaker, or get `SourceCoolingOff` if it reopened. The stated difference is now accurate: "the first request goes
+alone and the others wait". Claim 6 requires both concurrency tests (3 threads with a 200 probe all complete; with a
+403 probe all are refused and one request was sent).
+
+For the R1b1 build, I will plant at least: the refuse-instead-of-wait path; a wait with no timeout bound; a timed-out
+probe doubling the cool-down; and a breaker per session instead of per process.
