@@ -46,3 +46,9 @@ fewer attempts at the Record store than today.
 
 - Claim 7 (every store method reaches `DriveSession.request`) is the right guard against a second retry loop.
 - R1-resilience.md's amendment is consistent with the ruling and turns judge 1's requirement into the invariant.
+
+## Addendum 1: round counting (orchestrator ruling, 26 Oct 2026)
+
+`441f66c` was retracted as incomplete while this review was in flight, so the verdict above is **advisory** and does
+not count toward the two-round limit. The complete superseding SHA starts round 1. S1 (the `Retry-After` wait capped at
+120 s, keeping all the tries) and S2 (every write path, with `receipt_repair`) are the checklist for it.
