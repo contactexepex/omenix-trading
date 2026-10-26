@@ -28,7 +28,8 @@ lock() {
     shift
     uv pip compile --generate-hashes --universal --python-version 3.11 --quiet -o "$output" "$@"
     # The version of uv that made the hashes is part of the evidence, so the next bump can compare (story SEC1, claim 3)
-    sed -i.bak "1i # uv-version: $uv_version" "$output" && rm -f "$output.bak"
+    # (printf, cat and mv rather than `sed -i`, whose syntax differs between GNU and macOS)
+    { printf '# uv-version: %s\n' "$uv_version"; cat "$output"; } > "$output.tmp" && mv "$output.tmp" "$output"
     echo "wrote $output ($(grep -c '^[A-Za-z0-9]' "$output") packages, $(grep -c -- '--hash=sha256:' "$output") hashes)"
 }
 

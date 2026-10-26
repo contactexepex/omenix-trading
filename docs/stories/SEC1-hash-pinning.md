@@ -144,3 +144,8 @@ Round-1 minors from Judge 2 (`7ed5fe0` PASS): `pipx install` is now in the scann
 `ops/relock.sh` is pinned to the `uv` that made the committed hashes (`expected_uv`, a test requires it to equal the version
 in every lock header), so a different `uv` stops the script until the pin is moved in the same commit. Tests: 20 in
 `tests/test_pinned_installs.py`.
+
+SEC1b (follow-up branch `story/SEC1b-minors`, after the SEC1 merge `c656700`): the three remaining minors in one change:
+`pipx install` in the scanner; the "compromised dependency" wording narrowed to "malicious when locked / the other open
+roots"; and `ops/relock.sh` writes the `# uv-version:` line with printf, cat and mv instead of the GNU-only `sed -i`
+(re-running it reproduces all three locks with no diff). Relock is also pinned to the `uv` that made the hashes.
