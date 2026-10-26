@@ -6,8 +6,8 @@
 name: filings-archive
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "17 */6 * * *" # every 6 hours; after the backfill, three of the four runs find the daily check done  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "17 */6 * * *" # every 6 hours; after the backfill, three of the four runs find the daily check done
   workflow_dispatch:
     inputs:
       dry_run:

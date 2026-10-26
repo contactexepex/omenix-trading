@@ -7,9 +7,9 @@
 name: flow-history
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "0 16 * * *" # 21:30 IST every day: the calendar decides (a closed day has no file)  # DISABLED for migration; re-enable at cutover
-    # - cron: "45 1 * * *" # 07:15 IST: retry for the previous session if the evening run missed it  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "0 16 * * *" # 21:30 IST every day: the calendar decides (a closed day has no file)
+    - cron: "45 1 * * *" # 07:15 IST: retry for the previous session if the evening run missed it
   workflow_dispatch:
     inputs:
       dry_run:

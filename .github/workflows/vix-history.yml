@@ -12,8 +12,8 @@
 name: vix-history
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "41 1 * * *" # 07:11 IST every day: the previous month (nothing new until a month has ended)  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "41 1 * * *" # 07:11 IST every day: the previous month (nothing new until a month has ended)
   workflow_dispatch:
     inputs:
       dry_run:

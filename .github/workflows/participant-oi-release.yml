@@ -8,9 +8,9 @@
 name: participant-oi-release
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "41 11 * * *" # 17:11 IST every day: the calendar decides (a closed day records nothing)  # DISABLED for migration; re-enable at cutover
-    # - cron: "15 17 * * *" # 22:45 IST: the rest of the window up to 23:30  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "41 11 * * *" # 17:11 IST every day: the calendar decides (a closed day records nothing)
+    - cron: "15 17 * * *" # 22:45 IST: the rest of the window up to 23:30
   workflow_dispatch:
     inputs:
       dry_run:

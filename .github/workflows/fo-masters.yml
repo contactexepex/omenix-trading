@@ -5,11 +5,11 @@
 name: fo-masters
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "30 0 * * *" # 06:00 IST: lands about 11:00 at GitHub's usual lateness, before A14c's 14:05 lot check  # DISABLED for migration; re-enable at cutover
-    # - cron: "15 2 * * *" # 07:45 IST: the ban list for today is written about 18:12 IST the evening before  # DISABLED for migration; re-enable at cutover
-    # - cron: "45 5 * * *" # 11:15 IST retry (GitHub starts crons hours late; a second run keeps the first copies)  # DISABLED for migration; re-enable at cutover
-    # - cron: "15 13 * * *" # 18:45 IST: the next session's ban list, written about 18:12 IST, filed under its date  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "30 0 * * *" # 06:00 IST: lands about 11:00 at GitHub's usual lateness, before A14c's 14:05 lot check
+    - cron: "15 2 * * *" # 07:45 IST: the ban list for today is written about 18:12 IST the evening before
+    - cron: "45 5 * * *" # 11:15 IST retry (GitHub starts crons hours late; a second run keeps the first copies)
+    - cron: "15 13 * * *" # 18:45 IST: the next session's ban list, written about 18:12 IST, filed under its date
   workflow_dispatch:
     inputs:
       dry_run:

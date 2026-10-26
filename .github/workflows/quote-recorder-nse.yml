@@ -7,8 +7,8 @@
 name: quote-recorder-nse
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "50 8 * * *" # 14:20 IST every day: the calendar decides (a closed day records nothing)  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "50 8 * * *" # 14:20 IST every day: the calendar decides (a closed day records nothing)
   workflow_dispatch:
     inputs:
       dry_run:

@@ -8,8 +8,8 @@
 name: participant-oi-sweep
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "7 0 1 * *" # 05:37 IST on the 1st of each month  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "7 0 1 * *" # 05:37 IST on the 1st of each month
   workflow_dispatch:
     inputs:
       dry_run:

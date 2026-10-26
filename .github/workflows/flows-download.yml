@@ -6,8 +6,8 @@
 name: flows-download
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "40 15 * * *" # 21:10 IST: after NSE's evening release of the day's provisional values  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "40 15 * * *" # 21:10 IST: after NSE's evening release of the day's provisional values
   workflow_dispatch:
     inputs:
       dry_run:

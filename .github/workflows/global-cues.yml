@@ -18,10 +18,10 @@
 name: global-cues
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "11 22 * * *" # 03:41 IST (the previous UTC day): the overnight US cues, before the open even 5 h late  # DISABLED for migration; re-enable at cutover
-    # - cron: "11 23 * * *" # 04:41 IST: the Treasury's 10-year if the 03:41 run came before it  # DISABLED for migration; re-enable at cutover
-    # - cron: "41 8 * * *" # 14:11 IST: RBI's reference rate of the day  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "11 22 * * *" # 03:41 IST (the previous UTC day): the overnight US cues, before the open even 5 h late
+    - cron: "11 23 * * *" # 04:41 IST: the Treasury's 10-year if the 03:41 run came before it
+    - cron: "41 8 * * *" # 14:11 IST: RBI's reference rate of the day
   workflow_dispatch:
     inputs:
       dry_run:

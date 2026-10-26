@@ -10,8 +10,8 @@
 name: participant-oi-watch
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "7,22,37,52 11-17 * * *" # 16:37-23:22 IST every day: the calendar decides  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "7,22,37,52 11-17 * * *" # 16:37-23:22 IST every day: the calendar decides
   workflow_dispatch:
     inputs:
       dry_run:

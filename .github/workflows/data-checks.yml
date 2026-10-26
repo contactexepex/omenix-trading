@@ -9,8 +9,8 @@
 name: data-checks
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "11 4 * * *" # 09:41 IST every day  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "11 4 * * *" # 09:41 IST every day
   push:
     branches: [main]
     paths: ["tests/**", "fno/storage/**", ".github/workflows/data-checks.yml"]

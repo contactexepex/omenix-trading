@@ -12,10 +12,10 @@
 name: index-closes
 
 on:
-  # schedule:  # DISABLED for migration; re-enable at cutover
-    # - cron: "41 15 * * *" # 21:11 IST every day: the calendar decides (a closed day adds nothing)  # DISABLED for migration; re-enable at cutover
-    # - cron: "11 2 * * *" # 07:41 IST: retry for the previous session if the evening run missed it  # DISABLED for migration; re-enable at cutover
-    # - cron: "11 6 * * *" # 11:41 IST: last retry, still before 14:00 (GitHub's schedule can start late)  # DISABLED for migration; re-enable at cutover
+  schedule:
+    - cron: "41 15 * * *" # 21:11 IST every day: the calendar decides (a closed day adds nothing)
+    - cron: "11 2 * * *" # 07:41 IST: retry for the previous session if the evening run missed it
+    - cron: "11 6 * * *" # 11:41 IST: last retry, still before 14:00 (GitHub's schedule can start late)
   workflow_dispatch:
     inputs:
       dry_run:
