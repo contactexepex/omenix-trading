@@ -18,7 +18,7 @@ on:
         options: [participant-oi, participant-volume, fii-stats, fo-bhavcopy, cm-bhavcopy]
         default: participant-oi
       days:
-        description: "Days back from today (IST), up to yesterday, to stage and promote"
+        description: "Days back from today (IST), up to yesterday, to stage (and to promote, when the promote input is on)"
         type: string
         default: "7"
       promote:
@@ -79,6 +79,6 @@ jobs:
         if: ${{ !inputs.dry_run && inputs.promote }}
         run: |
           python -m fno promote "$DATASET" --from "$(TZ=Asia/Kolkata date -d "-$DAYS days" +%F)"
-      - name: Fail the run when staging stopped (the promote step has run either way)
+      - name: Fail the run when staging stopped (when promote is on, the promote step has run either way)
         if: ${{ steps.stage.outcome != 'success' && !inputs.dry_run }}
         run: exit 1

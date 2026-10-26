@@ -23,3 +23,10 @@ Record, so a stage-only run validates the NSE fetch, the Drive write and the sta
 - No Python or test change, so no unit test covers the workflow; the check is the YAML parse in the review and the first
   dispatch (owner coordinated). The judge reads the diff (about 10 lines).
 - It does not add a Record-only credential (P1 gap list: credential separation).
+
+## Follow-up (labels and the failure signal)
+
+Two labels made stale by the `promote` input were corrected (the `days` description and the last step's name). A failed
+stage-only run posts nothing to #fno-desk, by design for now: the run is a manual dispatch, its last step exits 1, so the
+run turns red in GitHub and the dispatcher sees it at once. An alert step is not added: nobody is waiting on an
+unattended run. Revisit when the workflow is scheduled.
