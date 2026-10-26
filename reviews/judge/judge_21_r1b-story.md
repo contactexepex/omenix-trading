@@ -97,3 +97,22 @@ one request goes first. Remaining:
    waiters are always released when the probe's thread raises anything (a `finally`). Then no caller can hang.
 
 Everything else in Addendum 1 stands.
+
+## Addendum 3: SHA ab5bba8 (final story)
+
+**PASS (story text), lane 1, judge 1.** 68b5e15..ab5bba8 changes the story only. All three Addendum 2 points are
+fixed:
+- **1 FIXED.** A no-answer probe closes the host, as today (a transport failure never reaches `observe()`), and
+  `record_unanswered` is withdrawn. The only library edit left is the `jitter` fraction.
+- **2 FIXED.** Released waiters pass through the per-host `RateLimit` (1 s apart), and claim 6 asserts the gaps.
+- **3 FIXED.** An expired wait is treated as unanswered (the host closes and the waiter proceeds), and the waiters
+  are released in a `finally` if the probe thread raises.
+
+One remaining difference, accepted with reasoning (no data): a probe answered 403 or 429 re-pauses at **one** refusal,
+where today two in a row are needed, and its waiters are refused with it. A single stray 403 right after a pause can
+therefore defer data that today's second request might have got. That is the purpose of a probe (the owner's "never
+get us blocked"), and the case is narrow. It is stated in the story's data-cost paragraph, so it is a known trade, not
+a hidden one.
+
+At code review I will plant against: the 1 s gaps after release, close-on-timeout, release in the `finally`, per-host
+isolation, the single shared instance, and `Deferred` becoming `SourceCoolingOff`.
