@@ -185,6 +185,8 @@ config key `resilience` (empty by default, so today's numbers apply); `.gitattri
   one file refuse the 151st sign-in and that the count resets on the next IST day.
 - **S2 survivors:** tests added that a 404 between two 403s resets the NSE count (and that two 403s in a row do open it,
   so the reset test is not vacuous), and that a probe answered 404 closes the breaker.
+- **Drive `Retry-After` (R1c):** capped at 120 s as a floor, with all tries kept (NSE stops the call above its ceiling; a Drive
+  write must not make fewer attempts than today).
 - **R1c requirement (judge 1), settled in R1c:** there is no Drive breaker, so no deferred write; the requirement becomes the
   invariant "no manifest row or receipt without a Drive file", shown per write path (R1c-drive.md).
 - **R1d note (judge 2):** a Groww half-open defers concurrent snapshot reads during the probe, where today all reads

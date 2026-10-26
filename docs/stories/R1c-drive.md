@@ -20,7 +20,7 @@ store, the upload store, the cache, the index files). It holds its own loop and 
 | What retries | 429, 500, 502, 503, 504; Google's 403 with `rateLimitExceeded` or `userRateLimitExceeded`; `ConnectionError`, `Timeout` | the same, as RETRY verdicts; a plain 403 and every other error: PERMANENT, raised with Google's reason as now; statuses in `accept` (409 `fileIdInUse`) are OK |
 | The 401 re-sign | once per call, inside the loop, no wait | stays **inside the attempt** (not a retry, not counted); a second 401 is raised as now |
 | Jitter | none | upward only, **0.25** (as NSE) |
-| `Retry-After` | ignored | honoured as a **floor**, on a retried answer; above the 120 s ceiling the call stops (as NSE), see "Stated differences" |
+| `Retry-After` | ignored | honoured as a **floor, capped at 120 s**, on a retried answer; the call keeps all its tries (it never stops early, unlike NSE), see "Stated differences" |
 | Breaker | none | **none** (below) |
 | Spacing | none | none |
 
@@ -47,37 +47,55 @@ Amended in place in `R1-resilience.md`: the Drive breaker line and judge 1's R1c
 invariant below). The library's generic `count_exhausted` option stays (a second use may need it); only Drive's shipped
 settings change (`drive.breaker` removed, `jitter 0.25`, the change pinned in `test_settings`).
 
-## The invariant: no manifest row or receipt without a Drive file
+## The invariant: no manifest row, receipt or index entry without its Drive file
 
-The thing never to break. By construction (to be shown by tests, with these lines as the reference):
-- `FingerprintingStore.put` (`manifest_folder.py:106-109`) calls `self.store.put(path, data)` and only then
-  `self.manifests.record(...)`: the row is written after the store accepted the bytes.
-- `DataStore.put` (`data_store.py:40-47`) calls `self.drive.put(...)` and only then `self.receipts.write(...)`.
-- The Drive store's `put` returns only when the bytes are in Drive: `GoogleDriveUploadStore._create_file` verifies the
-  copy by Drive's MD5 or by reading it back (`_holds`) and raises `StoredCopyDamaged` otherwise (`google_drive_upload.py`).
+The thing never to break. **Every Drive write path was enumerated** (by a read of the code, and independently traced by
+judge 2; the two agree). Two facts make the order structural: the only creator of a Drive file is
+`GoogleDriveUploadStore.put`, which returns only after the bytes are verified by Drive's MD5 or a read-back
+(`google_drive_upload.py:33-70`); and the only other content write is `replace_contents` (index files, MD5 checked,
+`google_drive_upload.py:77-85`). A row written after a `put` that raised is never reached. **No ROW-FIRST path exists.**
 
-So if any Drive call in `put` fails after its retries, the exception passes through before the row or receipt is written.
-**A file without a row is recoverable** (the librarian's re-put "saved by a run stopped before its manifest commit", the
-gate's repair of a proven-good held file, the 409 on a repeated create); a row without a file is what the order makes
-impossible. Required tests, one per Drive write path: a Drive that fails every try on the call **after** the create (the
-read-back, or the next folder lookup) leaves the file, **no manifest row, no receipt**, and raises the exception callers
-catch; the repeat run writes the row once. Paths: staging (`StagingArea.stage`), the Record put (`FingerprintingStore`),
-the revision sink, `DataStore.put` (receipts), and the index files. If any path is found writing its row before the
-file is confirmed, that is a bug to fix in R1c, not to preserve.
+| Mechanism | The record it keeps | Where the file-before-record order is (file:line) | Writers |
+|---|---|---|---|
+| Archive put: `FingerprintingStore.put` | manifest row (a local CSV, committed later) | `manifest_folder.py:108` put, `:109` record | the librarian (`librarian.py:78,93`), snapshot and session-filed takers (`snapshot_taker.py:29,35`, `session_filed_taker.py:51,53`; `fo_masters` and flows through them), `raw_library.py:59`, `vix_history/librarian.py:85,100`, the promotion gate's Record put (`promotion/gate.py:66`), filings day lists |
+| Data put: `DataStore.put` | SHA-256 receipt (a local file, committed later) | `data_store.py:43` put, `:46` receipt | the close read (`close_read/store.py:35`, all of `reader.py` and `confirm.py`), `receipted_rows.py:36`, `part_table.py:40` (circulars, NSDL back-fill), preopen (`record.py:80,93,100`, `open_check.py:117`) |
+| Receipt repair | a receipt for a file already in Drive | `receipt_repair.py:40` reads the file back, `:47` writes the receipt | the repair job (`repair_wiring`) |
+| Revision archive | revision index row | `revisions.py:142` put ("bytes first"), `:143` append | `RevisionArchive.capture`, `revision_source.py:39`, `promotion/revision_sink.py` |
+| Own log or ledger after a put | a row in that writer's own log | `global_cues/collector.py:112` put, `:113` log append (the attempt log's `STARTED` row claims no file; the outcome row comes after the archive returns); `global_cues/preopen.py:182-183`; `intraday/candle_archive.py:54` put, `_append` after; `intraday/snapshot_files.py:27` put, then the ledger append in `settle.py:48`; `filings/archive.py:43` put, `:53` manifest record; `quotes/recorder.py:284-286` sidecar then marker | the global cues, the intraday candles and snapshots, the filings archive, the quote recorder (below) |
+| Index files | none (an in-place file) | `index_store.py:37-39`: put, then `replace_contents` | filings progress and the symbol map (`filings/progress.py:93`, `filings/wiring.py:144`), written after the run's filings |
+| No record kept | none | n/a | staging (`promotion/staging.py:53`, `runs.py:75`), `pipeline/records.py:31`, `pipeline/run_summary.py:71`, `row_log.py:99,113`, `quotes/recorder.py:185` (a "none" marker claims nothing), folder creation, `DriveItems.move/rename` |
+
+Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): if the CSV save fails, the sidecar is
+still written with `RAW_FILE_SAVED=False`, and readers honour that flag, so the sidecar's record says the file is
+absent; it is the one record that can be written when the file is not, and it says so. **The deferral log**
+(`intraday/backfill.py:108`) records sessions put off and claims no file.
+
+A file without a row remains possible after a crash between `put` and the record; the librarian's re-put
+(`librarian.py:78`, `vix_history/librarian.py:100`), the gate's repair and the 409 on a repeated create heal it.
+
+**Tests, one per mechanism and per own-record writer** (a Drive that fails every try on the call after the create leaves
+the file and no record, and raises the exception callers catch; the repeat run writes the record once): the archive put,
+the data put, receipt repair, the revision archive, the global-cue collector, the candle archive, the snapshot files and
+ledger, the filings archive, the quote sidecar flag, and the index file. If any path is found writing its record first,
+that is a bug to fix in R1c.
 
 ## Stated differences from today (all deliberate)
 
 1. Waits gain upward jitter (never shorter), 25%.
-2. `Retry-After` is now honoured, up to 120 s; above that the call stops at once instead of retrying at 2/8/30/60 s.
-   Reasoning only: Google asking for more than the longest of our waits means retrying sooner would be refused too, and
-   the next run is the right retry; judges may veto.
+2. `Retry-After` is honoured as a floor and **capped**: the wait before try n is `min(max(t_n + jitter, Retry-After),
+   DRIVE_RETRY_AFTER_CAP_SECONDS)`, a named constant of 120 s whose comment ties it to the workflow timeouts (the
+   shortest is 900 s). The call keeps **all five tries**: stopping early on a long `Retry-After` would make fewer
+   attempts at the Record store than today, which is forbidden (judge 2, S1; the orchestrator's first ruling is
+   superseded by it). A header asking for more than 120 s therefore gets 120 s, not a deferral. Whether 120 s is the right
+   cap for a write target is not measured: Drive-write calls per workflow is a **required pre-go-live measurement** on
+   the owner's go-live list, and raising the cap is a tuning follow-up, not a redesign.
 3. Nothing else: no breaker, no spacing, no new exception, same texts.
 
 ## Worst case per call, computed (code references: `drive_session.py:41-62`, `TIMEOUT_SECONDS = 60`)
 
 One failing call today: waits 2+8+30+60 = 100 s plus five requests that each time out at 60 s = **400 s**. With jitter
-0.25: 125 + 300 = **425 s** (+6%). With a `Retry-After` of up to 120 s on every retry: four waits of up to 120 s, so
-**780 s** (new: today the header is ignored, so this case does not exist), bounded by the policy's 900 s total cap.
+0.25: 125 + 300 = **425 s** (+6%). With a `Retry-After` of 120 s or more on every retry: four waits of 120 s (the cap), so
+**780 s** (new: today the header is ignored, so this case does not exist), under the policy's 900 s total cap.
 Honest reading: a Drive outage already exceeds the shortest workflow timeouts (15 minutes, flows-download,
 participant-oi-watch, circulars, 900 s) after three failing calls today (3 × 400 s = 1200 s), and the Drive-using workflows make many Drive calls per run (a count per workflow is not made here; reasoning
 only), so a total outage most likely ends in a timeout today and after; R1c adds 6% (25 s per call) to
@@ -88,7 +106,8 @@ today. No run-level budget is added (a separate story, as for NSE).
 
 1. Same classification (table-driven over statuses and the 403 reasons), the 401 rule, the `accept` contract.
 2. Waits: with no jitter 2/8/30/60 exactly (the characterization); live waits lie in `[t, 1.25 t]`; `Retry-After`
-   raises a wait and a value above 120 s stops the call; `Retry-After` on the last try gives up without a wait.
+   raises a wait, a value above 120 s waits 120 s and the call still makes all five tries; `Retry-After` on the last try
+   gives up without a wait.
 3. Exceptions and their texts unchanged on exhaustion (`HTTPError` with Google's reason, `ConnectionError` re-raised as it was).
 4. The invariant: the per-write-path tests above.
 5. No breaker: `settings_for("drive").breaker is None`, nothing in `drive_session.py` or the stores constructs one.
@@ -98,7 +117,7 @@ today. No run-level budget is added (a separate story, as for NSE).
 ## Verification (no claim that a `--help` dry run proves anything)
 
 Primary safety: the Drive characterization and the new tests, mutation plants (the waits, the 403 reasons, the 401 rule,
-the 409 accept, the Retry-After floor and ceiling, a row written before the file). Real proof, owner-gated: the
+the 409 accept, the Retry-After floor and its 120 s cap, a row written before the file). Real proof, owner-gated: the
 stage-only `pipeline-staging` dispatch exercises the Drive writes on the real runner. Interim, after the merge: the
 active comparison of the first scheduled run of each Drive-using workflow against its predecessor (tries, waits,
 statuses, manifest rows, receipts), comparing tries and waits rather than duration, reverting only for a clear regression.
