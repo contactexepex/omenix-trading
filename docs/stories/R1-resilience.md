@@ -71,7 +71,7 @@ configuration value. Time, sleep and randomness are injected, so every test is d
    the retry policy would retry: the **second consecutive** 403 or 429 opens the breaker and **ends the call at once**,
    with no further try and no wait into the pause (as `raw_source.py` does for a second 429). For other sources it
    counts consecutive **BLOCK or exhausted-retry** outcomes. **404 / not-published never counts**; a success resets. Thresholds are per source: **NSE = 2** (today),
-   Drive = its existing give-up behaviour (no new breaker threshold looser than the code now), Groww = a 429 pauses 60 s as
+   Drive = **no breaker** (R1c ruling, see R1c-drive.md: Drive is the write target, retry with `Retry-After` is enough), Groww = a 429 pauses 60 s as
    today; new sources start at NSE-strict (2) until measured. Closed -> open -> half-open -> closed. **The half-open probe
    is exactly one request, outside the retry policy** (a retried probe would be up to four hits on a blocking host).
    **The cool-down grows on each re-open** (doubles from the starting cool-down, 15 min for NSE as today, up to a cap), and
@@ -185,7 +185,7 @@ config key `resilience` (empty by default, so today's numbers apply); `.gitattri
   one file refuse the 151st sign-in and that the count resets on the next IST day.
 - **S2 survivors:** tests added that a 404 between two 403s resets the NSE count (and that two 403s in a row do open it,
   so the reset test is not vacuous), and that a probe answered 404 closes the breaker.
-- **R1c requirement (judge 1):** R1c must show what a deferred Drive write leaves behind (no Staging file, no manifest
-  row, no receipt), since the Drive breaker (threshold 5) is new behaviour on the Record store.
+- **R1c requirement (judge 1), settled in R1c:** there is no Drive breaker, so no deferred write; the requirement becomes the
+  invariant "no manifest row or receipt without a Drive file", shown per write path (R1c-drive.md).
 - **R1d note (judge 2):** a Groww half-open defers concurrent snapshot reads during the probe, where today all reads
   resume after 60 s; R1d decides and tests that.
