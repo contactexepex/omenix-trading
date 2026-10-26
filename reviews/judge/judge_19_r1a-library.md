@@ -40,3 +40,14 @@ identical, so my gates and the 38 caught plants from round 1 stand. Finding 1 is
 (`:51`) no longer assert the V1 gate. A "Gate change" paragraph (`:10`) records who (the orchestrator, on the owner's
 directive), when (27 Oct 2026 IST) and why, plus the safeguards now required for R1b-R1d: characterization tests with
 plants, and a post-merge dry run. The `claim.py` wording is corrected. The minor notes from round 1 carry to R1b/R1c.
+
+## Addendum 2: final SHA bea8dc9 (supersedes 0929993)
+
+**PASS, lane 1, judge 1.** 0929993..bea8dc9 changes 2 files and 4 lines, taking two of my round-1 minors:
+- `retry.py`: the clip that could never take effect is removed. `cap_seconds` stays as a validated, declared ceiling,
+  and its comment says so.
+- `breaker.py`: the `_restore` docstring now matches the code (a probe that died leaves the breaker open with the same
+  cool-down, not doubled).
+
+My checks on bea8dc9: 312 passed; ruff, check_imports, check_numbers and format clean. A floor plant (jitter from 0)
+still makes 8 tests fail. The Drive-deferral point is recorded as an R1c requirement.
