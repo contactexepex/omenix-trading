@@ -108,14 +108,14 @@ learns of it the first time.
 5. The step list is uniform (claim 4 above) and `continue-on-error`; the step adds one path only (a test reads the YAML).
 6. Concurrent appends from two workflows both survive a merge (the existing `test_union_merge` over the new path).
 7. Old behaviour inside the process is unchanged: the 42 characterization tests and the R1b1 tests stay green.
-9. No tracked file changes during a run: with the committed CSV changed upstream, a manifest committer's `git pull
-   --no-rebase` still succeeds (a git test over two clones); the local file is ignored (`git check-ignore`); the
-   restore uses UTC (a breaker opened at 09:00 UTC is still open at 09:10 UTC in a new `NsePacer`, closed after
-   09:16, whatever the monotonic clock says); the commit step appends only new rows once, header once.
 8. The live-window rule: in a live command's run, a persisted open breaker still cooling admits exactly one probe per
    host (three threads: one request, the rest wait), a good answer closes it and the run proceeds, a refused one
    re-opens it; in any other command the same state refuses without a request; `LIVE_WINDOW_COMMANDS` is the stated
    set and a static test fails if a command is added or removed without it.
+9. No tracked file changes during a run: with the committed CSV changed upstream, a manifest committer's `git pull
+   --no-rebase` still succeeds (a git test over two clones); the local file is ignored (`git check-ignore`); the
+   restore uses UTC (a breaker opened at 09:00 UTC is still open at 09:10 UTC in a new `NsePacer`, closed after
+   09:16, whatever the monotonic clock says); the commit step appends only new rows once, header once.
 
 ## Verification (no claim that `--help` proves anything)
 
