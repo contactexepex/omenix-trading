@@ -101,7 +101,7 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
 - Fetchers hold **no broker key** (Groww runs as a routine with the key in its session env, never in GitHub).
 - **Target:** fetchers can write **only Staging**; the write-once Record is written **only** by the promotion gate — so
   an abused public workflow can at worst drop garbage in Staging, which the gate rejects. **Not met yet** (Phase 1:
-  code-level only, one shared Drive credential; see "Phase 1 as built").
+  code-level only, one shared Drive credential; see "Phase 1 as built"). Credential isolation options and a recommendation: `docs/stories/H1-credential-isolation.md`.
 - Actions pinned to full SHAs; no third-party actions; fork PRs require approval and cannot reach secrets (no
   `pull_request` triggers); the record scan blocks committing any secret/PII.
 - GitHub masks secrets in logs; code prints exception class names only, never credential-bearing text.
