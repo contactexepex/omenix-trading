@@ -173,7 +173,7 @@ def test_a_held_file_no_passing_copy_proves_is_not_saved_again(staging_store, re
 def test_a_record_written_elsewhere_stays_and_an_earlier_different_staged_copy_is_only_a_revision(
     staging_store, record_store, sink
 ):
-    """The Record holds X (the live path wrote it). Staging holds Y first, then X: X stays, Y is a revision, no conflict."""
+    """The Record holds X (written live). Staging holds Y, then X: X stays, Y is a revision, no conflict."""
     staging, gate = gate_for(staging_store, record_store, sink)
     record_store.put(PATH, b"good X")
     staging.stage("nse", PATH, b"good Y", moment(THURSDAY))
