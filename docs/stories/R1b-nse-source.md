@@ -26,18 +26,21 @@ gets the session-level changes only).
 
 ## The probe (revised: never stricter than today for data)
 
-After the cool-down the first `wait_turn` is admitted as the probe and everything else on that host is refused
-(`SourceCoolingOff`, "probe in flight") until its answer: one request instead of a flood. Its answer is treated as the
-pacer treats answers today, with one addition:
-- 403 or 429: re-open, cool-down doubled (cap 24 h);
+After the cool-down the first `wait_turn` is admitted as the probe. Every other `wait_turn` on that host **blocks until the
+probe's answer** (bounded by that request's timeout: 20 s for `nse_json`, 60 s for a file) and then proceeds if the probe
+closed the breaker, or gets `SourceCoolingOff` if it re-opened it. One request is in flight, nobody is turned away
+for the probe's sake, and no thread loses its quote or its file to a probe that succeeds (judge 2, R2-1: the 14:55 to
+15:10 quote window runs three index threads through `nse_json`). The probe's answer is treated as the pacer treats
+answers today, with one addition:
+- 403 or 429: re-open, cool-down doubled (cap 24 h); the waiting callers get `SourceCoolingOff`;
 - **any other answered status, 5xx included: close.** Today the pacer ignores 5xx, and one morning 503 must not push
   `index-closes` past its 07:41 retry (judge 2, S2);
 - no answer (timeout, connection error): re-open with the **same** cool-down (not doubled).
 
 **Library addition (flagged, touches merged R1a):** `CircuitBreaker.record_unanswered()`: from half-open back to open
 for the same cool-down, logging a `reopened` row; a no-op in any other state. Tests and a mutation plant come with it.
-**Stated difference from today:** during the one request in flight the other threads of the process are refused where
-today all would have proceeded; the window is one request, never longer.
+**Stated difference from today:** after a pause, the first request goes alone and the others wait for its answer (at
+most one request timeout) before they start; today all would have gone at once.
 
 ## Dropped: the "differences" of round 1
 
@@ -90,8 +93,9 @@ the live policy's waits lie in `[t, 1.25 t]`. Any other change to an assertion f
 4. One process-wide pacer: two `PacedSession`s share one `NsePacer`; a refusal seen by one pauses the other (a test, as
    `SHARED_PACER` today).
 5. Per host: a pause on `www.nseindia.com` does not stop `nsearchives.nseindia.com` and the reverse; spacing is per host.
-6. The probe: one request after the pause, with the three answers above; eight threads get exactly one probe
-   (a concurrency test); 5xx closes it; a timeout keeps the same cool-down.
+6. The probe: one request after the pause, with the three answers above. Three threads, a 200 probe: all three complete
+   and exactly one request went before them; a 403 probe: all three get `SourceCoolingOff` and only one request was sent
+   (concurrency tests); 5xx closes it; a timeout keeps the same cool-down.
 7. One builder: after R1b the loop in `_response`, `RETRY_WAITS` in `retry_policy.py` and `RequestPacer` are gone;
    `retry_policy.py` keeps `verdict` and `retry_after_seconds`. A static test lists the `sleep(` sites.
 8. Deferred writes nothing: when the pause defers a fetch, the stager and library leave Staging, Record, manifests and
