@@ -72,3 +72,33 @@ The fix is about 4 line edits:
   to `raw/` are not stopped".
 - `:48`: mark it as the target.
 - `:51`: "needs no broker key".
+
+## Addendum 2: `3b766c847fb6734b6d49e326d272dac0b054c2b7` (a third pass, past my two-round limit)
+
+**PASS**, lane 1, judge #2. Round record, stated openly:
+- `5e6e127`: round 1.
+- `1909b90`: round 2 (Addendum 1).
+- `3b766c8`: this pass. The orchestrator asked for it as "round 2" and the implementer sent it as DOC2's round 2.
+  If the owner rules it beyond the limit, this addendum stands as evidence for the owner's decision.
+
+Text only: doc-reading tests 53 passed; record scan clean; `check_numbers` clean on `main`. `PIPELINE_DESIGN.md` is
+174 lines.
+
+| Earlier finding | Verdict | Evidence (line numbers at `3b766c8`) |
+|---|---|---|
+| "Outsiders cannot write Drive at all" | FIXED | `:17` and `:110` say no outsider gets in "through a fork or a pull request"; `:111-113` name the supply-chain path (unpinned `>=`, no `--require-hashes`, hash-pinning not done) |
+| "Garbage cannot become a record — the security property" | FIXED | `:68-71`: a data-quality property; "not authenticity"; forged but well-formed files are not detected; direct writes are possible |
+| "Each writes only to Staging" / "fully public-repo-safe" | FIXED | `:49`: the new path, code level, with the live workflows named; `:51`: "needs no broker key" only |
+| Branch-protection wording | FIXED | `:116-117`: protected, but direct pushes are accepted; the settings are not readable from here |
+| H1's forgery and staged-copy deletion point | FIXED | `:124-126`, with the mitigations named as not built |
+
+### Minor (not blocking)
+
+1. `:119-120`: "every reader checks the receipt on each read (`storage/drive_cache.py`)" is broader than the code.
+   The verified cache does check every byte against the receipt, but the coverage check, the librarian and the gate
+   read `raw/` directly (`build_drive_reader`, `record.get`). Say "readers through the verified cache".
+2. `:138`: "The Record guarantees: write-once, schema-valid, ..." is written as present fact in the forward contract.
+   Under the shared credential, a direct write can break write-once and schema-valid, and authoritative-source
+   preference is not built. Mark it as the target contract.
+
+No remaining line claims credential-level or authenticity protection.
