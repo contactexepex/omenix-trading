@@ -92,7 +92,7 @@ jobs:
             echo "not published yet (or not a session): nothing to upload"
           fi
       - name: Fire the dry-run routine for new batches, run summary in Drive, one line to #fno-desk (O6)
-        if: false # DISABLED for migration: re-enable once Claude routines are repointed to exepex/omenix-trading
+        if: false # DISABLED for migration: re-enable once Claude routines are repointed to exepex/omenix-ingestion
         run: |
           notes=()
           while IFS= read -r line; do notes+=(--note "$line"); done < <(grep -E '^REWRITTEN' watch.log; tail -n 1 watch.log)

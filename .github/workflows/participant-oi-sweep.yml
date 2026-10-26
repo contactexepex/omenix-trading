@@ -68,7 +68,7 @@ jobs:
           git diff --cached --quiet || git commit -m "O6 Actions: participant-OI sweep $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: Fire the dry-run routine for republished files, run summary in Drive, one line to #fno-desk (O6)
-        if: false # DISABLED for migration: re-enable once Claude routines are repointed to exepex/omenix-trading
+        if: false # DISABLED for migration: re-enable once Claude routines are repointed to exepex/omenix-ingestion
         run: |
           notes=()
           while IFS= read -r line; do notes+=(--note "$line"); done < <(grep -E '^(MOVED|no answer|sweep:)' sweep.log)

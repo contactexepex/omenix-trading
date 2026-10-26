@@ -2,7 +2,7 @@
 
 Verdict files from the code judge and the lane-2 auditor (process: `docs/JUDGE.md`).
 
-This index starts clean for **Omenix F&O (`exepex/omenix-trading`)**: the verdicts carried over from the parent
+This index starts clean for **Omenix F&O (`exepex/omenix-ingestion`)**: the verdicts carried over from the parent
 repository `exepex/trading` were for its forecasting, dashboard and desk stories and did not apply to this
 data-ingestion repository, so they were removed in the migration clean-up. History is preserved in git.
 

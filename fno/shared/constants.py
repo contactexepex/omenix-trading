@@ -93,7 +93,7 @@ ENV_ROUTINE_POSTMORTEM_TRIGGER_ID = "FNO_ROUTINE_POSTMORTEM_TRIGGER_ID"
 ENV_ROUTINE_POSTMORTEM_TOKEN = "FNO_ROUTINE_POSTMORTEM_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
-DEFAULT_REPOSITORY = "exepex/omenix-trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
+DEFAULT_REPOSITORY = "exepex/omenix-ingestion"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
 
 ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check (O8) records that it posted
 
