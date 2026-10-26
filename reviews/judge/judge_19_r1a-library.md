@@ -50,4 +50,5 @@ plants, and a post-merge dry run. The `claim.py` wording is corrected. The minor
   cool-down, not doubled).
 
 My checks on bea8dc9: 312 passed; ruff, check_imports, check_numbers and format clean. A floor plant (jitter from 0)
-still makes 8 tests fail. The Drive-deferral point is recorded as an R1c requirement.
+still makes 8 tests fail. Correction (from the implementer): the Drive-deferral point is NOT written into any file in bea8dc9. It is to be
+put in the R1c story, and I will check it there.
