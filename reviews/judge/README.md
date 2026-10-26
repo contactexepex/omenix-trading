@@ -21,4 +21,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 8 | DOC2 credential posture (design doc, P1 gap list) | 1 | PASS (3b766c8, re-check after round 2) | `judge_8_doc2-credential-posture.md` |
 | 9 | DOC2 credential posture, docs (judge #2) | 1 | PASS (3b766c8; third pass, see file) | `judge_9_doc2-credential-posture-judge2.md` |
 | 10 | P1c stage-only labels | 1 | PASS (f1d71af) | `judge_10_p1c-labels.md` |
-| 11 | P1c stage-only labels (judge #2) | 1 | FAIL (round 1, 1 should-fix: story text) | `judge_11_p1c-stage-only-labels-judge2.md` |
+| 11 | P1c stage-only labels (judge #2) | 1 | PASS (round 2, ebfafca) | `judge_11_p1c-stage-only-labels-judge2.md` |

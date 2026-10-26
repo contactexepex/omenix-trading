@@ -30,3 +30,11 @@ Gates (a `.yml` changed, so the full set): 235 passed; `ruff check`, `check_impo
    never posts. Moving the Slack token to the promote step's own `env` would narrow it. That is the owner's call;
    with the accepted shared Drive credential it is a small gain.
 2. H1 is withdrawn; DOC2 is at round 2 (judge 9, Addendum 1).
+
+## Addendum 1: round 2, `ebfafca68ca99af9dfcd11c72145b374edb029d4`
+
+**PASS**, lane 1, judge #2. The delta from `f1d71af` is the P1b story only: the false clause ("would need the Slack
+secret in a step that today holds only the Drive ones") is deleted, and the remaining reason (a manual dispatch, a
+red run, nobody waiting on an unattended run) carries the decision. The workflow is unchanged from round 1, where I
+verified it by YAML parse and the full gates (235 passed). Text gates: doc-reading tests 53 passed; record scan
+clean. Finding 1: FIXED.
