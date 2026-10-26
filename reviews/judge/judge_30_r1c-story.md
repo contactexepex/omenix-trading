@@ -88,3 +88,49 @@ must still give 5 tries.
     sidecar.
 
   Optional: name them in the map, so a reader counting modules finds all 18.
+
+## Addendum 4: SHA ddbcf60 (supersedes b057f5a): FAIL, one text fix
+
+Reviewed `ddbcf60149bd1ba776886f3d33e8c09b3c3567bf` (`story/R1c-drive-plan`). The diff from b057f5a is
+`docs/stories/R1c-drive.md` only (+17/-5). I checked every new sentence against the code at that SHA. Round counting is
+the orchestrator's call; b057f5a was already PASSed in Addendum 3.
+
+**Retry-After build: PASS (strong evidence, read in code).** The library stops early only when
+`retry_after > retry_after_ceiling_seconds` (`retry.py:98`). If the Drive classifier clamps the header to 120 s first
+and the `drive` settings ceiling is 600 s, that stop can never fire for Drive. NSE's `NSE_RETRY` (`settings.py:27`,
+ceiling 120) and `nse_json` are untouched. The arithmetic for a 300 s header:
+- `wait_before` gives `max(t_n + jitter, 120) = 120` per wait, because the largest jittered floor is 75 s.
+- Four waits of 120 s plus five 60 s request timeouts is 780 s, under `max_total_seconds` 900. All five tries are kept.
+- The margin is 120 s. Any later change to the Drive timeouts or cap must re-check it; the code test must pin it.
+
+**Sidecar reader claim: FAIL (strong evidence, read in code).**
+
+The story says "this repository has exactly one reader of the sidecar, `DriveOnlyQuoteStore.get`". That is false.
+`fno/ingestion/quotes/compare.py:33-43` (`_snapshot`, used by `quotes compare` via `cli.py:64-66`) reads
+`{snapshot_id}.meta.json` directly at `:40`.
+
+It is safe today, but by a mechanism the story does not state:
+- It reads only the canonical snapshot (`:35-38`).
+- A canonical marker is written only when `complete` (`recorder.py:285`).
+- `complete` requires no failures (`recorder.py:263`).
+- A failed save appends `raw_file_error` to the failures (`recorder.py:261-262`).
+- So no canonical sidecar can carry `raw_file_saved: false`.
+- Its CSV read (`:42`) also goes through the guarded `get`.
+
+The same rule (failed save ⇒ not complete ⇒ no marker) protects `indices.py:85` and `recorder.canonical` callers. No test
+pins it today: `git grep` finds no test naming `raw_file_saved`, `RawQuoteMissing` or `raw_file_error` at this SHA.
+
+The three reader-side tests the story adds are right. I re-read `drive_only_store.py:49-63`: flag false returns `None`
+before `_private_store()`, a missing file raises `RawQuoteMissing`, and a hash mismatch raises `RawQuoteHashMismatch`.
+
+Required to PASS (text only):
+1. Replace "exactly one reader" with the two readers: the guarded `get`, and `compare.py:40`, which reads only canonical
+   sidecars. A canonical marker is never written after a failed save (`recorder.py:261-263, 285`).
+2. Add one required test to the list: a CSV save that fails every try leaves `complete` false and writes no canonical
+   marker.
+
+**Disagreement with judge #2 (judge_29 Addendum 4, PASS on ddbcf60):** the PASS is correct on the Retry-After build.
+It missed the second reader. A functional document is reviewed like code (CLAUDE.md), so a false statement about
+the code cannot pass.
+
+Gates: text-only change, so the record scan applies; `check_numbers` is run on `main` with this commit.
