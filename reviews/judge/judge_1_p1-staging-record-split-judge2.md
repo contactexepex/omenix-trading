@@ -223,7 +223,7 @@ Run the gates on the merged tree. The first real run is `pipeline-staging.yml` b
 dataset over 7 days; record the result in the merge follow-up. The two-judge rule still applies: this PASS is mine
 only.
 
-## Addendum 4: owner-authorized full fresh re-review of `f6120cc132d1fb80edc70036e0d7e4a0695a5dbb`
+## Addendum 4 (round 3: owner-authorized full re-review after the two-round limit) of `f6120cc132d1fb80edc70036e0d7e4a0695a5dbb`
 
 **FAIL** on one should-fix, which is tests only (S5). There is no code defect and no blocking finding. **This
 changes my Addendum 3 PASS on the same SHA.** Re-done from scratch, the review found three surviving plants in one
@@ -269,3 +269,29 @@ Re-verified from scratch:
 ### Plants
 
 23 planted on this SHA (Addendum 3's 16 plus N1-N7), 20 caught. Survivors: F2, F14 and N1 (S5).
+
+## Addendum 5: delta check of the final SHA `be69c3a53a3808669a2d09e61c0f2c43cd5cab0c` (against `f6120cc`)
+
+**PASS**, lane 1, judge #2 of two. The delta `git diff f6120cc..be69c3a` changes tests, one story line and
+`promotion/datasets.py`. `gate.py`, `staging.py`, `runs.py`, the wiring, the workflows and `storage/` are unchanged.
+Everything else stands as verified in Addendum 4. Gates re-run by me: 235 passed; `ruff check`, `check_imports`,
+`check_numbers`, `test_code_size` clean; new files formatted.
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| S5 (1): a CONFLICT is a problem | MET | `test_wiring_cli` asserts incomplete, `problems()`, exit 1 and one alert; plant F14 now fails 1 test |
+| S5 (2): live X, then staged Y and X | MET | `test_gate`: ALREADY_RECORDED, X kept, Y to the sink; plant N1 now fails 1 test |
+| S5 (3): no re-put without a proving copy | MET | `test_gate` asserts no put; plant F2 now fails 1 test |
+| `equity_content_days` reader change | MET, safe | The duplicate layout call is dropped; `SchemaCheck` still runs the same validator (removing it fails 12 tests). A missing or empty `TradDt` raises `ValueError`, which `ContentDayCheck` rejects (fail-closed). Plants: an empty date skipped instead of rejected fails 1 test; first row only fails 3 tests |
+
+### Plants
+
+6 planted on this SHA, 6 caught.
+
+### Notes
+
+1. The story's Evidence says 232 tests; the branch has 235. Text only, not a finding.
+2. Carried from Addendum 3, for the owner: credential separation is not met, so an abused workflow holding the Drive
+   secret can still write the Record. The gap list discloses this.
+3. Merge conditions are unchanged: judge #1's independent PASS, the gates on the merged tree, then a dry-run dispatch.
+   The first real promote writes the Record and is the owner's go/no-go; I trigger nothing.

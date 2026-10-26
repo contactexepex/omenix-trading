@@ -11,6 +11,6 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 
 | # | Story | Lane | Verdict | File |
 |---|---|---|---|---|
-| 1 | P1 staging / record split (story text, judge #2) | 1 | FAIL (full re-review of f6120cc: 1 should-fix, tests only) | `judge_1_p1-staging-record-split-judge2.md` |
+| 1 | P1 staging / record split (story text, judge #2) | 1 | PASS (final be69c3a; judge #2 only) | `judge_1_p1-staging-record-split-judge2.md` |
 | 2 | P1 staging / record split (story + code, judge #1) | 1 | FAIL (f6120cc: 2 should-fix tests, no blocking) | `judge_2_p1-story.md` |
 | 3 | DOC1 schedule status (CLAUDE.md, README) | 1 | FAIL (round 1, 1 should-fix) | `judge_3_doc1-schedule-status.md` |
