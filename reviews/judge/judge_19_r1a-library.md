@@ -52,3 +52,12 @@ plants, and a post-merge dry run. The `claim.py` wording is corrected. The minor
 My checks on bea8dc9: 312 passed; ruff, check_imports, check_numbers and format clean. A floor plant (jitter from 0)
 still makes 8 tests fail. Correction (from the implementer): the Drive-deferral point is NOT written into any file in bea8dc9. It is to be
 put in the R1c story, and I will check it there.
+
+## Addendum 3: my PASS withdrawn (a miss on thread safety)
+
+**FAIL, until the round-2 SHA.** Judge #2 found, and I have now confirmed, that `RateLimit` and `CircuitBreaker` hold
+no lock (`grep "threading\|Lock()"` in `fno/shared/resilience/`: 0 at bea8dc9). The code they replace does:
+`RequestPacer` (`http_pacing.py:40`) and the intraday `RatePacer` (`pacing.py:14`). The codebase calls them from
+thread pools (`quotes/book_fetch.py:39`, `storage/coverage.py:111`). Once wired, concurrent callers could burst past
+a host's spacing and per-minute limits, which is weaker than today. I did not check concurrency in rounds 1-2. The
+round-2 SHA will be judged with my own concurrency plant (remove the lock, and a parallel-callers test must fail).
