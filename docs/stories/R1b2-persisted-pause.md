@@ -11,24 +11,40 @@ R1b1 keeps the pause in the process: every scheduled run is a new process and fo
 breakers their memory (`TransitionLog`, R1a) and an alert sender:
 
 1. **Persistence.** `NsePacer` accepts a `TransitionLog` and an `AlertSender` (`attach`, called once by
-   `fno/ingestion/cli.py:main` before any command, with `research/data/resilience/paced-hosts.csv` and
-   `build_alert_sender()`). Each host's breaker is built on first use, restores from the log's last row for that host
-   (a missing file, an empty history or a last row `closed` means closed; anything else means open from that row's time)
-   and appends one row per transition. The breaker label changes from `nse:<host>` to `paced:<host>`, because the shared
-   session also paces non-NSE hosts (global cues); the labels are internal, no test or message pins the old one.
+   `fno/ingestion/cli.py:main` before any command, with `build_alert_sender()` and the two files below). Each host's
+   breaker is built on first use, restores from the log's last row for that host (a missing file, an empty history or
+   a last row `closed` means closed; anything else means open from that row's time) and appends one row per
+   transition. The breaker label changes from `nse:<host>` to `paced:<host>`, because the shared session also paces
+   non-NSE hosts (global cues); the labels are internal, no test or message pins the old one.
+   **Two files, so the run never dirties a tracked file (judge 2, B1).** The committed log
+   `research/data/resilience/paced-hosts.csv` is only **read** during a run. The run **appends** to a run-local,
+   git-ignored file `research/data/resilience/.run/paced-hosts.csv` (new `.gitignore` line). A `LayeredLog` reads both
+   (committed rows then this run's rows) and writes only the local one. A tracked file modified during the run would
+   make the manifest committers' `git pull --no-rebase` fail with "local changes would be overwritten" whenever another
+   workflow had pushed the same CSV; an ignored file cannot.
+   **Real UTC, not monotonic time (judge 2, S1).** The breaker's clock for a persisted log is `datetime.now(UTC)`;
+   an `EPOCH + monotonic` clock is meaningless in the next process. In-process spacing keeps `time.monotonic`. The pacer
+   takes the wall clock as its own argument (tests inject one); R1b1's tests, which inject only the float clock, still
+   derive the wall time from it. A restored breaker has no refusal status, so its message is built from the log's
+   cool-down alone ("HTTP" omitted).
 2. **Alerts.** One line to #fno-desk per transition to open or re-open, and one when it closes again (`ALERT_OPENED` /
    `ALERT_CLOSED` in the library), through the only sender the repository has (`FNO_SLACK_BOT_TOKEN`, #fno-desk,
    never #market-brief). Without the token the sender says so and nothing is sent; the log row is still written.
 3. **Committing the log.** A new last step in every workflow that can reach a paced host (all but `data-checks`, which
    reads Drive only): "Commit the pause log". It runs `if: always() && !inputs.dry_run`, `continue-on-error: true`
-   (failing to remember a pause must never fail a data run: a lost row fails open), and only when the file exists:
-   `git add` that one path, **stop successfully if it is unchanged**, otherwise commit, then `git pull --no-rebase origin main` and `git push origin HEAD:main`,
-   three tries. It is last so it cannot interfere with the Python committers (`GitManifestRecorder` refuses to push
-   while the checkout carries unpushed commits outside its paths, `manifest_commit.py`), and it adds only the log's one
-   path, so the record scan has nothing to find. `.gitattributes` already marks `research/data/resilience/*.csv` as
-   `merge=union`, so two workflows appending at once keep both rows.
+   (failing to remember a pause must never fail a data run: a lost row fails open). **It sets `core.hooksPath` and the
+   commit identity itself** (it does not rely on an earlier step, which may not have run; judge 2, S2). It does nothing
+   when the run-local file is absent or empty. Otherwise: `git pull --no-rebase origin main` first (the tree is clean:
+   the Python committers have pushed and the local file is ignored), then append the local rows (without their header)
+   to the committed CSV, creating it with the header if it is missing, `git add` that one path, **stop successfully if
+   it is unchanged**, commit, `git pull --no-rebase` and `git push origin HEAD:main`, three tries. It is last so it
+   cannot interfere with the Python committers (`GitManifestRecorder` refuses to push while the checkout carries
+   unpushed commits outside its paths, `manifest_commit.py`), and it adds only the log's one path, so the record scan
+   has nothing to find. `.gitattributes` already marks `research/data/resilience/*.csv` as `merge=union`, so two
+   workflows appending at once keep both rows.
 4. **A test that no workflow is missed:** every workflow that runs a `python -m fno` command (other than `--help`) has the
-   step, with the same text, except `data-checks`.
+   step, with the same text, except `data-checks`, and the step sets the hooks path and the identity (the test reads
+   both lines).
 
 Not in R1b2: Drive, Groww, the rest (R1c, R1d). The Groww-side live captures follow the same rule when R1d moves them.
 
@@ -44,8 +60,14 @@ and the 09:12 pre-open capture cannot be redone, so a cool-down carried over fro
 - A command that belongs to the set `LIVE_WINDOW_COMMANDS` (in `fno/shared/constants.py`, so the set is explicit) runs with
   `attach(..., live_window=True)`. The marker is a property of the **command**, read once from the parsed command by
   `main()`; no YAML says anything about it. A static test pins the set, so it cannot grow silently. Proposed set:
-  `quotes record`, `participant-oi watch`, `participant-oi check-once`, `closes read` and `preopen record` (the
-  09:12 pre-open capture, read through `PacedSession`, `preopen/wiring.py:63`; judge 1, round 1).
+  `quotes record`, `participant-oi watch`, `participant-oi check-once`, `closes read`, `preopen record` (the
+  09:12 pre-open capture, read through `PacedSession`, `preopen/wiring.py:63`; judge 1, round 1), `fo-masters` (NSE
+  replaces the ban list in place, so a missed day is gone: `fo_masters/job.py` says "NSE wrote none, or every run
+  before its replacement failed"), `data-snapshot fii-dii-cash-by-session` (NSE's live page shows the latest day; reasoning only, not
+  measured) and `data-snapshot fpi-daily-by-session` (NSDL's daily report, not an NSE host; listed with its sibling,
+  contestable) (judge 2, S3). The test for the set is the rule: a command is live when its
+  source overwrites in place or shows only the current value, so a missed run cannot be redone. The other
+  `data-snapshot` kinds (reference lists NSE replaces rarely) and `global-cues fill` (a repairable backfill) stay out.
 - In such a run, the first request to a host whose persisted breaker is open and still cooling is let through as **one
   probe** per process per host, paced like any request (the 1 s spacing), with R1b1's probe rules: the others of that
   process wait for its answer; a good answer (any status but 403 or 429, or no answer) closes the host and the run goes
@@ -86,6 +108,10 @@ learns of it the first time.
 5. The step list is uniform (claim 4 above) and `continue-on-error`; the step adds one path only (a test reads the YAML).
 6. Concurrent appends from two workflows both survive a merge (the existing `test_union_merge` over the new path).
 7. Old behaviour inside the process is unchanged: the 42 characterization tests and the R1b1 tests stay green.
+9. No tracked file changes during a run: with the committed CSV changed upstream, a manifest committer's `git pull
+   --no-rebase` still succeeds (a git test over two clones); the local file is ignored (`git check-ignore`); the
+   restore uses UTC (a breaker opened at 09:00 UTC is still open at 09:10 UTC in a new `NsePacer`, closed after
+   09:16, whatever the monotonic clock says); the commit step appends only new rows once, header once.
 8. The live-window rule: in a live command's run, a persisted open breaker still cooling admits exactly one probe per
    host (three threads: one request, the rest wait), a good answer closes it and the run proceeds, a refused one
    re-opens it; in any other command the same state refuses without a request; `LIVE_WINDOW_COMMANDS` is the stated
