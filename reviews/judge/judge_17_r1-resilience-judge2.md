@@ -86,3 +86,19 @@ The sleep-site inventory and the equal-jitter reasoning (full jitter can wait 0 
    opening, against 2 today**. Fix: for NSE, every 429 response counts toward the breaker (threshold 2, as today),
    whether or not the retry policy would retry it. A 429 then retries at most once before the host opens. Add a
    claim-3 test: two 429s in a row open the NSE breaker and the second retry is not sent.
+
+## Addendum 2: delta check, `163011b05d0158b5f293a23b188a0cd9f94c8b56` (at the orchestrator's discretion, after round 2)
+
+**PASS** on the R1 story, lane 1, judge #2. The delta from `8ffc937` is story text only, and it fixes both round-2
+findings:
+- **R2-1: FIXED.** Design 2 keeps each source's own table as a floor and adds jitter only upward: the wait before try
+  *n* is `t_n + random(0, t_n)`, so in `[t_n, 2 t_n]` (NSE 5/15/45, Drive 2/8/30/60; tables, not `base * 2^n`). Claim
+  2 asserts the lower bound per attempt and per source. A new source starts from its own doubling table.
+- **R2-2: FIXED.** For NSE, every 403 and 429 response counts, as `RequestPacer.observe` does today. The second in a
+  row opens the breaker and ends the call. The cited current behaviour holds: `raw_source.py:165-167` counts
+  consecutive 429s and stops on the second. Claim 3 tests that two consecutive 429s open the breaker and no third
+  request is sent.
+- **Also:** the stated limit of the sleep-site test (a wait under another name, e.g. `numbering/claim.py`'s `pause`,
+  is allowlisted with its reason and checked by hand) is honest.
+
+The build (R1a-R1e) is judged separately, after V1, with plants on the jitter floor and the NSE 429 rule first.
