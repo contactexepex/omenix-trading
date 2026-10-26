@@ -113,6 +113,10 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
   technical block. Drive files are write-once in our code and every Record file has a SHA-256 receipt in GitHub, so
   tampering is detectable by comparing a file with its receipt (a change that also rewrites the receipt would not be
   caught by that alone).
+- Residual risk, stated plainly: the shared token has **full Drive scope**, so it covers the owner's whole Drive, not
+  only `raw/`; anyone who can merge to `main` or is a repository admin can reach it; a compromised dependency installed
+  in any job can use it; and recovery is limited (Drive's trash and version history only, no separate backup of the
+  Record). Receipts detect a changed file, they do not restore it.
 - Actions pinned to full SHAs; no third-party actions; fork PRs require approval and cannot reach secrets (no
   `pull_request` triggers); the record scan blocks committing any secret/PII.
 - GitHub masks secrets in logs; code prints exception class names only, never credential-bearing text.
