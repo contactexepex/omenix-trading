@@ -41,3 +41,35 @@ honestly listed.
 
 The claims list (classification parity over 2xx/404/429/5xx/403/418/451, byte-identical exceptions, a static `sleep`
 allowlist, zero writes when deferred) is right, and I will plant against each at code review.
+
+## Addendum 1: SHA 7a1ee0e (round 2)
+
+**PASS (story text), lane 1, judge 1.** All four of my findings are fixed:
+- **1 (blocking) FIXED.** The `--help` dry run is withdrawn as proof. The verification has three layers:
+  characterization tests; a stage-only `pipeline-staging` dispatch, gated by the owner (it does exercise
+  `NseArchiveSource` through the Stager); and an **active** log comparison after each of R1b1 and R1b2 merges, with a
+  revert rule.
+- **2 FIXED.** `NsePacer` keeps a `RateLimit` and a `CircuitBreaker` per host, one shared instance per process, as
+  `RequestPacer` does (`http_pacing.py:38-39`). `Deferred` is converted to `SourceCoolingOff` at one point, so callers'
+  exceptions are unchanged.
+- **3 FIXED.** The worst-case table checks against the code: request timeout 60 s (`raw_source.py:91`), so
+  65 + 240 = 305 s per all-failing fetch; participant-oi-watch makes 1 + 5 rechecks (`release_times.py:45,184-191`).
+  The three workflows that cannot fit their timeout under total failure fail the same way today. R1b adds about 5%
+  (jitter 0.25) and does not worsen them in kind. The run-level budget is honestly listed as a separate gap for the
+  owner, not quietly required.
+- **4 FIXED.** `nse_json` keeps its last wait.
+
+The changes from today, judged against "never weaker":
+- **5xx closes the probe.** ACCEPTED: that is today's treatment, where a 5xx neither counts nor pauses.
+- **A no-answer probe re-opens with the same cool-down.** ACCEPTED as stricter (never weaker), but it costs data, which
+  the story should state: one timed-out probe defers that host for another 15 minutes, where today the next calls
+  would go ahead. Minor.
+- **Other threads refused while the one probe is in flight** (up to 60 s, the request timeout). ACCEPTED as stricter.
+  For threaded callers, such as `quotes/book_fetch.py`'s pool, the refused threads' attempts end incomplete and are
+  retried by their own window logic. Minor: say so.
+- **The library additions** (`record_unanswered`, the `RetrySettings.jitter` fraction validated by
+  `cap >= (1 + jitter) * max wait`) are fine. They are R1a code changes, and their tests and plants come in the R1b1
+  build.
+
+Minor, for the stop rule: "a run longer than its predecessor by more than the jitter allows" will fire on ordinary NSE
+latency. Compare the number of waits and tries, not wall-clock duration.
