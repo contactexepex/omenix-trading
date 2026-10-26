@@ -30,25 +30,41 @@ breakers their memory (`TransitionLog`, R1a) and an alert sender:
 4. **A test that no workflow is missed:** every workflow that runs a `python -m fno` command (other than `--help`) has the
    step, with the same text, except `data-checks`.
 
-Not in R1b2: Drive, Groww, the rest (R1c, R1d).
+Not in R1b2: Drive, Groww, the rest (R1c, R1d). The Groww-side live captures follow the same rule when R1d moves them.
 
-## Data cost, stated (this step is stricter than today by design)
+## Data cost, and the live-window rule (never weaker where a miss is permanent)
 
-Today a new process calls NSE at once whatever the last run saw. After R1b2, a run that starts inside a cool-down gets
-`SourceCoolingOff` from the first request, with no request sent, and a stale row cannot hold a host longer than its
-cool-down. This defers data the old code would have tried to read, and for **live windows nothing makes it up**: the
-3 pm NSE quote recorder (`quote-recorder-nse`, 14:55 to 15:10) and `participant-oi-watch`. Why it is accepted, with
-the evidence it rests on: a breaker opens only after two refusals in a row (403 or 429) from a host, which is NSE saying
-it blocks this runner's address; at that point the next run would be refused as well, and the old behaviour of calling
-again right away is the thing that lengthens a block (reasoning only; there is no measurement of NSE's blocks in this
-repository). Everything that catch-up can repair (fills and sweeps over the last 7 days, the stager) is repaired by the
-next run. The cool-down doubles only when a probe is refused, up to 24 h; the first open is 15 minutes. **A host that
-stays blocked for a day would also void each day's 3 pm quotes; the alert is how the owner learns of it the first time.**
-The judges decide whether live windows need an exception (for example a cool-down cap of 15 minutes for the two live
-workflows); the story does not add one on its own, because a second rule per workflow is what R1 removes.
+Today a new process calls NSE at once whatever the last run saw. After R1b2, an ordinary run that starts inside a
+cool-down gets `SourceCoolingOff` from the first request, with no request sent. For **archive and end-of-day** work that
+is harmless: fills, sweeps and the stager cover the last 7 days and the next run repairs it. For a **live window** it is
+not: the 3 pm quote recorder (14:55 to 15:10), `participant-oi-watch` (the release-time log) and the 15:40 close read
+cannot be redone, so a cool-down carried over from an earlier run must not cost them their one attempt.
+
+**The rule (orchestrator's design, written here for the judges to test):**
+- A command that belongs to the set `LIVE_WINDOW_COMMANDS` (in `fno/shared/constants.py`, so the set is explicit) runs with
+  `attach(..., live_window=True)`. The marker is a property of the **command**, read once from the parsed command by
+  `main()`; no YAML says anything about it. A static test pins the set, so it cannot grow silently. Proposed set:
+  `quotes record`, `participant-oi watch`, `participant-oi check-once`, `closes read`.
+- In such a run, the first request to a host whose persisted breaker is open and still cooling is let through as **one
+  probe** per process per host, paced like any request (the 1 s spacing), with R1b1's probe rules: the others of that
+  process wait for its answer; a good answer (any status but 403 or 429, or no answer) closes the host and the run goes
+  on; a 403 or 429 re-opens it (cool-down doubled, as for any refused probe) and the run defers as now.
+- Every other command respects the full persisted cool-down.
+- Library edit (flagged, touches merged R1a): `CircuitBreaker.check(force_probe=False)`: with `True`, an open breaker
+  still cooling is admitted once as a probe (state half-open, a `half_open` row), then behaves as after any probe.
+
+**What this costs, stated plainly (reasoning only: there is no measurement of NSE's blocks in this repository):** while a
+host is cooling, each live run sends **one** paced request to it, where today it would send its whole retry loop and
+every other request of the run. That is not zero, and a block that really persists will refuse that request and extend.
+It happens only when the breaker is open (two refusals in a row, rare), and only for the few live commands. It keeps
+today's guarantee of at least one attempt for the windows that cannot be redone, at the price of that one request. The
+orchestrator accepts that as not meaningfully weakening politeness; the judges rule on it, and if they find it cannot
+be both polite and never-weaker, it goes to the owner.
 
 A closed breaker stays closed: no row is written for calls that never failed, so a healthy run changes no file and
-commits nothing.
+commits nothing. The cool-down doubles only when a probe is refused, up to 24 h; the first open is 15 minutes. A host
+that stays blocked for a day would also void each day's live data whatever this layer does; the alert is how the owner
+learns of it the first time.
 
 ## Claims and how each is shown
 
@@ -62,13 +78,17 @@ commits nothing.
 5. The step list is uniform (claim 4 above) and `continue-on-error`; the step adds one path only (a test reads the YAML).
 6. Concurrent appends from two workflows both survive a merge (the existing `test_union_merge` over the new path).
 7. Old behaviour inside the process is unchanged: the 42 characterization tests and the R1b1 tests stay green.
+8. The live-window rule: in a live command's run, a persisted open breaker still cooling admits exactly one probe per
+   host (three threads: one request, the rest wait), a good answer closes it and the run proceeds, a refused one
+   re-opens it; in any other command the same state refuses without a request; `LIVE_WINDOW_COMMANDS` is the stated
+   set and a static test fails if a command is added or removed without it.
 
 ## Verification (no claim that `--help` proves anything)
 
 Unit tests with a real file and a fake clock (claims 1 to 4, 6, 7), a static test over the workflow files (claim 5), and
 after the merge the same active comparison as R1b1: the first scheduled run of each affected workflow is read and
 compared with the previous one (tries, waits, counts, statuses, and now the log file: it should not exist unless a host
-was refused). **Stop rule:** a pause row on a day with no 403 or 429 in any log, an alert with no matching row, a run
+was refused). **Stop rule:** a live command that made no attempt while a host was cooling, a pause row on a day with no 403 or 429 in any log, an alert with no matching row, a run
 that fails because of the new step, or a workflow whose commit step was disturbed, means R1b2 is reverted at once and
 reported. The reversible stage-only dispatch at the owner's validation step stays the controlled real proof.
 
