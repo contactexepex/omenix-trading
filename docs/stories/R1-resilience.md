@@ -4,8 +4,10 @@ Lane 1, two judges (outside services: NSE, Drive, Groww and new sources; the wri
 `story/R1-resilience`. **Design only; story text.** Round 3 of the story (round 1: both judges FAIL on `2d6ea2a`, one
 blocking and ten should-fix; round 2: both judges FAIL on `8ffc937` for two should-fix each, the same two; all checked
 against the code and accepted below). Owner directive (26 Oct 2026, via the
-orchestrator): failures retry politely and never get us blocked, for every source, existing and new. Build starts only
-after this text is judged and the stage-only validation (V1) has passed on real data.
+orchestrator): failures retry politely and never get us blocked, for every source, existing and new. Build starts after this
+text is judged; it is not gated on the stage-only validation (V1) (see the gate change below).
+
+**Gate change (27 Oct 2026 IST):** the orchestrator relaxed the "build gated on V1" rule, acting on the owner's directive to complete all phases before go-live approval. The build no longer waits on the stage-only V1 run. Instead, each refactor of code the live workflows run (R1b-R1d) is protected by characterization tests pinning today's exact behavior (with mutation plants) plus a post-merge dry-run check. The deferred items remain owner-gated to go-live: the first real stage-only run, the first promote to the write-once Record, and migrating the live workflows to stage-then-promote. (See "Gate change" in the gap list.)
 
 **The rule that governs every line below: R1 is never weaker than today for any source.** It consolidates the existing
 rules into one interface and adds jitter, a half-open probe, memory across runs and alerts; it relaxes no protection
@@ -46,7 +48,7 @@ test works from the grep and an explicit allowlist, so a site missed here fails 
 
 R1 migrates the retry and pacing sites; it does not touch window waits, and the Groww hand-run rule is untouched.
 
-## Design (build, after acceptance and V1)
+## Design (build, after acceptance; not gated on V1, see the gate change at the top)
 
 One package, `fno/shared/resilience/`, behind interfaces; **existing modules are refactored onto it, not paralleled**: a
 module in the table above keeps its public interface and delegates, and its own copy of the rule is deleted or becomes a
@@ -131,7 +133,7 @@ test), so a change is a config change. The global `N = 5` proposed in round 1 is
    (`RETRY_WAITS` in two places, `RETRY_GAP_SECONDS`, `MIN_GAP_SECONDS`, `RatePacer`) are gone or are configuration.
    **Limit of that test, stated:** it finds `sleep(` call sites and the named waits in the allowlist; a loop that waits
    through another name (for example the `pause` parameter in `fno/shared/numbering/claim.py`, an internal numbering tool
-   with no external call) is not detected, so that module is listed in the allowlist as internal with its reason, and a
+   that retries `git push` to GitHub) is not detected, so that module is listed in the allowlist as internal with its reason, and a
    reviewer checks new waits by hand.
 9. No Groww behaviour changes in market hours: the existing hand-run rule tests still pass unchanged.
 
@@ -143,7 +145,7 @@ when those sources exist. Each step preserves today's behaviour first (today's n
 
 ## Gap list
 
-- **Gate lifted (orchestrator, owner's plan change):** the build proceeds without waiting for the V1 real stage-only run; that run and every real Drive write stay deferred to the owner's go-live approval.
+- **Gate change:** see the top of this story. Merging R1b-R1d means the live NSE workflows run the refactored, behaviour-preserving code on their next cron; that differs from the go-live items (promote path, first real promote, migrating workflows), which stay owner-gated.
 - The failure-rate breaker (over a window) is specified but ships as consecutive-only first; the build story says so.
 - A source that blocks by IP for days is outside what a breaker can fix; the alert, the growing cool-down and the
   deferral log make it visible.
@@ -167,5 +169,7 @@ config key `resilience` (empty by default, so today's numbers apply); `.gitattri
   allowed, retries wiping the exhausted count for Drive).
 - Bug found by a test and fixed: retried attempts reset the failure count of `count_exhausted` sources, so Drive's
   breaker never opened.
-- Build note for R1b: `fno/shared/numbering/claim.py` retries `git push`; it is listed as internal in the allowlist,
-  not described as having no external call.
+- `claim.py` wording corrected above (it retries `git push`; stays out of scope as an internal tool).
+- Mandatory for R1b-R1d: characterization tests pinning today's exact wait sequences, error classification,
+  pause-after-2 and Drive 409 idempotency, each with a plant that fails if behaviour changes; a dry-run dispatch of an
+  affected workflow after each merge where it has one.
