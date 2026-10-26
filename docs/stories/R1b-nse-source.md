@@ -170,7 +170,7 @@ Branch `story/R1b1-nse-layer`. In-process only; no workflow change; no breaker l
   `PublicData` take a zero-jitter `RetryPolicy` (`run()` and `client()` helpers), the pacer tests construct `NsePacer`
   with `clock` and `sleep` (the old `RequestPacer` had `clock=` and a `.sleep` attribute), and `COOL_OFF_SECONDS` is the
   literal 900 (the constant is gone; the settings test pins 900, 2, 5/15/45 and 120).
-- **New tests** (`tests/ingestion/test_nse_pacer.py`, 14; `test_runs.py` +1; library +3): one probe goes alone and a good
+- **New tests** (`tests/ingestion/test_nse_pacer.py`, 13; `test_runs.py` +1; library +3): one probe goes alone and a good
   answer releases three threads one spacing apart and promptly; a 403 and a 429 probe refuse all three with one request
   sent and the doubled cool-down; a 5xx, a 404 and no answer close the host; a waiter whose wait expires goes ahead and
   closes the host; a probe that raises releases the waiters; the loser of the race to be the probe waits (a barrier
