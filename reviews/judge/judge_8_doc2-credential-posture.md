@@ -66,3 +66,23 @@ New, and blocking: the doc now contradicts itself.
 Transparency: findings 3-5 are things I missed in round 1. I re-read the full document at 1909b90 after the branch's
 merge of `main` showed me judge #2's verdict (`judge_9_*`) inside the diff. I checked each finding myself, by grep
 and by reading the lines cited, and I accept them on that evidence, not on judge #2's word.
+
+## Addendum 2: SHA 3b766c8 (re-check after round 2; the orchestrator or owner rules on the count)
+
+**PASS, lane 1, judge 1.** Every open finding is fixed:
+- **1** Branch protection: `:116-117` now reads "GitHub reports `main` as protected, but direct pushes are accepted
+  ... process, not a technical block; the rule's exact settings are not readable from here."
+- **2** The count: "13 of the 14 workflow files that write Drive ... `participant-oi-watch.yml` holds none" (`:106`),
+  and the same in the P1 gap list.
+- **3** Outsiders: narrowed to "no outsider writes Drive through a fork or a pull request" (`:17`, `:110`). Supply
+  chain is named as an open path, with no `--require-hashes` and hash-pinning not done (`:111-113`).
+- **4** "Garbage cannot become a record" is now "a **data-quality** property ... **not authenticity**", with the
+  direct-write path named (`:68-71`). The residual list adds forged staged files and deletion of the genuine copy.
+- **5** `:49` "In the new path ... (code level; the live workflows still write the Record directly)". "Fully
+  public-repo-safe" is removed, and it is reduced to "needs no broker key".
+- The minor points (detection on read, recovery limits, lane wording) are taken.
+
+Gates (text only): doc-reading tests 53 passed; record scan clean on both files; `check_numbers` clean.
+
+Minor, not a finding: the zones table (`:27`) still lists the Record writer as "the promotion gate only". The paragraph
+under it calls that the core rule, enforced in code only, so it reads as the target. Optional: add "(target)".
