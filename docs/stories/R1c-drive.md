@@ -178,3 +178,29 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   after a 401 propagates at once (the re-send sat outside the retry `try`); inside the attempt it is now retried like any
   other dropped connection. More attempts, never fewer.
 - Gates: ruff, imports, numbers, size clean; 511 tests pass.
+
+### R1c code round-2 fold (orchestrator's rulings and the judges' notes; prepared on `story/R1c-code-r2`)
+
+- **THE one intentional behaviour change in R1c (named entry, lane 1):** a `ConnectionError` or `Timeout` raised by the
+  **re-send after a 401** is now retried inside the attempt, within the 2/8/30/60 table; today the re-send sat outside the
+  retry `try` and the error propagated at once. Justification, spelled out: the governing rule is never *weaker* than
+  today, not never *different*; this is strictly stronger for data completeness (it tries harder to land a write on the
+  system of record), bounded for politeness (inside the table, against our own quota'd Google account), and preserving
+  the old quirk would need a special non-retryable re-send step, against KISS. When every try fails, the same
+  `ConnectionError` is raised. Pinned by `test_INTENTIONAL_DELTA_...` in `test_drive_resilience.py`. **The post-merge Drive
+  comparison must expect this one difference and not revert on it**; every other Drive behaviour must match today.
+- **The 401 control flow (exact):** `drive_session.py:49` sets `signed_in_again = False` once per `request` call (per call,
+  not per attempt); inside `attempt` (`:51-58`) a 401 re-signs only `if ... and not signed_in_again` (`:54`), sets the flag
+  (`:56`) and re-sends once (`:57`). A second 401 on that re-send is not a retry verdict: `_classify` answers OK, and
+  `_raise_with_reason` raises `HTTPError`. A 401 on a *later* try (after a 5xx) finds the flag set, is not re-signed, and is
+  raised the same way. So at most one re-sign per call and no loop on a persistent 401. Pinned by
+  `test_the_401_re_sign_happens_at_most_once_per_call_and_a_persistent_401_cannot_spin` and the existing characterization.
+- **The quote sidecar has two readers in this repository** (the story said one; judge 1 found the second): the guarded
+  `DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`) and `quotes/compare.py:40`, which reads the sidecar directly and then
+  the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
+  `recorder.py:285-286` writes only when the attempt is `complete`, and `complete` (`recorder.py:261-263`) requires no failures,
+  the raw-save error being one (`recorder.py:258-259`): canonical implies complete implies saved. If they ever disagreed, the
+  guarded read returns `None` for a not-saved flag and the comparison fails loudly (`None.decode()`), never a snapshot of a
+  missing file. Pinned by `test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_saved` (with the
+  reader ignoring the flag, it fails). A test that a failed save writes no canonical marker would need the recorder's
+  attempt method, which has no test harness in this repository; it is covered by the chain above and left as a stated gap.

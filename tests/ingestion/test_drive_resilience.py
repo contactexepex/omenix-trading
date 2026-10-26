@@ -326,3 +326,71 @@ def test_a_file_whose_hash_differs_from_the_sidecar_raises():
         f'{{"csv_sha256": "{hashlib.sha256(b"rows").hexdigest()}"}}'.encode(), {quote_path(): b"rows"}
     )
     assert good.get(quote_path()) == b"rows"
+
+
+# ---- the one intentional behaviour change of R1c, and the 401 control flow -----------------------------------------
+
+
+def test_INTENTIONAL_DELTA_a_connection_error_on_the_re_send_after_a_401_is_now_retried_then_raised_as_before():
+    """Today the re-send after a 401 sat outside the retry `try`, so a dropped connection there propagated at once.
+    It is now retried inside the attempt, within the table (more attempts, never fewer), and when every try fails the
+    same `ConnectionError` is raised. The post-merge Drive comparison is told to expect this single difference."""
+    d, session, waits = drive(Reply(401), *[requests.ConnectionError("down")] * 5)
+    with pytest.raises(requests.ConnectionError, match="down"):
+        d.get("u")
+    assert waits == [2, 8, 30, 60] and session.calls == 6  # the 401, then five tries that each dropped
+    d, session, waits = drive(Reply(401), requests.ConnectionError("blip"), Reply(200))
+    assert d.get("u").status_code == 200 and waits == [2]  # retried, and recovers (today: raised at the blip)
+
+
+def test_the_401_re_sign_happens_at_most_once_per_call_and_a_persistent_401_cannot_spin():
+    signs = []
+    session = Scripted(Reply(401), Reply(401))
+    waits = []
+    d = DriveSession(lambda: signs.append(1) or "t", session, waits.append, policy(waits))
+    with pytest.raises(requests.HTTPError):
+        d.get("u")
+    assert len(signs) == 2 and session.calls == 2 and waits == []  # constructor sign-in + ONE re-sign; then it raises
+    signs.clear()
+    session = Scripted(Reply(401), Reply(503), Reply(401))  # a 401 again on a later try: no second re-sign
+    d = DriveSession(lambda: signs.append(1) or "t", session, waits.append, policy(waits))
+    with pytest.raises(requests.HTTPError):
+        d.get("u")
+    assert len(signs) == 2 and session.calls == 3
+
+
+# ---- the quote sidecar's second reader (quotes/compare.py) --------------------------------------------------------
+
+
+def test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_saved():
+    """`compare._snapshot` reads the sidecar directly, then the CSV through the guarded store. A canonical marker
+    normally implies a saved file (it is written only for a complete attempt, which needs the raw save to have worked);
+    if one ever disagreed, the guarded read returns None for a not-saved flag and the comparison fails loudly."""
+    from fno.ingestion.quotes import compare
+    from fno.ingestion.quotes.drive_only_store import SIDECAR
+    from fno.ingestion.quotes.recorder import DATASET, QuoteSnapshotRecorder
+
+    day = datetime(2026, 10, 12, tzinfo=UTC).date()
+    folder = QuoteSnapshotRecorder.path(day, "s1", DATASET).rsplit("/", 1)[0]
+
+    class Repo(RawFileStore):
+        name = "repo"
+
+        def __init__(self):
+            self.files = {
+                f"{folder}/nifty_{day:%Y%m%d}.canonical": b"s1",
+                f"{folder}/s1.meta.json": b'{"raw_file_saved": false, "csv_sha256": "x"}',
+            }
+
+        def get(self, path):
+            return self.files.get(path)
+
+        def put(self, path, data):
+            raise AssertionError
+
+    from fno.ingestion.quotes.drive_only_store import DriveOnlyQuoteStore
+
+    store = DriveOnlyQuoteStore(Repo(), lambda: Repo(), DATASET, "unset")
+    assert SIDECAR  # the sidecar name the guarded store reads
+    with pytest.raises(AttributeError):
+        compare._snapshot(store, DATASET, day)  # None.decode(): loud, never a snapshot of a missing file
