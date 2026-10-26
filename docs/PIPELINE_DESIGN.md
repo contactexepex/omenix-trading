@@ -1,8 +1,9 @@
 # Ingestion pipeline design: staging → promotion → system-of-record
 
-**Status: DRAFT / proposal (owner + Claude, 27 Oct 2026).** Not yet built. This is the owning document for the
+**Status: DRAFT / proposal (owner + Claude, 26 Oct 2026).** Not yet built. This is the owning document for the
 multi-source ingestion architecture; everywhere else links here. It will be refined with the owner, then implemented
-incrementally (each phase through the gate + judge).
+incrementally (each phase through the gate + judge). Phase 1's contract (claims, gap list, default freshness rule) is
+`docs/stories/P1-staging-record-split.md`.
 
 ## Why
 
