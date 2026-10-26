@@ -104,7 +104,10 @@ that is a bug to fix in R1c.
    DRIVE_RETRY_AFTER_CAP_SECONDS)`, a named constant of 120 s whose comment ties it to the workflow timeouts (the
    shortest is 900 s). The call keeps **all five tries**: stopping early on a long `Retry-After` would make fewer
    attempts at the Record store than today, which is forbidden (judge 2, S1; the orchestrator's first ruling is
-   superseded by it). A header asking for more than 120 s therefore gets 120 s, not a deferral. Whether 120 s is the right
+   superseded by it). A header asking for more than 120 s therefore gets 120 s, not a deferral. **How it is built (judge 2's note):** no library
+   edit. The Drive classifier clamps the header to `DRIVE_RETRY_AFTER_CAP_SECONDS` before it builds the verdict, and the
+   `drive` settings set the library's Retry-After ceiling to 600 s, so the library's stop-above-the-ceiling never fires
+   for Drive (a test pins both numbers). Whether 120 s is the right
    cap for a write target is not measured: Drive-write calls per workflow is a **required pre-go-live measurement** on
    the owner's go-live list, and raising the cap is a tuning follow-up, not a redesign.
 3. Nothing else: no breaker, no spacing, no new exception, same texts.
