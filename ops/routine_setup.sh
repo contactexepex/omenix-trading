@@ -3,8 +3,8 @@
 # `python3` were 3.11, and the 3 pm recorder lost 14 minutes. This installs into every interpreter the routines and
 # the commit hook can call, proves each one imports the packages, and stops loudly within seconds when it cannot.
 #
-#     sh tools/routine_setup.sh            # requirements.txt
-#     sh tools/routine_setup.sh --groww    # plus requirements-groww.txt (the 3 pm recorder)
+#     sh ops/routine_setup.sh            # requirements.txt
+#     sh ops/routine_setup.sh --groww    # plus requirements-groww.txt (the 3 pm recorder)
 set -eu
 cd "$(git rev-parse --show-toplevel)"
 started=$(date +%s)

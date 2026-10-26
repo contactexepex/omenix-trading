@@ -23,7 +23,7 @@ MONTHLY_UNVERIFIED_ALERT = (
 RAW_FILE_ALERT = (
     "3 pm quote recorder: raw quote file NOT saved to Drive ({reason}; {snapshot_id}). The sidecar is kept, no raw "
     "quote went to the repository; an attempt in the 14:55-15:10 window is retried each minute. Fix: check the four "
-    "FNO_GDRIVE_* settings (A9: run tools/gdrive_oauth_setup.py if the owner's consent expired)."
+    "FNO_GDRIVE_* settings (A9: run ops/gdrive_oauth_setup.py if the owner's consent expired)."
 )
 CONFIGURED, NSE_SOURCE = "configured", "nse"
 GOOD_STATUSES = ("recorded", "already recorded", "not a trading day")

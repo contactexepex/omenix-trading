@@ -87,7 +87,7 @@ yourself if `git config core.hooksPath` is empty. Never commit with `--no-verify
 
 ## Code
 
-- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools` and
+- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools ops` and
   `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
   `git pull --no-rebase origin main`), `python tools/check_numbers.py` must pass too. When the gates run:
   `docs/JUDGE.md`, "Merge procedure".

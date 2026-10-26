@@ -14,7 +14,7 @@ from fno.shared.alerts.sender import AlertSender
 
 FAILURE_LINE = "Omenix F&O {job}: {dataset} {batch}: {outcome}: {detail}"
 DRIVE_REFUSED = "Omenix F&O {job}: Drive refused the pipeline ({error}); nothing more fired, summary not saved{fix}"
-SIGN_IN_FIX = ". If it names a sign-in: run tools/gdrive_oauth_setup.py and update the refresh-token secret"
+SIGN_IN_FIX = ". If it names a sign-in: run ops/gdrive_oauth_setup.py and update the refresh-token secret"
 DOWNLOAD_OK = "success"
 
 

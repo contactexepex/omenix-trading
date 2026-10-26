@@ -19,7 +19,7 @@ from fno.shared.models import today_local
 SIGN_IN_REFUSED = (
     "Omenix F&O: Google refused the Drive upload sign-in ({reason}), so the data librarian uploaded nothing more. "
     "The owner's consent has expired or was revoked. One-minute fix on your computer: "
-    "python3 tools/gdrive_oauth_setup.py <client_secret JSON>, then put the new FNO_GDRIVE_OAUTH_REFRESH_TOKEN in the "
+    "python3 ops/gdrive_oauth_setup.py <client_secret JSON>, then put the new FNO_GDRIVE_OAUTH_REFRESH_TOKEN in the "
     "cloud environment's settings. To stop it expiring every 7 days, publish the OAuth app "
     "(Google Cloud console, OAuth consent screen, Publish app)."
 )

@@ -83,7 +83,7 @@ Rules:
 - **Reads** use the service account (`GoogleDriveStore`, Viewer on the folder; `FNO_GDRIVE_SERVICE_ACCOUNT_JSON`).
 - **Uploads** sign in as the owner (`GoogleDriveUploadStore`, story A9), because a service account has no storage
   quota. Settings: `FNO_GDRIVE_FOLDER_ID` plus `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET` and
-  `FNO_GDRIVE_OAUTH_REFRESH_TOKEN`, made once with `tools/gdrive_oauth_setup.py`. Missing folders are created; every
+  `FNO_GDRIVE_OAUTH_REFRESH_TOKEN`, made once with `ops/gdrive_oauth_setup.py`. Missing folders are created; every
   new folder and file gets an ID reserved from Drive first, so a retried create cannot make a duplicate; each upload is
   checked against Drive's MD5 of what it received.
 - Both share `DriveSession`: one fresh sign-in on a 401, growing waits on 429, 5xx and dropped connections.

@@ -1,5 +1,5 @@
 """The owner's Google sign-in for Drive uploads: swaps the refresh token from the one-time consent
-(tools/gdrive_oauth_setup.py) for a short-lived access token. A refusal (expired or revoked consent) is raised as
+(ops/gdrive_oauth_setup.py) for a short-lived access token. A refusal (expired or revoked consent) is raised as
 DriveSignInRefused, naming Google's error code only, never a credential."""
 
 from __future__ import annotations

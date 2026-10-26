@@ -28,7 +28,7 @@ NOT_CLAIMED = "number claim: NOT claimed ({reason}). Nothing was pushed: do not 
 # The last line is the verdict, so a reader of the output's tail never misses a failure (judge B, 22 Oct)
 GIT_REASONS = {
     "commit": "the commit was refused, usually by the record-scan hook: git's output is above; a missing package "
-    "means this Python lacks the requirements, so run `sh tools/routine_setup.sh`",
+    "means this Python lacks the requirements, so run `sh ops/routine_setup.sh`",
     "push": "main refused the push for a reason other than a lost race: git's output is above",
 }
 

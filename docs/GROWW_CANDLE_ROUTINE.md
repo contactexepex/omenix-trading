@@ -66,7 +66,7 @@ may be re-run by hand — the same command only — but only after 15:35 IST.
 Install the base and Groww dependencies through every interpreter the routine calls:
 
 ```sh
-sh tools/routine_setup.sh --groww
+sh ops/routine_setup.sh --groww
 ```
 
 This installs `requirements.txt` + `requirements-groww.txt` with `--use-pep517` (a bare

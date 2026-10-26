@@ -57,7 +57,7 @@ PANEL_INDEX_CLOSE = "index-close"
 NIFTY_SYMBOL = "NIFTY"  # F&O symbol
 RECORDED_INDEX_OPTIONS = ("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")  # 3 pm, after NIFTY (owner, 15 Oct 2026; A4c)
 
-# Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with tools/gdrive_oauth_setup.py);
+# Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with ops/gdrive_oauth_setup.py);
 # values only in the cloud environment's settings, never in files or chat. Service accounts cannot upload (no quota).
 ENV_GDRIVE_OAUTH_CLIENT_ID = "FNO_GDRIVE_OAUTH_CLIENT_ID"
 ENV_GDRIVE_OAUTH_CLIENT_SECRET = "FNO_GDRIVE_OAUTH_CLIENT_SECRET"

@@ -74,7 +74,7 @@ broker key in GitHub, ever". See [`docs/GROWW_CANDLE_ROUTINE.md`](docs/GROWW_CAN
 ## Commands
 
 ```bash
-sh tools/routine_setup.sh --groww                # install deps into every Python on PATH, check imports, hooks on
+sh ops/routine_setup.sh --groww                # install deps into every Python on PATH, check imports, hooks on
 python -m fno --help                             # every command; python -m fno <command> --help for one
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)

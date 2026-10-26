@@ -94,7 +94,7 @@ orchestrator names the second judge when it routes the change.
 
 ## Merge procedure (owner, 21 Oct 2026: one full run per merge)
 
-- The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`, `python
+- The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools ops`, `python tools/check_imports.py`, `python
   tools/check_records.py`, `python tools/check_numbers.py`) run **once, on the merged tree**. Never push on red.
 - A change of Markdown files only (no `.py`, test, config, workflow or requirements file) never runs the full suite
   (owner, 23 Oct 2026): the record scan, `check_numbers`, and the doc-reading tests unless every file is lane-3
