@@ -21,7 +21,7 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class RetrySettings:
     waits: tuple[float, ...]  # the floor of the wait before retry 1, 2, ...; len(waits) + 1 tries at most
-    cap_seconds: float  # no wait is longer than this (at least twice the largest floor, or it would undercut one)
+    cap_seconds: float  # longest jittered wait; checked >= 2 x the largest floor, so no clipping is needed
     retry_after_ceiling_seconds: (
         float  # a Retry-After above this stops the call (the source is blocking, not hiccuping)
     )
@@ -58,7 +58,7 @@ class RetryPolicy:
         """Seconds to wait before retry `retry_number` (1-based): the table's floor plus upward jitter; Retry-After is a
         floor too."""
         floor = self.settings.waits[retry_number - 1]
-        wait = min(floor + self.uniform(0.0, floor), self.settings.cap_seconds)
+        wait = floor + self.uniform(0.0, floor)
         return max(wait, retry_after) if retry_after else wait
 
     def run(self, attempt: Callable[[], T], classify: Callable[[T | None, Exception | None], Verdict],

@@ -57,7 +57,8 @@ class CircuitBreaker:
 
     def _restore(self) -> None:
         """Picks up where an earlier process stopped. A closed or missing history is closed; anything else is open from
-        the last row's time (a probe that was in flight when its process died is treated as a failed probe)."""
+        the last row's time. A probe in flight when its process died leaves a half_open row: the breaker is open again
+        from that time with the same cool-down (not doubled)."""
         last = self.log.last(self.source) if self.log else None
         if last is None or last.event == CLOSED:
             return
