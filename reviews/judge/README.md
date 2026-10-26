@@ -11,4 +11,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 
 | # | Story | Lane | Verdict | File |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 1 | P1 staging / record split (story text, judge #2) | 1 | FAIL (round 1) | `judge_1_p1-staging-record-split-judge2.md` |
