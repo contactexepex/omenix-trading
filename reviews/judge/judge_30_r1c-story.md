@@ -33,3 +33,15 @@ incomplete.
 
 Note: the story's own text flags staging and the revision sink as unchecked. Both are fine by the code. `StagingArea`
 keeps no record. The revision sink writes bytes before its row.
+
+## Addendum 1: 441f66c retracted; this review does not count as a round
+
+The orchestrator retracted 441f66c as incomplete (the write-path enumeration was unfinished), and the implementer
+asked me to hold. My review above crossed both messages. By the orchestrator's ruling it does not count against the
+two-round budget; the complete SHA starts round 1.
+
+Correction to my own table above: I accepted "stop when `Retry-After` exceeds 120 s" as a stated difference. Judge #2 is
+right that it is **weaker than today on data**. Today the header is ignored and all four retries happen, so one of them
+may succeed; stopping early gives up attempts. I weighed it on reasoning about Google's likely refusals instead of on
+the "never weaker" rule. The orchestrator's corrected rule (cap the wait at 120 s and keep today's 4 tries) is what I
+will check on the new SHA.
