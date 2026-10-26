@@ -22,7 +22,7 @@ breakers their memory (`TransitionLog`, R1a) and an alert sender:
 3. **Committing the log.** A new last step in every workflow that can reach a paced host (all but `data-checks`, which
    reads Drive only): "Commit the pause log". It runs `if: always() && !inputs.dry_run`, `continue-on-error: true`
    (failing to remember a pause must never fail a data run: a lost row fails open), and only when the file exists:
-   `git add` that one path, commit if changed, then `git pull --no-rebase origin main` and `git push origin HEAD:main`,
+   `git add` that one path, **stop successfully if it is unchanged**, otherwise commit, then `git pull --no-rebase origin main` and `git push origin HEAD:main`,
    three tries. It is last so it cannot interfere with the Python committers (`GitManifestRecorder` refuses to push
    while the checkout carries unpushed commits outside its paths, `manifest_commit.py`), and it adds only the log's one
    path, so the record scan has nothing to find. `.gitattributes` already marks `research/data/resilience/*.csv` as
@@ -37,19 +37,27 @@ Not in R1b2: Drive, Groww, the rest (R1c, R1d). The Groww-side live captures fol
 Today a new process calls NSE at once whatever the last run saw. After R1b2, an ordinary run that starts inside a
 cool-down gets `SourceCoolingOff` from the first request, with no request sent. For **archive and end-of-day** work that
 is harmless: fills, sweeps and the stager cover the last 7 days and the next run repairs it. For a **live window** it is
-not: the 3 pm quote recorder (14:55 to 15:10), `participant-oi-watch` (the release-time log) and the 15:40 close read
-cannot be redone, so a cool-down carried over from an earlier run must not cost them their one attempt.
+not: the 3 pm quote recorder (14:55 to 15:10), `participant-oi-watch` (the release-time log), the 15:40 close read
+and the 09:12 pre-open capture cannot be redone, so a cool-down carried over from an earlier run must not cost them their one attempt.
 
 **The rule (orchestrator's design, written here for the judges to test):**
 - A command that belongs to the set `LIVE_WINDOW_COMMANDS` (in `fno/shared/constants.py`, so the set is explicit) runs with
   `attach(..., live_window=True)`. The marker is a property of the **command**, read once from the parsed command by
   `main()`; no YAML says anything about it. A static test pins the set, so it cannot grow silently. Proposed set:
-  `quotes record`, `participant-oi watch`, `participant-oi check-once`, `closes read`.
+  `quotes record`, `participant-oi watch`, `participant-oi check-once`, `closes read` and `preopen record` (the
+  09:12 pre-open capture, read through `PacedSession`, `preopen/wiring.py:63`; judge 1, round 1).
 - In such a run, the first request to a host whose persisted breaker is open and still cooling is let through as **one
   probe** per process per host, paced like any request (the 1 s spacing), with R1b1's probe rules: the others of that
   process wait for its answer; a good answer (any status but 403 or 429, or no answer) closes the host and the run goes
   on; a 403 or 429 re-opens it (cool-down doubled, as for any refused probe) and the run defers as now.
-- Every other command respects the full persisted cool-down.
+- Every other command respects the full persisted cool-down. A refused live probe doubles the persisted cool-down, so
+  the **archive** runs that follow are deferred for longer too (the one place a live run's probe costs another command
+  data: catch-up repairs it, as above). Two live processes that overlap in time may each force one probe, because the
+  log is read at the start of each process: the cost is one request each, never more per process.
+- Persistence reaches a run only through the committed log, so a command that runs outside the workflows restores
+  nothing and the rule changes nothing for it. No workflow runs `preopen record` today (`grep` over `.github/workflows/`);
+  where it runs is not recorded in this repository, so whether it ever sees a persisted pause is open, and the story
+  makes no claim about it.
 - Library edit (flagged, touches merged R1a): `CircuitBreaker.check(force_probe=False)`: with `True`, an open breaker
   still cooling is admitted once as a probe (state half-open, a `half_open` row), then behaves as after any probe.
 
