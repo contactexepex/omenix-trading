@@ -3,16 +3,20 @@
 # `python3` were 3.11, and the 3 pm recorder lost 14 minutes. This installs into every interpreter the routines and
 # the commit hook can call, proves each one imports the packages, and stops loudly within seconds when it cannot.
 #
-#     sh ops/routine_setup.sh            # requirements.txt
-#     sh ops/routine_setup.sh --groww    # plus requirements-groww.txt (the 3 pm recorder)
+#     sh ops/routine_setup.sh            # requirements.lock (hashed pins of requirements.txt)
+#     sh ops/routine_setup.sh --groww    # requirements-groww.lock (plus requirements-groww.txt: the 3 pm recorder)
+#
+# Every install is `--require-hashes` against a lock file (story SEC1; regenerate with ops/relock.sh). The Groww set keeps
+# `--use-pep517` and no `--only-binary`: `clint` and `args` come only as source packages, and pip cannot hash the
+# build requirements of a source package (a residual gap, stated in docs/stories/SEC1-hash-pinning.md).
 set -eu
 cd "$(git rev-parse --show-toplevel)"
 started=$(date +%s)
 
-requirements="-r requirements.txt"
+requirements="--require-hashes -r requirements.lock"
 modules="numpy, requests, yaml"
 if [ "${1:-}" = "--groww" ]; then
-    requirements="$requirements -r requirements-groww.txt"
+    requirements="--require-hashes -r requirements-groww.lock"
     modules="$modules, growwapi"
 fi
 

@@ -101,3 +101,34 @@ unpinned dependencies as an open path ("hash-pinning is not done").
 - No automated staleness alert for pins.
 - `numpy` is imported by the routine's import check but is not in `requirements.txt`; it arrives only through the Groww
   set. Not changed here; flagged so nobody is surprised.
+
+## Evidence (build; the judges re-run their own)
+
+Built on this branch after both judges accepted the story text (a8efd5b). `uv 0.11.32`, `sh ops/relock.sh`:
+
+| Lock | Input | Packages | Hashes |
+|---|---|---|---|
+| `requirements.lock` | `requirements.txt` | 21 | 438 |
+| `requirements-groww.lock` | `requirements.txt` + `requirements-groww.txt` | 53 | 1,561 |
+| `requirements-oauth.lock` | `requirements-oauth.txt` (`google-auth-oauthlib`) | 14 | 353 |
+
+(The counts are higher than the story's early 20/436 and 51/1,487 because the build passes `--python-version 3.11`, which
+adds packages needed only on 3.11, and PyPI has moved. They are recorded here at build time as the story promised.)
+
+Dry-run proof, `pip install -q --dry-run --ignore-installed --require-hashes ... -r <lock>`, run with the flags each
+caller uses (`--only-binary=:all:` for `requirements.lock` and `requirements-oauth.lock`; `--use-pep517` for the Groww
+lock, as `ops/routine_setup.sh` does): **all six combinations pass on Python 3.11 and 3.13 on Linux**. The routine
+setup's own flags (`-q --root-user-action=ignore --use-pep517 --require-hashes`) also pass for the base and Groww locks.
+This is not a real runner install; that proof is the first stage-only dispatch.
+
+Changes: 14 workflow installs are `pip install --require-hashes --only-binary=:all: -r requirements.lock` (the flag is
+written `--only-binary=:all:` and the command is quoted in YAML, because `--only-binary :all:` makes `:all:` followed by a
+space a YAML mapping error); `cache-dependency-path` is `requirements.lock` in all 14; `ops/routine_setup.sh` installs
+`--require-hashes -r requirements.lock` (or the Groww lock); `ops/gdrive_oauth_setup.py`, `docs/GROWW_CANDLE_ROUTINE.md`,
+`fno/ingestion/providers/groww.py` and `requirements*.txt` comments point at the locked commands. The owner gets the OAuth
+lock from a checkout of the repository (`requirements-oauth.lock` is in its root); `--only-binary=:all:` works for it
+(dry run above).
+
+Tests: `tests/test_pinned_installs.py` (16). Mutations run by the builder, each caught: `--only-binary` removed from one
+workflow; one `cache-dependency-path` back to `requirements.txt`; a package added to `requirements.txt` without a re-lock;
+an unhashed `python3 -m pip install` added to an `ops/` script; a hash removed from a lock entry.

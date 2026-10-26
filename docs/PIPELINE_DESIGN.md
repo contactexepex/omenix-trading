@@ -25,7 +25,7 @@ The answer to all three is a **two-stage pipeline with a quality gate between fe
 | Zone | What it holds | Who writes it | Mutable? |
 |---|---|---|---|
 | **Staging** (landing) | Every raw fetch, from every source, tagged with source + fetch time | the fetchers | append-only: a newer fetch is a new copy beside the old |
-| **Record** (system-of-record) | Only files that passed the quality gate | the **promotion gate only** | **write-once** (first promotion wins; receipts prove it) |
+| **Record** (system-of-record) | Only files that passed the quality gate | the **promotion gate only** (target: today the live workflows also write it) | **write-once** (first promotion wins; receipts prove it) |
 | **Derived** | Tables/features built from the record (RV, flows, panels) | derived-step jobs | write-once |
 
 Staging and Record are **separate subfolders** (`staging/`, `raw/`) of the one shared Drive folder. In the new
@@ -108,15 +108,20 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
   complexity). So a fetcher's credential **can** write the Record: an abused or wrongly changed workflow **could**
   overwrite or delete it. This design does not claim otherwise.
 - What does and does not protect the Record, honestly. **No outsider reaches Drive through a fork or a pull request:**
-  fork pull requests cannot read secrets and no workflow uses a `pull_request` trigger. **Supply chain is an open path:**
-  every job installs unpinned `>=` requirements (`requirements.txt`, no `--require-hashes`) while holding the full-scope
-  token, so a malicious release of any dependency, direct or transitive, could use it; hash-pinning is not done.
+  fork pull requests cannot read secrets and no workflow uses a `pull_request` trigger. **Supply chain is narrowed, not
+  closed (story SEC1):** every workflow installs from a hashed lock (`requirements.lock`, installed with `--require-hashes` and
+  `--only-binary=:all:`), so a new release of a dependency is not picked up and no package is built on the runner. What
+  stays open: a dependency that was already malicious when locked; the lock tool `uv` (the root of trust for the hashes);
+  `pip` itself from `actions/setup-python`; the runner image; the cloud container's own setup script; and the Groww
+  routine session, whose source-only packages (`clint`, `args`) are built at install time with unhashed build
+  requirements. `ops/relock.sh` regenerates the locks; the diff of every bump is reviewed.
   Against a bad change that reaches `main` the protection is **process**: the lane review (`docs/JUDGE.md`; lane 2 has
   no judge), the **public-record scan** on every commit and the **quality gates** (tests, lint, size and number checks).
   GitHub reports `main` as protected, but direct pushes are accepted (every session and the contents-write workflows
   push to it), so the review is process, not a technical block; the rule's exact settings are not readable from here.
-  Drive files are write-once in our code, every Record file has a SHA-256 receipt in GitHub, and every reader checks
-  the receipt on each read (`storage/drive_cache.py`), so a changed file is detected when read (a change that also
+  Drive files are write-once in our code, every Record file has a SHA-256 receipt in GitHub, and readers that go through the
+  verified cache check the receipt on each read (`storage/drive_cache.py`; the coverage check, the librarian and the
+  gate read `raw/` directly), so a changed file is detected when read (a change that also
   rewrites the receipt is not caught by that alone).
 - Residual risk, stated plainly: the shared token has **full Drive scope**, so it covers the owner's whole Drive, not
   only `raw/`; anyone who can merge to `main` or is a repository admin can reach it; a compromised dependency installed
@@ -135,8 +140,8 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
 
 ## System-of-record contract (for the forecasting engine)
 
-The engine (separate repo) reads the Record through the verified Drive cache. The Record guarantees: write-once,
-schema-valid, freshness-checked, authoritative-source-preferred, with a SHA-256 receipt per file in GitHub. News is
+The engine (separate repo) reads the Record through the verified Drive cache. The Record is meant to guarantee (target;
+see "Security" for what holds today): write-once, schema-valid, freshness-checked, authoritative-source-preferred, with a SHA-256 receipt per file in GitHub. News is
 delivered as deduped clusters with corroboration counts. *(To be firmed up with the engine's needs.)*
 
 ## Open decisions (owner)

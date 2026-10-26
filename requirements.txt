@@ -4,5 +4,6 @@ pytest>=8.0
 pytest-xdist>=3.6       # parallel tests: python -m pytest -q -n auto (CLAUDE.md gate line)
 google-auth>=2.35       # raw-file archive on Google Drive (service account); used only when configured
 cryptography>=42        # test certificates for the feed TLS fix (A16h); recent google-auth needs it too
+# Edit this file, then run `sh ops/relock.sh`: installs use the hashed requirements.lock (story SEC1).
 # Groww Trade API (market data only): requirements-groww.txt
 xlrd==2.0.2             # NSE's FII derivatives statistics, Excel 97 files (story A23; owner allowed, pinned)

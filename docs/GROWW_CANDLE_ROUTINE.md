@@ -69,8 +69,8 @@ Install the base and Groww dependencies through every interpreter the routine ca
 sh ops/routine_setup.sh --groww
 ```
 
-This installs `requirements.txt` + `requirements-groww.txt` with `--use-pep517` (a bare
-`pip install -r requirements-groww.txt` fails on the container's setuptools). Without the Groww SDK, the backfill stops
+This installs the hashed `requirements-groww.lock` (made from `requirements.txt` + `requirements-groww.txt`) with
+`--require-hashes --use-pep517` (an install without `--use-pep517` fails on the container's setuptools). Without the Groww SDK, the backfill stops
 loudly (`providers/groww.py`, "Install the Groww SDK first").
 
 ## One-time historical backfill (2020 → now)
