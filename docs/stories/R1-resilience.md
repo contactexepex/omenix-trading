@@ -4,8 +4,10 @@ Lane 1, two judges (outside services: NSE, Drive, Groww and new sources; the wri
 `story/R1-resilience`. **Design only; story text.** Round 3 of the story (round 1: both judges FAIL on `2d6ea2a`, one
 blocking and ten should-fix; round 2: both judges FAIL on `8ffc937` for two should-fix each, the same two; all checked
 against the code and accepted below). Owner directive (26 Oct 2026, via the
-orchestrator): failures retry politely and never get us blocked, for every source, existing and new. Build starts only
-after this text is judged and the stage-only validation (V1) has passed on real data.
+orchestrator): failures retry politely and never get us blocked, for every source, existing and new. Build starts after this
+text is judged; it is not gated on the stage-only validation (V1) (see the gate change below).
+
+**Gate change (27 Oct 2026 IST):** the orchestrator relaxed the "build gated on V1" rule, acting on the owner's directive to complete all phases before go-live approval. The build no longer waits on the stage-only V1 run. Instead, each refactor of code the live workflows run (R1b-R1d) is protected by characterization tests pinning today's exact behavior (with mutation plants) plus a post-merge dry-run check. The deferred items remain owner-gated to go-live: the first real stage-only run, the first promote to the write-once Record, and migrating the live workflows to stage-then-promote. (See "Gate change" in the gap list.)
 
 **The rule that governs every line below: R1 is never weaker than today for any source.** It consolidates the existing
 rules into one interface and adds jitter, a half-open probe, memory across runs and alerts; it relaxes no protection
@@ -46,7 +48,7 @@ test works from the grep and an explicit allowlist, so a site missed here fails 
 
 R1 migrates the retry and pacing sites; it does not touch window waits, and the Groww hand-run rule is untouched.
 
-## Design (build, after acceptance and V1)
+## Design (build, after acceptance; not gated on V1, see the gate change at the top)
 
 One package, `fno/shared/resilience/`, behind interfaces; **existing modules are refactored onto it, not paralleled**: a
 module in the table above keeps its public interface and delegates, and its own copy of the rule is deleted or becomes a
@@ -131,7 +133,7 @@ test), so a change is a config change. The global `N = 5` proposed in round 1 is
    (`RETRY_WAITS` in two places, `RETRY_GAP_SECONDS`, `MIN_GAP_SECONDS`, `RatePacer`) are gone or are configuration.
    **Limit of that test, stated:** it finds `sleep(` call sites and the named waits in the allowlist; a loop that waits
    through another name (for example the `pause` parameter in `fno/shared/numbering/claim.py`, an internal numbering tool
-   with no external call) is not detected, so that module is listed in the allowlist as internal with its reason, and a
+   that retries `git push` to GitHub) is not detected, so that module is listed in the allowlist as internal with its reason, and a
    reviewer checks new waits by hand.
 9. No Groww behaviour changes in market hours: the existing hand-run rule tests still pass unchanged.
 
@@ -143,10 +145,47 @@ when those sources exist. Each step preserves today's behaviour first (today's n
 
 ## Gap list
 
-- **Gated:** no build before V1 (the real stage-only run) passes and both judges PASS this text.
+- **Gate change:** see the top of this story. Merging R1b-R1d means the live NSE workflows run the refactored, behaviour-preserving code on their next cron; that differs from the go-live items (promote path, first real promote, migrating workflows), which stay owner-gated.
 - The failure-rate breaker (over a window) is specified but ships as consecutive-only first; the build story says so.
 - A source that blocks by IP for days is outside what a breaker can fix; the alert, the growing cool-down and the
   deferral log make it visible.
 - GitHub's runner IPs are shared and not ours to rotate; politeness (spacing, backoff, identity) is the only lever.
 - Overlapping runs can probe twice and a stale checkout can miss a transition (stated above, accepted).
 - Window waits stay as they are; nothing here makes a hand-run Groww call legal in market hours.
+
+## R1a build evidence (library only; no module uses it yet)
+
+Package `fno/shared/resilience/`: `outcomes`, `retry`, `breaker`, `guarded`, `rate_limit`, `transition_log`, `settings`;
+config key `resilience` (empty by default, so today's numbers apply); `.gitattributes` `merge=union` for
+`research/data/resilience/*.csv`. Tests in `tests/shared/resilience/` (57 new; whole suite 312 passed; ruff,
+`check_imports`, `check_numbers`, `test_code_size` clean).
+
+- Claims 1-5 and 7 are covered by `test_retry`, `test_breaker`, `test_guarded`, `test_rate_limit`, `test_settings` and
+  `test_union_merge`. Claim 6 (Deferred writes nothing) and claim 8 (static no-second-loop test) belong to R1b/R1c,
+  where a module first uses the library; claim 9 is untouched because nothing calls the library yet.
+- Parity: settings tests assert the NSE and Drive default waits equal today's tables, and that every jitter cap is at
+  least 2 x the largest wait (so jitter only ever lengthens a wait).
+- Mutation checks, 12 of 12 caught (examples: breaker threshold off by one, jitter below the floor, a second probe
+  allowed, retries wiping the exhausted count for Drive).
+- Bug found by a test and fixed: retried attempts reset the failure count of `count_exhausted` sources, so Drive's
+  breaker never opened.
+- `claim.py` wording corrected above (it retries `git push`; stays out of scope as an internal tool).
+- Mandatory for R1b-R1d: characterization tests pinning today's exact wait sequences, error classification,
+  pause-after-2 and Drive 409 idempotency, each with a plant that fails if behaviour changes; a dry-run dispatch of an
+  affected workflow after each merge where it has one.
+
+### R1a round 2 (judge 2's findings, each checked and accepted)
+
+- **B1 thread safety (blocking, measured by the judge):** `RateLimit` and `CircuitBreaker` now hold a per-instance lock
+  around their read-and-update; `RateLimit` reserves its slot under the lock and sleeps outside it (as `RequestPacer`
+  does), and the breaker sends its alert after releasing the lock. Tests: spacing held across 8 threads, the per-minute
+  budget across 9 threads, exactly one `PROBE` among 8 concurrent `check()` calls. Each lock was removed in turn to
+  prove the test fails without it (the tests widen the decision window, since a bare race is rare under the GIL).
+- **S1 claim 5:** `FileDayLedger` (one UTC time per line, a day is the IST date) is built; a test shows two instances over
+  one file refuse the 151st sign-in and that the count resets on the next IST day.
+- **S2 survivors:** tests added that a 404 between two 403s resets the NSE count (and that two 403s in a row do open it,
+  so the reset test is not vacuous), and that a probe answered 404 closes the breaker.
+- **R1c requirement (judge 1):** R1c must show what a deferred Drive write leaves behind (no Staging file, no manifest
+  row, no receipt), since the Drive breaker (threshold 5) is new behaviour on the Record store.
+- **R1d note (judge 2):** a Groww half-open defers concurrent snapshot reads during the probe, where today all reads
+  resume after 60 s; R1d decides and tests that.

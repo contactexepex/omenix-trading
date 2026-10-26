@@ -26,6 +26,11 @@ lot_sizes:
 promotion:
   max_lag_days: null
 
+# Resilience layer (story R1): per-source overrides of the retry, breaker and rate settings, e.g.
+#   resilience: {nse: {breaker: {cool_down_seconds: 1800}}}
+# Empty means the shipped defaults, which are today's numbers (fno/shared/resilience/settings.py).
+resilience: {}
+
 # F&O alerts go only to #fno-desk, never to #market-brief.
 slack:
   channel_name: fno-desk
