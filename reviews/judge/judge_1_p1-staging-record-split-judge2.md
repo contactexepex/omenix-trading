@@ -113,3 +113,55 @@ wiring, m4).
 Confirmed: no numeric window (`config.yaml` `null`; plant M15 caught); no existing workflow changed (diff stat); the
 new workflow is dispatch-only, with the same pinned SHAs as the other 13 and secrets only via `env`; staging cannot
 reach `raw` (plant M13 caught).
+
+## Addendum 2: round 2 (formal, the last), story + code at `1dd32d949cd4341548687b7dc71a4e33f0dbc3a2`
+
+**FAIL**, with one should-fix left (S1, below) and no blocking finding. After two rounds the owner decides (JUDGE.md).
+Gates re-run by me: 219 passed; `ruff check`, `check_imports`, `check_numbers`, `test_code_size` clean; new files
+formatted. The diff outside `promotion/` is `pipeline-staging.yml` (new), `config.py` (+1 key) and `revisions.py`
+(optional `found_at`, default unchanged). No existing workflow is touched.
+
+### Earlier findings
+
+| # | Verdict | Evidence |
+|---|---|---|
+| R1-1 calendar + exceptions | MET | `checks.SessionCheck`, `ExceptionCheck`, always wired (`wiring.checks_for`); plants R5-R9 caught |
+| R1-2 / B1 first copy wins | MET | `staging.copies` gives earliest first; `gate.py` records `passing[0]`; later passing copies go to the A11 archive with their fetch time; plants R1, R2, R3, R4, R11, R12, R18 caught |
+| R1-3 / S3 build-plan item 1 | MET | rewritten in place to the deferral |
+| R1-4 / S2 over-claim | MET | Claim 1 reworded; credential-separation gap stated in the story and the design |
+| R1-5 / m1 AST + Stager | MET | counts `.put` attributes (plant R14 caught); `TypeError` guard (plant R13 caught) |
+| R1-6 stamp | MET | UTC `YYYYMMDDTHHMMSSZ` |
+| S4 story text / exceptions test | MET | Principle and Claim 3 list the rules; plant R15 caught |
+| **S1 missing receipt** | **NOT MET** | below |
+| m2-m5 | open (minor) | below |
+
+### Findings
+
+- **S1 (should fix; receipts): the gate never repairs a Record file that has no manifest row.**
+  `librarian.py:76-78` re-puts the same bytes when the file is stored but not in the manifest. `gate.py` returns
+  ALREADY_RECORDED without any `put`. The story's Principle says the gate applies the librarian's rules, so this
+  claim is not yet true. I reproduced it with `FingerprintingStore` + `ManifestFolder` over local folders:
+  - Run 1: PROMOTED, 1 row.
+  - The manifest commit is lost: `cmd_promote` still exits 0 on a failed commit (the same as the librarian, which is
+    why the librarian repairs on its next run). I simulated this by deleting the uncommitted row.
+  - Run 2: ALREADY_RECORDED, 0 rows, Drive file present. The file now has no receipt for as long as only the gate
+    touches that day.
+
+  Fix: when `held` is not None and the filename is missing from the dataset's fingerprints, re-put `held`. The store
+  keeps its copy and writes the row. Add a test with a fingerprinting record store.
+- **m2:** the table says fo-bhavcopy covers the legacy `TIMESTAMP`, but only UDiFF `fo-bhavcopy` is promotable, and
+  `fo-bhavcopy-legacy` is in neither list.
+- **m4:** plant R17 survives: the gate's source tag in `wiring.py` is untested. A wrong tag gives "not staged" on every
+  day, so it fails loudly (exit 1 and an alert), not silently.
+- **m5:** `pipeline-staging.yml:4` still says "freshness and schema checks", but there is no freshness check by
+  default.
+- **m6:** "Phase 1 as built" in `PIPELINE_DESIGN.md` restates the story (one functionality, one owning document).
+
+### Plants
+
+18 planted on this SHA, 17 caught. Survivor: R17 (m4).
+
+### Note for the owner (reasoning only)
+
+The S1 fix is about 4 lines plus a test. The rest of Phase 1 meets every criterion I set. If the owner allows a
+scoped re-check, I would verify S1 alone: the fix, the test, and a plant of the fix.
