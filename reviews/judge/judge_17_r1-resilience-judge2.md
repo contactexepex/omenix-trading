@@ -55,3 +55,34 @@ no partial data, numbers left to the owner. Three of the five findings would mak
 - Labelling the numbers as owner placeholders (reasoning only) is right.
 - The rejected Drive-state alternative is correctly reasoned: Drive stores cannot overwrite raw files, and a Drive write
   on a failure path is a poor fit.
+
+## Addendum 1: round 2, `8ffc937342eb65319b39285dac71e656fa3b013b` (my last round on the R1 story)
+
+**FAIL**, on 2 should-fix, both cases where the text breaks its own rule "R1 is never weaker than today". After two
+rounds the owner decides, via the orchestrator. Every round-1 finding is fixed:
+
+| Round-1 finding | Verdict | Evidence (round-2 text) |
+|---|---|---|
+| S1 403 per source | FIXED | design 1: NSE 403 = BLOCK; Drive 403 with a rate-limit reason = RETRY; the 401 re-sign is outside the policy |
+| S2 thresholds | FIXED (except R2-2) | NSE 2; 404 never counts; the global N = 5 withdrawn |
+| S3 half-open probe | FIXED | one request outside the retry policy; the cool-down doubles to a cap and resets on a close |
+| S4 cross-run state | FIXED | one CSV per source, `merge=union`, failure modes stated (fails open, commit failure reported and alerted); per-day budgets in the `attempt_log` ledger; claims 4 and 5 test them across two processes |
+| S5 no partial data | FIXED | per file, not rollback; `_fresh_child`, the pre-reserved ID and 409 kept; claim 6 "exactly one file" |
+
+The sleep-site inventory and the equal-jitter reasoning (full jitter can wait 0 s) are good additions.
+
+### Findings
+
+1. **R2-1 (should fix): equal jitter as written can still wait less than today.** Wait = `d/2 + random(0, d/2)` with
+   `d = min(cap, base * 2^n)`. If "today's numbers are the first configuration" means base = 5 s (NSE), the first wait
+   falls in **[2.5, 5] s, below today's fixed 5 s**. Doubling also gives d = 5, 10, 20 s, against today's 5, 15, 45 s;
+   Drive's are 2, 8, 30, 60 s. Fix: make today's wait table the **floor** and jitter only upward. For example, wait_i
+   in `[today_i, 2 * today_i]` (NSE 5-10, 15-30, 45-90 s, capped). Or state a base and growth factor whose lower bound
+   is at least each of today's waits, and test that lower bound per attempt.
+2. **R2-2 (should fix): NSE 429 counts less strictly than today.** Today **any two consecutive refusals, 403 or 429,
+   from one NSE host** pause that host for the whole process (`http_pacing.py:53-61`, `REFUSAL_STATUS_CODES = (403,
+   429)`). Under R1, NSE 429 = RETRY, and the breaker counts only "BLOCK or exhausted-retry" outcomes. So a 429 storm
+   is retried up to 4 times per file, and the breaker opens only after 2 files exhaust: **up to 8 answers of 429 before
+   opening, against 2 today**. Fix: for NSE, every 429 response counts toward the breaker (threshold 2, as today),
+   whether or not the retry policy would retry it. A 429 then retries at most once before the host opens. Add a
+   claim-3 test: two 429s in a row open the NSE breaker and the second retry is not sent.
