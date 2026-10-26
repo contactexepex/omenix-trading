@@ -19,5 +19,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 6 | H1 credential isolation (design) | 1 | WITHDRAWN (owner decision; FAIL round 1 was given) | `judge_6_h1-design.md` |
 | 7 | H1 credential isolation, design (judge #2) | 1 | WITHDRAWN (H1 dropped by the owner; was FAIL round 1) | `judge_7_h1-credential-isolation-judge2.md` |
 | 8 | DOC2 credential posture (design doc, P1 gap list) | 1 | FAIL (round 2, 1909b90): owner decides | `judge_8_doc2-credential-posture.md` |
-| 9 | DOC2 credential posture, docs (judge #2) | 1 | FAIL (round 1) | `judge_9_doc2-credential-posture-judge2.md` |
+| 9 | DOC2 credential posture, docs (judge #2) | 1 | FAIL (round 2: owner decides) | `judge_9_doc2-credential-posture-judge2.md` |
 | 10 | P1c stage-only labels | 1 | PASS (f1d71af) | `judge_10_p1c-labels.md` |

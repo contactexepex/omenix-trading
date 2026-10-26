@@ -49,3 +49,26 @@ Gates (text only, per CLAUDE.md): doc-reading tests 53 passed; `check_numbers` c
 2. Wording suggestion for finding 2, since the owner accepted the shared credential: "The gate keeps malformed files
    out of the Record on the stage-then-promote path. It does not protect against a job that writes `raw/` directly,
    or against forged but well-formed files."
+
+## Addendum 1: round 2, `1909b90d0ea872ed435262a11d0e43d54da1aee0`
+
+**FAIL** (round 2, my last on DOC2: the owner decides, via the orchestrator). The new residual-risk paragraph is
+accurate: full scope, mergers and admins, a compromised dependency, recovery limited to trash and version history.
+But none of the round-1 findings is fixed, and finding 1 now contradicts the new paragraph.
+
+| Round-1 finding | Verdict | Evidence (line numbers at `1909b90`) |
+|---|---|---|
+| 1 "outsiders cannot write Drive at all" | NOT FIXED | still at `:17` and `:108`. The new paragraph at `:117` says "a compromised dependency installed in any job can use it": a dependency release is an outsider, so the two statements contradict each other |
+| 2 "Garbage cannot become a record — this is the security property" | NOT FIXED | still at `:68-69`; the well-formed forgery is still not mentioned |
+| 3 "Each writes only to Staging" / "fully public-repo-safe" | NOT FIXED | `:48`, `:51` unchanged |
+
+Also note judge 1's finding: `main` reports `protected: true`, but direct pushes are accepted. `:112` still says
+"recommended but was not confirmed on".
+
+The fix is about 4 line edits:
+- `:17` and `:108`: "outsiders cannot write Drive through this repository's pull requests or forks; a
+  dependency release can (see residual risk)".
+- `:68-69`: "data-quality property: a malformed file is not promoted; forged but well-formed files and direct writes
+  to `raw/` are not stopped".
+- `:48`: mark it as the target.
+- `:51`: "needs no broker key".
