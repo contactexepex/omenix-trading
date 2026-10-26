@@ -54,3 +54,17 @@ class TransitionLog:
     def last(self, source: str) -> Transition | None:
         rows = self.rows(source)
         return rows[-1] if rows else None
+
+
+class LayeredLog(TransitionLog):
+    """A committed log that a run only reads, and a run-local file that it appends to (story R1b2). Writing the
+    committed file during a run would leave a tracked file modified, and a `git pull --no-rebase` by another
+    committer of the same run then refuses. The run-local file is git-ignored and merged into the committed one by
+    the run's last step. Reads see both."""
+
+    def __init__(self, committed: Path, local: Path):
+        super().__init__(local)
+        self.committed = TransitionLog(committed)
+
+    def rows(self, source: str) -> list[Transition]:
+        return sorted([*self.committed.rows(source), *super().rows(source)], key=lambda t: t.at)

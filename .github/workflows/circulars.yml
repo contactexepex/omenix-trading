@@ -62,3 +62,7 @@ jobs:
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O circulars: the GitHub Actions run failed without its own alert; see $RUN_URL"
+      - name: Commit the pause log (story R1b2; the last step, never fails the run)
+        if: ${{ always() && !inputs.dry_run }}
+        continue-on-error: true
+        run: bash ops/commit_pause_log.sh

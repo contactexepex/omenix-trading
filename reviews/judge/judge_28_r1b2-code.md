@@ -30,3 +30,15 @@ Minor:
   script's comment.
 - The "old design" test uses `git add -N` on a new file. A case where the file is already tracked and modified would be
   the closer reproduction, but both show the refusal.
+
+## Addendum 1: SHA 53c6478 (round 2 of 2)
+
+**PASS, lane 1, judge 1.** c3b50d8..53c6478 changes only tests (3 files), a comment in `ops/commit_pause_log.sh`
+and the story. `git diff c3b50d8 53c6478 -- fno .github ops` shows only the 2-line comment, so behaviour is
+unchanged.
+- **Finding 1 FIXED, and the test fails closed.** My plant (`self._wall = wall_clock or self._derived_wall`) now
+  fails 1 test.
+- **Minors FIXED.** The push note is in the script, and the tracked-and-edited reproduction of the refused pull is added.
+- **Judge #2's S1 wiring tests catch breakage.** Replacing `attach_pause_memory(...)` in `cli.main` with `pass` fails
+  4 tests.
+- Gates: 490 passed; ruff, check_imports, check_numbers and code size clean; `tests/characterization/` untouched.

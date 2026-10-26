@@ -17,16 +17,20 @@ from datetime import UTC, datetime, timedelta
 
 import requests
 
+from fno.shared.alerts.sender import AlertSender
+from fno.shared.models import now_utc
 from fno.shared.resilience.breaker import CircuitBreaker, State
 from fno.shared.resilience.outcomes import Deferred
 from fno.shared.resilience.rate_limit import RateLimit, RateSettings
 from fno.shared.resilience.settings import settings_for
+from fno.shared.resilience.transition_log import TransitionLog
 
 HOST_SPACING_SECONDS = {"www.nseindia.com": 1.0, "nsearchives.nseindia.com": 1.0}
 DEFAULT_SPACING_SECONDS = 1.0
 REFUSAL_STATUS_CODES = (403, 429)
 PROBE_WAIT_SECONDS = 60.0  # the longest request timeout (a file); a waiter gives up on the probe after this
 COOLING_OFF_MESSAGE = "{host} refused requests (HTTP {status}); not calling it for {minutes} minutes"
+RESTORED_MESSAGE = "{host} was refused in an earlier run; not calling it for {minutes} more minutes"
 EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
 NO_WAIT_LIMIT = 24 * 3600.0  # spacing is never a deferral: the old pacer slept as long as it took
 
@@ -41,6 +45,7 @@ class _Host:
     breaker: CircuitBreaker
     answered: threading.Condition = field(default_factory=threading.Condition)
     last_refusal: int = 0  # the status of the refusal that opened the host; the message is built when it is raised
+    forced: bool = False  # a live-window run has already used its one forced probe on this host
 
 
 class NsePacer:
@@ -50,11 +55,22 @@ class NsePacer:
         clock: Callable[[], float] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         probe_wait_seconds: float = PROBE_WAIT_SECONDS,
+        wall_clock: Callable[[], datetime] | None = None,
     ):
+        """`clock`/`sleep`: in-process spacing (monotonic). `wall_clock`: real UTC for the breaker, whose state is
+        shared with other processes through the log; when only `clock` is injected (tests), it is derived from it."""
         self.spacing = HOST_SPACING_SECONDS if spacing is None else spacing
         self.clock, self.sleep, self.probe_wait_seconds = clock or time.monotonic, sleep, probe_wait_seconds
+        self._wall = wall_clock or (self._derived_wall if clock else now_utc)
         self._hosts: dict[str, _Host] = {}
         self._lock = threading.Lock()
+        self.log: TransitionLog | None = None
+        self.alerts: AlertSender | None = None
+        self.live_window = False
+
+    def attach(self, log: TransitionLog | None, alerts: AlertSender | None, live_window: bool = False) -> None:
+        """Memory across runs, alerts and the live-window rule (story R1b2), set once before the first request."""
+        self.log, self.alerts, self.live_window = log, alerts, live_window
 
     def wait_turn(self, host: str) -> None:
         """Block until the host may be called again; raise SourceCoolingOff if it is cooling off after a refusal. The
@@ -63,13 +79,20 @@ class NsePacer:
         while True:
             self._wait_for_probe(state)
             try:
-                state.breaker.check()
+                state.breaker.check(force_probe=self._forces_probe(state))
             except Deferred:
                 if state.breaker.state is State.HALF_OPEN:  # another thread has just become the probe: wait for it
                     continue
                 raise SourceCoolingOff(self._message(host, state)) from None
             break
         state.rate.acquire()
+
+    def _forces_probe(self, state: _Host) -> bool:
+        """A live-window run sends one probe per host even inside a carried-over cool-down, once per process."""
+        if not self.live_window or state.forced:
+            return False
+        state.forced = True
+        return True
 
     def observe(self, host: str, status: int) -> None:
         """The answer to a request: a refusal counts, anything else resets the run and ends a probe."""
@@ -95,10 +118,14 @@ class NsePacer:
             if state.breaker.state is State.HALF_OPEN:  # the probe never answered in time: treat it as unanswered
                 state.breaker.record_other()
 
-    @staticmethod
-    def _message(host: str, state: _Host) -> str:
-        minutes = round(state.breaker.cool_down / 60)
-        return COOLING_OFF_MESSAGE.format(host=host, status=state.last_refusal, minutes=minutes)
+    def _message(self, host: str, state: _Host) -> str:
+        breaker = state.breaker
+        if state.last_refusal:
+            return COOLING_OFF_MESSAGE.format(
+                host=host, status=state.last_refusal, minutes=round(breaker.cool_down / 60)
+            )
+        left = (breaker.opened_at + timedelta(seconds=breaker.cool_down) - self._wall()).total_seconds()
+        return RESTORED_MESSAGE.format(host=host, minutes=max(1, round(left / 60)))  # a pause restored from the log
 
     @staticmethod
     def _release(state: _Host) -> None:
@@ -109,10 +136,10 @@ class NsePacer:
         with self._lock:
             if host not in self._hosts:
                 settings = settings_for("nse")
-                breaker = CircuitBreaker(f"nse:{host}", settings.breaker, self._wall_clock)
+                breaker = CircuitBreaker(f"paced:{host}", settings.breaker, self._wall, self.log, self.alerts)
                 spacing = RateSettings(self.spacing.get(host, DEFAULT_SPACING_SECONDS), max_wait_seconds=NO_WAIT_LIMIT)
-                self._hosts[host] = _Host(RateLimit(f"nse:{host}", spacing, None, self.sleep, self.clock), breaker)
+                self._hosts[host] = _Host(RateLimit(f"paced:{host}", spacing, None, self.sleep, self.clock), breaker)
             return self._hosts[host]
 
-    def _wall_clock(self) -> datetime:
+    def _derived_wall(self) -> datetime:
         return EPOCH + timedelta(seconds=self.clock())
