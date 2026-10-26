@@ -21,3 +21,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 8 | DOC2 credential posture (design doc, P1 gap list) | 1 | FAIL (round 2, 1909b90): owner decides | `judge_8_doc2-credential-posture.md` |
 | 9 | DOC2 credential posture, docs (judge #2) | 1 | FAIL (round 2: owner decides) | `judge_9_doc2-credential-posture-judge2.md` |
 | 10 | P1c stage-only labels | 1 | PASS (f1d71af) | `judge_10_p1c-labels.md` |
+| 11 | P1c stage-only labels (judge #2) | 1 | FAIL (round 1, 1 should-fix: story text) | `judge_11_p1c-stage-only-labels-judge2.md` |
