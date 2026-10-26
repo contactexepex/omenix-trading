@@ -153,3 +153,35 @@ treatment of 5xx and timeouts (accepted); S3 one instance per process (accepted)
 ## Judges
 
 Two judges. Freeze rule: one SHA, no push after sending it.
+
+## R1b1 build evidence
+
+Branch `story/R1b1-nse-layer`. In-process only; no workflow change; no breaker log (R1b2).
+
+- **Code:** `fno/shared/nse_pacer.py` (`NsePacer`: per host a `RateLimit` and a `CircuitBreaker`; the waiters; the probe),
+  `fno/shared/http_pacing.py` (`PacedSession` tells the pacer of an unanswered or raising request in a `BaseException`
+  handler; one `SHARED_PACER`), `NseArchiveSource` over `RetryPolicy` (`_Answers` classifies; `_raised` maps to today's
+  exceptions), `PublicData.nse_json` on `RetryPolicy.wait_before` (loop kept: warm-up, every non-200 retried, the last
+  wait kept), the `nse_json` settings, and the one library edit: `RetrySettings.jitter` (NSE 0.25). `record_unanswered`
+  was withdrawn with the design change; nothing else in the library changed. `RequestPacer`, `RETRY_WAITS` and
+  `MAX_RETRY_AFTER_SECONDS` are gone from `fno/` (a test checks); `tools/nse_raw_download/` keeps its own copy (a
+  standalone tool outside `fno/`, not on any workflow path; listed for R1e).
+- **Characterization contract:** all 42 NSE tests unchanged except the adaptations the story names: the source and
+  `PublicData` take a zero-jitter `RetryPolicy` (`run()` and `client()` helpers), the pacer tests construct `NsePacer`
+  with `clock` and `sleep` (the old `RequestPacer` had `clock=` and a `.sleep` attribute), and `COOL_OFF_SECONDS` is the
+  literal 900 (the constant is gone; the settings test pins 900, 2, 5/15/45 and 120).
+- **New tests** (`tests/ingestion/test_nse_pacer.py`, 14; `test_runs.py` +1; library +3): one probe goes alone and a good
+  answer releases three threads one spacing apart and promptly; a 403 and a 429 probe refuse all three with one request
+  sent and the doubled cool-down; a 5xx, a 404 and no answer close the host; a waiter whose wait expires goes ahead and
+  closes the host; a probe that raises releases the waiters; the loser of the race to be the probe waits (a barrier
+  makes the race certain); hosts are kept apart; one pacer per process; the cooling-off message text; the live archive
+  policy's waits lie in `[t, 1.25 t]`; a paused host defers a whole stage pass and writes nothing (claim 8).
+- **Mutation plants** (each caught, a hang counting as caught): no waiting, an unbounded wait, a waiter expiry that does
+  not close, an unanswered probe that re-opens, one key for both hosts, a pacer per session, no release when the probe
+  raises, no wake-up after an answer, the race, `nse_json`'s last wait dropped, its 403 not warmed. Two survived at first
+  (the race, and the wake-up, which waiters covered by timing out) and were closed with a barrier test and a
+  promptness assertion.
+- **Data cost, as the story states:** a probe never defers data today's code reads except after a 403 or 429.
+- **Gates:** ruff, `check_imports`, `check_numbers`, size test clean; 431 tests pass.
+- **Not in this step:** claim 7's static `sleep(` allowlist (the old loops are gone from the NSE path; the allowlist
+  test arrives with R1c/R1d when the last loops move), the transition log and alerts (R1b2).
