@@ -146,3 +146,35 @@ statuses, manifest rows, receipts), comparing tries and waits rather than durati
 ## Judges
 
 Two judges. Freeze rule: one SHA, no push after sending it. Not routed until R1b2 is merged (orchestrator's sequencing).
+
+## R1c build evidence
+
+Branch `story/R1c-code` (built to the story as passed, plus its two text additions `ddbcf60`).
+
+- **Code:** `fno/ingestion/storage/drive_session.py` (`DriveSession.request` over `RetryPolicy.run`; `_classify`;
+  `DRIVE_RETRY_AFTER_CAP_SECONDS = 120.0` applied in the classifier; the 401 re-sign inside the attempt; exhaustion
+  re-raises what today raised), `google_drive.py` (a `policy` argument passed through), `fno/shared/resilience/settings.py`
+  (`drive`: waits 2/8/30/60 as floors, jitter 0.25, Retry-After ceiling 600 s so the library's stop never fires, **no
+  breaker**). No library edit. `RETRY_WAITS` is gone from `fno/` (a test).
+- **Characterization contract:** all 27 Drive tests unchanged except the one named adaptation: `drive()` and `store()` pass a
+  zero-jitter `RetryPolicy` (so waits read 2/8/30/60 exactly). The library tests that used the old Drive breaker default
+  (`test_guarded`) now build the `count_exhausted` breaker explicitly, keeping that library mechanism under test; the settings
+  and jitter tests pin the new Drive numbers (no breaker, 0.25).
+- **New tests (21)** in `tests/ingestion/test_drive_resilience.py`: live waits within `[t, 1.25 t]`; **Retry-After 300 gives 5
+  tries each waiting 120 s** (judge 1); Retry-After raises a wait but never shortens one; on the last try it gives up with no
+  wait; a 403 rate limit honours it; the 401 re-sign adds one send and no wait; no breaker anywhere in the Drive code; the old
+  table gone and no direct HTTP call besides the session; and the invariant, one test per mechanism or own-record writer,
+  each over a Drive whose create got through and whose every later try failed: the archive put (no manifest row), the data
+  put (no receipt), receipt repair (no receipt when the read-back fails), the revision archive (no index row), the
+  global-cue collector (no log row), the candle archive (no manifest row), the snapshot files (the ledger is not touched),
+  the filings archive (no manifest row), the quote writer (the sidecar is marked not saved), and an index-file replace that
+  fails (the old version stays); and the quote sidecar's three reader-side tests (not-saved returns `None` and reads no Drive;
+  saved with no file raises `RawQuoteMissing`; a wrong hash raises `RawQuoteHashMismatch`).
+- **Mutation plants, each caught (16):** no cap on Retry-After; Retry-After ignored; the cap above the ceiling (which would
+  stop the call); the 401 re-sign repeated; the 403 rate limit not retried; a row before the file in the archive put, the data
+  put, the revision archive, the global-cue collector, the candle archive and the filings archive; the quote reader ignoring
+  the not-saved flag and skipping the hash check; the quote writer not catching a save failure.
+- **One behaviour difference found while refactoring, in the safe direction:** today a `ConnectionError` raised by the re-send
+  after a 401 propagates at once (the re-send sat outside the retry `try`); inside the attempt it is now retried like any
+  other dropped connection. More attempts, never fewer.
+- Gates: ruff, imports, numbers, size clean; 511 tests pass.

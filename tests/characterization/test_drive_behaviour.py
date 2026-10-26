@@ -14,6 +14,8 @@ import requests
 from fno.ingestion.storage.drive_session import DriveSession
 from fno.ingestion.storage.google_drive_upload import GoogleDriveUploadStore
 from fno.ingestion.storage.raw_store import RawFileConflict, StoredCopyDamaged
+from fno.shared.resilience.retry import RetryPolicy
+from fno.shared.resilience.settings import settings_for
 
 
 class Reply:
@@ -50,10 +52,15 @@ class Scripted:
     post = patch = get
 
 
+def no_jitter(waits):
+    """The injected policy (the story's one adaptation): the live waits are the table plus up to 25% more."""
+    return RetryPolicy(settings_for("drive").retry, waits.append, uniform=lambda low, high: low)
+
+
 def drive(*script, tokens=None):
     waits, session = [], Scripted(*script)
     issued = iter(tokens or ["t1", "t2", "t3"])
-    return DriveSession(lambda: next(issued), session, waits.append), session, waits
+    return DriveSession(lambda: next(issued), session, waits.append, no_jitter(waits)), session, waits
 
 
 @pytest.mark.parametrize("status", [429, 500, 502, 503, 504])
@@ -206,7 +213,8 @@ class FakeGoogle:
 
 
 def store(fake, waits=None):
-    return GoogleDriveUploadStore("root", lambda: "t", fake, (waits if waits is not None else []).append)
+    waits = [] if waits is None else waits
+    return GoogleDriveUploadStore("root", lambda: "t", fake, waits.append, no_jitter(waits))
 
 
 def test_a_create_retried_after_a_dropped_connection_yields_exactly_one_file():

@@ -21,8 +21,12 @@ def test_nse_defaults_equal_the_current_retry_policy_and_pacer():
     assert s.rate.min_spacing_seconds == http_pacing.HOST_SPACING_SECONDS["nsearchives.nseindia.com"]
 
 
-def test_drive_defaults_equal_the_current_session_waits():
-    assert settings_for("drive").retry.waits == tuple(float(w) for w in drive_session.RETRY_WAITS)
+def test_drive_defaults_keep_the_session_waits_have_no_breaker_and_never_stop_a_call_on_retry_after():
+    s = settings_for("drive")
+    assert s.retry.waits == (2.0, 8.0, 30.0, 60.0)  # the old RETRY_WAITS, now the per-attempt floors
+    assert s.retry.jitter == 0.25 and s.breaker is None  # R1c: Drive is the write target, no breaker
+    assert drive_session.DRIVE_RETRY_AFTER_CAP_SECONDS == 120.0  # the cap the Drive classifier applies
+    assert s.retry.retry_after_ceiling_seconds == 600.0 > drive_session.DRIVE_RETRY_AFTER_CAP_SECONDS  # never fires
 
 
 def test_groww_defaults_keep_the_sixty_second_pause_the_budgets_and_the_daily_sign_in_limit():

@@ -17,6 +17,7 @@ import requests
 
 from fno.ingestion.storage.drive_session import DriveSession
 from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore, ReadOnlyStoreError, path_parts
+from fno.shared.resilience.retry import RetryPolicy
 
 DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files"
 DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
@@ -59,10 +60,11 @@ class GoogleDriveStore(RawFileStore):
         token: Callable[[], str],
         session: requests.Session | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        policy: RetryPolicy | None = None,
     ):
         """`token` returns a fresh access token (see DriveSession for renewal and retries)."""
         self.folder_id = folder_id
-        self.drive = DriveSession(token, session, sleep)
+        self.drive = DriveSession(token, session, sleep, policy)
         self._ids: dict[tuple[str, str, bool], str] = {}  # found IDs only (`_child`)
 
     def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
