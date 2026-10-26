@@ -53,10 +53,11 @@ the `stage` step prints `nse/derivatives/participant-oi: staged N, unchanged 0, 
 `result: complete`; the promote step is skipped; no commit. In Drive:
 `staging/nse/nse/derivatives/participant-oi/<YYYY>/<MM>/fao_participant_oi_<DDMMYYYY>.csv/<YYYYMMDDTHHMMSSZ>`, one object
 per fetch (the UTC fetch time is its name), and nothing new under `raw/` or `revisions/`. Run it again: it should
-report `staged 0, unchanged N`.
+report `staged 0, unchanged N`, unless NSE has rewritten a file since the first run (it does this for some participant-OI
+files); then `staged 1` is correct, a new copy beside the old one, not a failure.
 
-**Failure signs:** `not published` or `source refused` for a day turns the run red by design (yesterday's participant-oi
-file appears in the evening); a Drive sign-in refusal prints the owner's fix and exits 1; a hash error at install means a
+**Failure signs:** `not published` or `source refused` for a day turns the run red by design (NSE publishes a day's
+participant-oi file in the evening of that session, so a run that includes today or a day not yet published will be red); a Drive sign-in refusal prints the owner's fix and exits 1; a hash error at install means a
 wheel the runner needed is missing from the lock (a lock fix, `ops/relock.sh`, not a data problem).
 
 **Promote is a separate owner decision**, after the staged files are confirmed.
