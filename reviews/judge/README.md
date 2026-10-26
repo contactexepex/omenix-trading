@@ -31,3 +31,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 18 | R1 resilience layer (story text) | 1 | PASS (story, 163011b delta check after round 2) | `judge_18_r1-resilience.md` |
 | 19 | R1a resilience library | 1 | PASS (37bfa45, thread-safe) | `judge_19_r1a-library.md` |
 | 20 | R1a resilience library (judge #2) | 1 | PASS (round 2, 37bfa45) | `judge_20_r1a-library-judge2.md` |
+| 21 | R1b NSE source (story text) | 1 | FAIL (round 1: 1 blocking, 3 should-fix) | `judge_21_r1b-story.md` |
