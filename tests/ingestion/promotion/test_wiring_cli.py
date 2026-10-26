@@ -140,3 +140,13 @@ def test_the_alert_names_at_most_five_problems_and_the_log_has_them_all(monkeypa
     assert code == 1 and len(alerts.sent) == 1
     assert alerts.sent[0].count("reason") == cli.ALERT_LINES == 5
     assert text.count("rejected 2026-10-") == 8
+
+
+def test_a_write_once_conflict_is_a_problem_that_exits_1_and_alerts(monkeypatch):
+    from fno.ingestion.promotion.gate import Promotion, Verdict
+    from fno.ingestion.promotion.runs import PromotionReport
+
+    conflict = PromotionReport("d", [(THURSDAY, Promotion(PATH, Verdict.CONFLICT, ("f.csv: different SHA-256",)))])
+    assert not conflict.complete and conflict.problems() == [f"conflict {THURSDAY}: f.csv: different SHA-256"]
+    code, _, alerts, _ = run_promote(monkeypatch, conflict)
+    assert code == 1 and len(alerts.sent) == 1 and "different SHA-256" in alerts.sent[0]

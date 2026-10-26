@@ -158,3 +158,13 @@ def test_a_manifest_that_disagrees_is_a_conflict_problem_not_a_crash(tmp_path, s
     staging.stage("nse", PATH, GOOD, moment(THURSDAY))
     result = promote(gate)
     assert result.verdict is Verdict.CONFLICT and "different SHA-256" in result.reasons[0]
+
+
+def test_a_held_file_no_passing_copy_proves_is_not_saved_again(staging_store, record_store, sink):
+    """Only a passing copy equal to the held bytes justifies the re-save that repairs a manifest row."""
+    staging, gate = gate_for(staging_store, record_store, sink)
+    record_store.put(PATH, b"good, held")
+    record_store.saved.clear()
+    staging.stage("nse", PATH, b"good, staged", moment(THURSDAY))
+    assert promote(gate).verdict is Verdict.ALREADY_RECORDED
+    assert record_store.saved == []
