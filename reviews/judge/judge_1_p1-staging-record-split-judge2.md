@@ -53,3 +53,61 @@ None (no code). Code plants follow in the code round.
    files (`data-checks.yml` also runs on push). This is a lane-2 doc fix for the orchestrator, not this story's.
 2. JUDGE.md quality rule 1 was broken once: code `46307f09` on `story/P1-staging-promotion` was pushed before the
    story review. It was disclosed and superseded; I did not judge it.
+
+## Addendum 1: round 2, story + code at `759153c6be16cd2a16595e43786fe8c2e7e5a3ea`
+
+**FAIL** (round 2, last judge round: the owner decides, via the orchestrator). Gates re-run by me: 206 passed;
+`ruff check`, `check_imports`, `check_numbers`, `test_code_size` clean. `check_records` (LICENSE) and `ruff format
+--check` (`tests/ingestion/test_paths.py`) fail identically on `main`, so they predate this branch.
+
+### Round-1 findings
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 calendar + exceptions | ACCEPTED (code) | `runs.py:19-23` sessions only; exceptions skipped in `Stager.stage` and `PromotionRun.promote`. Story claim 4 text not updated (S4) |
+| 2 which copy wins | NOT FIXED | `gate.py`: newest-first loop, first passing copy promoted; `PIPELINE_DESIGN.md` "Phase 1 as built" now codifies "newest" (B1) |
+| 3 build-plan item 1 | PARTLY | marked "(built)" but still says "move existing fetchers to write Staging" (S3) |
+| 4 Claim 1 over-claims | NOT FIXED | claim text unchanged; gap list has no credential-separation line (S2) |
+| 5 AST aliasing | NOT FIXED | `test_design_rules.py` counts `ast.Call` only; Stager check is by parameter name (m1) |
+| 6 stamp format | ACCEPTED | `staging.py:19` `%Y%m%dT%H%M%SZ`, UTC |
+
+### Findings
+
+- **B1 (blocking): the newest passing copy becomes the record, where today the first copy does.** Scenario: Monday's
+  copy A is staged, the promote fails (Drive sign-in, or a push refused), NSE then republishes, and B is staged. Next
+  promote writes **B**. Today's librarian keeps A and A11 files B as a revision. That is a different record from
+  today's, against the agreed "promotes nothing today would not". Untested: plant M3 (`reversed(copies)`) survives.
+  Fix: promote the earliest passing copy, report later differing passing copies as revisions, and add a test with
+  two passing, differing copies and an empty record.
+- **S1 (should fix, new; receipts): a Record file with no manifest row is never given one.** `gate.py` returns
+  ALREADY_RECORDED before any `put`. `librarian.py:76-78` re-puts in that case ("saved by a run stopped before its
+  manifest commit"), so the row gets written. If `promote`'s manifest commit fails, the file stays in Drive with no
+  receipt until a live librarian happens to pass that day. Fix: mirror that branch, and add a test.
+- **S2: Claim 1 and the design's "only the gate writes the Record, by construction" still over-claim.** The 13 live
+  workflows write the same `raw` area with the same OAuth secrets (`pipeline-staging.yml` env = theirs). Fix: reword
+  it, and add the gap-list line.
+- **S3: in `PIPELINE_DESIGN.md`, build-plan item 1 contradicts "Phase 1 as built".** Fix item 1 in place. "Phase 1 as
+  built" also restates the story: keep one owner (CLAUDE.md "one functionality, one owning document").
+- **S4: the story's claims 3 and 4 don't describe the calendar and exceptions rules.** The promote-side exceptions
+  skip is untested: plant M5 survives. Fix: update the text, and add a test that a staged copy on an exception day is
+  not promoted.
+- **m1:** the AST check should also catch the `.put` attribute (not only calls).
+- **m2:** the story table says fo-bhavcopy covers the legacy `TIMESTAMP`, but only `fo-bhavcopy` (UDiFF) is
+  promotable. `fo-bhavcopy-legacy` is in neither list.
+- **m3:** "identical bytes not staged twice" compares with the newest copy only (A, B, A stages A twice). Fix the
+  wording.
+- **m4:** `gate.put` doesn't catch `RawFileConflict` / `StoredCopyDamaged`. A race with a live librarian aborts the
+  rest of the range (the record stays safe). Plant M19 (the gate's source tag in the wiring) survives too.
+- **m5:** the comment in `pipeline-staging.yml` says "freshness and schema checks", but there is no freshness check
+  by default.
+
+### Plants
+
+19 planted, 16 caught. Survivors: M3 (copy order, B1), M5 (promote-side exceptions skip, S4), M19 (gate tag in the
+wiring, m4).
+
+### Notes
+
+Confirmed: no numeric window (`config.yaml` `null`; plant M15 caught); no existing workflow changed (diff stat); the
+new workflow is dispatch-only, with the same pinned SHAs as the other 13 and secrets only via `env`; staging cannot
+reach `raw` (plant M13 caught).

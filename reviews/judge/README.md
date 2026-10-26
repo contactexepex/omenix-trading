@@ -11,5 +11,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 
 | # | Story | Lane | Verdict | File |
 |---|---|---|---|---|
-| 1 | P1 staging / record split (story text, judge #2) | 1 | FAIL (round 1) | `judge_1_p1-staging-record-split-judge2.md` |
+| 1 | P1 staging / record split (story text, judge #2) | 1 | FAIL (round 2: owner decides) | `judge_1_p1-staging-record-split-judge2.md` |
 | 2 | P1 staging / record split (story + code, judge #1) | 1 | FAIL (round 2: story af1fc7d, code 759153c) | `judge_2_p1-story.md` |
