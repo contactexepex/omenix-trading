@@ -66,7 +66,8 @@ and the 09:12 pre-open capture cannot be redone, so a cool-down carried over fro
   before its replacement failed"), `data-snapshot fii-dii-cash-by-session` (NSE's live page shows the latest day; reasoning only, not
   measured) and `data-snapshot fpi-daily-by-session` (NSDL's daily report, not an NSE host; listed with its sibling,
   contestable) (judge 2, S3). The test for the set is the rule: a command is live when its
-  source overwrites in place or shows only the current value, so a missed run cannot be redone. The other
+  source overwrites in place or shows only the current value within the window the next run would read it, so a missed
+  run cannot be redone. The other
   `data-snapshot` kinds (reference lists NSE replaces rarely) and `global-cues fill` (a repairable backfill) stay out.
 - In such a run, the first request to a host whose persisted breaker is open and still cooling is let through as **one
   probe** per process per host, paced like any request (the 1 s spacing), with R1b1's probe rules: the others of that
@@ -129,3 +130,39 @@ reported. The reversible stage-only dispatch at the owner's validation step stay
 ## Judges
 
 Two judges. Freeze rule: one SHA, no push after sending it.
+
+## R1b2 build evidence
+
+Branch `story/R1b2-code`. Code: `fno/shared/nse_pacer.py` (`attach`, real-UTC wall clock, the forced probe once per
+process, the restored-pause message), `fno/shared/resilience/breaker.py` (`check(force_probe=False)`, flagged: touches
+merged R1a), `fno/shared/resilience/transition_log.py` (`LayeredLog`), `fno/shared/constants.py`
+(`LIVE_WINDOW_COMMANDS`, the two log paths), `fno/ingestion/pause_memory.py` (command words, the live decision, the
+attach), `fno/ingestion/cli.py` (`main` calls it), `ops/commit_pause_log.sh`, the last step in **13** workflows (every
+one but `data-checks`; the story's text said 12, which was a count error), `.gitignore`.
+
+- **Where the live flag comes from:** `main` takes the command words from `argv` (skipping `--config` and `--provider`
+  and their values) and looks them up in the set. The set is pinned by a test, and each member is shown to be a real
+  command by parsing `<words> --help`.
+- **Tests (52 new):** layered log (2); restore by UTC across pacers with different monotonic origins, closed or missing
+  history, one alert per transition and none for a failure that does not open, a healthy run writes no file, the
+  live-window rule (an ordinary command refused without a request; a live one sends one probe and the other threads wait;
+  a refused live probe reopens doubled and is forced only once per process, and a later archive run sees the doubled
+  pause; two overlapping live processes each get a probe) (8); command words and the live decision, the set, every
+  workflow's last step, hooks and identity, the ignored directory (36); the commit script against real throwaway git
+  repositories (6): no transitions commit nothing, header once, no duplicate rows, a manifest committer's
+  `git pull --no-rebase` still works while the run has pending rows, **the old design's tracked-file pull is refused (the
+  reproduction judge 2 asked for)**, and a failed pull leaves the rows in place and fails loudly.
+- **Own test for the restored message** (judge 1's note): it is the first test above ("refused in an earlier run; not
+  calling it for 5 more minutes").
+- **Mutation plants, each caught:** no hooks path, no identity, no pull before the merge, no dedupe, a wall clock derived
+  from the monotonic one in production, force_probe on a non-live command, forcing more than once per process, a live
+  command missing from the set, alerts not wired, the log not wired. **One equivalent mutant, stated:** dropping the
+  script's `tail -n +2` (the header skip) changes nothing, because the dedupe already skips a header the file has; the
+  two protections overlap on purpose.
+- **Carried from judge 1 (R1b1):** the threaded tests are bounded (daemon threads, joins with a timeout and an assert).
+  One timing assertion (`min gap >= 0.04`) flaked once under load in the full parallel run; the two new-code ones now
+  use 0.03, still far above the 0.0 s an unlocked limiter gives.
+- **The `preopen record` run context** (judge 2, parked as an owner question): no workflow runs it, and the repository
+  does not say where it runs. **Whatever place runs it must not commit the pause log**: the live-window rule reads the
+  committed log and would, harmlessly, find nothing. The owner is asked to say where it runs.
+- Gates: ruff, imports, numbers, size clean; 484 tests pass.
