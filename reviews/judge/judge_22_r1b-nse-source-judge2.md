@@ -59,3 +59,37 @@ two of the "deliberate differences" are not never-weaker as claimed.
 
 The R1b1/R1b2 split, the zero-jitter injection for the characterization tests, the `merge=union` log, and the per-merge
 dry run of `index-closes.yml` (which has `dry_run`) are right.
+
+## Addendum 1: round 2, `7a1ee0e` (story text; my last round on the R1b story)
+
+**FAIL** on 1 should-fix, which the owner decides (via the orchestrator). All six round-1 findings are fixed:
+
+| Round-1 finding | Verdict | Evidence (round-2 text) |
+|---|---|---|
+| B1 `nse_json` 403 after the cookie warm-up | FIXED | its own classifier: every non-200 or empty answer is RETRY after the warm-up; the archive `verdict()` is unchanged; claim 1 pins it |
+| S1 the last wait | FIXED | 1.5/3.0/4.5 kept as floors, the last included |
+| S2 the probe on 5xx/timeouts | FIXED | 403/429 reopen doubled; any other answer, 5xx included, closes; no answer gives the same cool-down (`record_unanswered`, flagged as a library addition) |
+| S3 one per process | FIXED | `NsePacer`, one per process and **per host** (www and nsearchives), as `SHARED_PACER` (`http_pacing.py:38-39`); claims 4 and 5 |
+| S4 timeouts | FIXED | the table is computed with code references; jitter 25% for NSE (+5% worst case). The three workflows that cannot fit under total failure are shown to be a pre-existing condition, not introduced by R1b, and are recorded for the owner |
+| S5 `Deferred` to today's exceptions | FIXED | one conversion point to `SourceCoolingOff`; claim 2 tests each exception and its message |
+
+The honest verification section is right: `dry_run` runs only `--help`. So the active comparison of the next run's
+log, with a stop rule, is the real check.
+
+### Finding
+
+- **R2-1 (should fix): during the probe, the other threads should wait for its answer, not be refused.** The story
+  states this difference ("other threads ... are refused") as bounded by one request. But a refusal is not a short
+  wait: `SourceCoolingOff` makes callers **stop**. `NseArchiveSource` turns it into `RawSourceCoolingOff`, and
+  `revision_source.py:60` and `filings/librarian.py:82,96` end their passes on it. One live caller is concurrent on
+  NSE today: `quotes record --source nse` (`quote-recorder-nse.yml:65`). It runs index slots with `INDEX_WORKERS = 3`
+  (`quotes/indices.py:25,42`) through `BookFetcher`'s thread pool (`book_fetch.py:39`), each calling `nse_json`. A
+  probe inside the 14:55-15:10 window would cost two of the three threads that minute's quotes. Today, after the
+  pause, all three go ahead. That contradicts the section's own title, "never stricter than today for data". Fix:
+  while a probe is in flight, other `wait_turn` calls on that host **block until the probe answers** (bounded by the
+  request timeout, 20 s for `nse_json`, 60 s for the archive). Then they proceed if it closed, or get `SourceCoolingOff`
+  if it reopened. That is still one request in flight, with the same data outcome as today when the source has
+  recovered. Test: 3 threads during a probe, the probe gives 200, all 3 complete; the probe gives 403, all 3 get
+  `SourceCoolingOff`, and only 1 request was sent.
+
+Recommendation to the owner (reasoning only): a small, local change; allow the fix and a check of just this point.
