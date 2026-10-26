@@ -25,3 +25,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 12 | SEC1 hash-pinned requirements, story (judge #2) | 1 | PASS (story a8efd5b; final build be23751) | `judge_12_sec1-hash-pinning-judge2.md` |
 | 13 | SEC1 hash-pinned requirements (story text) | 1 | PASS (story a8efd5b, final be23751) | `judge_13_sec1-hash-pinning.md` |
 | 14 | SEC1b minors (relock pin, pipx, portable header) | 1 | PASS (e01d717) | `judge_14_sec1b-minors.md` |
+| 15 | SEC1b minors (judge #2) | 1 | PASS (e01d717) | `judge_15_sec1b-minors-judge2.md` |
