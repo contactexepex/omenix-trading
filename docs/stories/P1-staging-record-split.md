@@ -78,7 +78,7 @@ The failure is therefore still reported, once per run, without failing it.
 ## Gap list: not covered by Phase 1, with the reason
 
 - **No credential separation: an accepted owner decision (26 Oct 2026), not a gap to close.** `stage` and the live
-  workflows use the same owner Drive credential, so any job holding it can write `raw/`; Staging and the Record are
+  workflows use the same owner Drive credential (13 of the 14 workflow files), so any job holding it can write `raw/`; Staging and the Record are
   subfolders of one shared Drive folder and the separation is in code only. The owner chose not to pursue isolation
   (cost and complexity). What protects the Record is stated in `docs/PIPELINE_DESIGN.md` "Security".
 - **Moving the live fetchers to write Staging** (design build-plan item 1, first half): deferred per workflow, with the

@@ -14,8 +14,9 @@ three more things:
    single flaky source does not create a gap, and so corroboration raises confidence.
 2. **Never let a fetcher corrupt the record** — a fetched file must *prove* itself before it becomes a source of
    truth the forecasting engine trusts.
-3. **Safe to run in a public repo** — no business logic, no secrets in the repo; outsiders cannot write Drive at all
-   (fork pull requests cannot read secrets). See "Security" for what protects the Record from a bad merged change.
+3. **Safe to run in a public repo** — no business logic, no secrets in the repo; no outsider writes Drive
+   through a fork or a pull request (fork pull requests cannot read secrets). See "Security" for what protects the
+   Record, and for the paths that remain (a bad merged change, a compromised dependency).
 
 The answer to all three is a **two-stage pipeline with a quality gate between fetch and record.**
 
@@ -45,10 +46,9 @@ live workflows: see "Phase 1 as built".
 ```
 
 - **Fetchers** run as GitHub Actions (NSE, NSDL, BSE, news, Yahoo — no key needed, public-safe) and, for Groww only,
-  as a scheduled session (key off GitHub). Each writes **only to Staging**.
+  as a scheduled session (key off GitHub). In the new path each writes **only to Staging** (code level; the live workflows still write the Record directly).
 - **The promotion gate** is a separate set of GitHub Actions. It reads Staging, applies the checks below, and writes
-  the passing files to the write-once Record. It needs **no broker key** (it only processes already-fetched data), so
-  it is fully public-repo-safe.
+  the passing files to the write-once Record. It needs **no broker key** (it only processes already-fetched data).
 
 ## Promotion checks (what makes a file "good enough" to become a record)
 
@@ -65,8 +65,10 @@ Applied per dataset; a file is promoted only if it passes all that apply:
    by the existing revision path, not an overwrite.
 6. **Dedup (news)** — see below.
 
-A file that fails is left in Staging with a reason and alerted to #fno-desk; it never reaches the Record. **Garbage
-cannot become a record** — this is the security property and the data-quality property at once.
+A file that fails is left in Staging with a reason and alerted to #fno-desk; it does not reach the Record through the
+gate. This is a **data-quality** property: the gate checks format and identity, **not authenticity**, so a well-formed
+forged file is not detected, and any job holding the shared credential can also write the Record directly (see
+"Security").
 
 ## News: dedup and credibility
 
@@ -101,22 +103,27 @@ the broker feed (Groww) is the only realistic source, and it is snapshot. Google
 
 - Fetchers hold **no broker key** (Groww runs as a routine with the key in its session env, never in GitHub).
 - **Accepted owner decision (26 Oct 2026): one shared Drive folder, one shared credential, separation in code only.**
-  Staging and the Record are subfolders of the same Drive folder, and every workflow uses the same owner Drive
-  credential (full Drive scope). The owner chose not to pursue credential, account or repository isolation (cost and
+  Staging and the Record are subfolders of the same Drive folder, and the 13 of the 14 workflow files that write
+  Drive use the same owner Drive credential (full Drive scope; `participant-oi-watch.yml` holds none). The owner chose not to pursue credential, account or repository isolation (cost and
   complexity). So a fetcher's credential **can** write the Record: an abused or wrongly changed workflow **could**
   overwrite or delete it. This design does not claim otherwise.
-- What does protect the Record, honestly: **outsiders cannot write Drive at all** (the repository is public, but fork
-  pull requests cannot read secrets and no workflow uses a `pull_request` trigger). Against a bad change that reaches
-  `main`, the protection is **process**: the required judge review (a rule of this project), the **public-record scan**
-  on every commit and the **quality gates** (tests, lint, size and number checks). **Branch protection on `main` is
-  recommended but was not confirmed on when this was written** (26 Oct log), so the judge review is not yet a
-  technical block. Drive files are write-once in our code and every Record file has a SHA-256 receipt in GitHub, so
-  tampering is detectable by comparing a file with its receipt (a change that also rewrites the receipt would not be
-  caught by that alone).
+- What does and does not protect the Record, honestly. **No outsider reaches Drive through a fork or a pull request:**
+  fork pull requests cannot read secrets and no workflow uses a `pull_request` trigger. **Supply chain is an open path:**
+  every job installs unpinned `>=` requirements (`requirements.txt`, no `--require-hashes`) while holding the full-scope
+  token, so a malicious release of any dependency, direct or transitive, could use it; hash-pinning is not done.
+  Against a bad change that reaches `main` the protection is **process**: the lane review (`docs/JUDGE.md`; lane 2 has
+  no judge), the **public-record scan** on every commit and the **quality gates** (tests, lint, size and number checks).
+  GitHub reports `main` as protected, but direct pushes are accepted (every session and the contents-write workflows
+  push to it), so the review is process, not a technical block; the rule's exact settings are not readable from here.
+  Drive files are write-once in our code, every Record file has a SHA-256 receipt in GitHub, and every reader checks
+  the receipt on each read (`storage/drive_cache.py`), so a changed file is detected when read (a change that also
+  rewrites the receipt is not caught by that alone).
 - Residual risk, stated plainly: the shared token has **full Drive scope**, so it covers the owner's whole Drive, not
   only `raw/`; anyone who can merge to `main` or is a repository admin can reach it; a compromised dependency installed
   in any job can use it; and recovery is limited (Drive's trash and version history only, no separate backup of the
-  Record). Receipts detect a changed file, they do not restore it.
+  Record). Receipts detect a changed file, they do not restore it. A **forged but well-formed** staged file is not
+  detected by the gate, and a fetcher's credential could also delete the genuine staged copy; cross-source checks
+  (Phase 4) or re-fetching from the authoritative source at promotion would narrow this, and are not built.
 - Actions pinned to full SHAs; no third-party actions; fork PRs require approval and cannot reach secrets (no
   `pull_request` triggers); the record scan blocks committing any secret/PII.
 - GitHub masks secrets in logs; code prints exception class names only, never credential-bearing text.
