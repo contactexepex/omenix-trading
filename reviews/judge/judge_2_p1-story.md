@@ -53,3 +53,41 @@ None: story text only, no code. Plants come with the code review.
   (`participant-oi-release.yml:95`, `participant-oi-sweep.yml:71`). This is a rule-document fix for the orchestrator,
   not this story.
 - The pipeline design is still a DRAFT with open owner decisions. Phase 1 as scoped needs none of them.
+
+## Addendum 1: story + code, SHA 759153c (round 2 of 2)
+
+**FAIL, lane 1, judge 1 of 2.** Gates rerun by me: 206 passed; ruff, check_imports, check_numbers and code size are
+clean. `check_records` refuses LICENSE e-mails and `ruff format` flags `tests/ingestion/test_paths.py`; both fail the
+same way on `main`, so neither comes from this branch. Only one workflow was added (`pipeline-staging.yml`, dispatch
+only, pins match the other 13).
+
+Round-1 findings: 1 OPEN (claim 1 unchanged). 2 OPEN (no credential gap; staging uses `build_owner_drive`, the same
+credential as the Record, `promotion/wiring.py:32-36`). 3 PARTLY (code only reports `DIFFERS_FROM_RECORD`; story claim
+3 still says "existing revision path"). 4 OPEN (REJECTED and DIFFERS re-alert and exit 1 on every later run). 5 OPEN
+(`equity_content_days` uses the EQ/BE-filtered reader, `datasets.py:33-34`). 6 OPEN. 7 FIXED (UTC `%Y%m%dT%H%M%SZ`).
+
+New findings:
+
+8. **Blocking: staging lookups grow quadratically.** There is one stamp folder per staged file (`staging.py:51`; the
+   clock is read per file, `runs.py:73`). `copies()` does one `get` per stamp folder (`staging.py:57-61`), and each
+   Drive `get` walks the whole folder chain (`google_drive.py:96-102`). `stage()` scans every stamp for a file not
+   staged before. Measured with a counting store: staging 250 files cost 31,125 gets and 1,000 files cost 499,500
+   gets (n(n-1)/2); each later lookup costs n gets. The gap list's "one Drive folder listing per staged file" is
+   wrong. Fix the layout, not the cost: `<source>/<archive path>/<stamp>` (as `Revision.revision_path` does), so one
+   listing of one folder finds every copy of a path.
+9. **Should fix: test gaps (my plants, 29 in all, 4 survived).** (a) `PromotionRun` with the sourced-exception skip
+   removed: 206 pass. (b) `cmd_promote` with the config window ignored (`max_lag_days` forced to None): 206 pass, so
+   the owner-decision seam is untested end to end. (c) Minor: `ALERT_LINES` 5 changed to 50: 206 pass. (d) Minor:
+   `stamp_of` without `astimezone(UTC)`: 206 pass.
+10. **Should fix: documents.** `PIPELINE_DESIGN.md`'s new "Phase 1 as built" section repeats the story (one
+    functionality, one owning document). It also marks build-plan item 1 "(built)" although "move existing fetchers to
+    write Staging" is not done. Story lines 3-5 still say "no code". The workflow header says "the freshness and schema
+    checks", but freshness is off.
+11. **Minor: one unpublished day blocks every promotion in the workflow.** `stage` exits 1 when any day in the range
+    is not published, and the `promote` step then never runs. State this or decide otherwise.
+
+Plants: 29 planted, 25 caught, 4 survived (9a-d).
+
+Notes: Process: code was pushed on top of a story that had FAILED, with its round-1 findings not addressed. This is
+the second departure from quality rule 1. Rounds: this is my second review of P1, so under JUDGE.md "Rounds" the owner
+decides now, unless the orchestrator counts the story and code reviews as separate rounds.
