@@ -41,3 +41,28 @@ None: a text-only change, judged by checking each statement against the reposito
 ## Notes
 
 H1 (`judge_6_h1-design.md`) is withdrawn by the owner's decision. My verdict there stays as written, unused.
+
+## Addendum 1: SHA 1909b90 (round 2 of 2)
+
+**FAIL, round 2. Two rounds are used, so the owner decides (JUDGE.md "Rounds").** The substantive change since
+5e6e127 is one new residual-risk bullet in Security: full scope, mergers and admins, a compromised dependency,
+limited recovery. That bullet is correct and settles my minor "recovery" note. My two should-fix findings are not
+addressed:
+- **Finding 1, OPEN.** `PIPELINE_DESIGN.md:111` still says branch protection "is recommended but was not confirmed
+  on". GitHub reports `main` as `protected: true`, while direct pushes are accepted.
+- **Finding 2, OPEN.** `:104` still says "every workflow uses the same owner Drive credential". It is 13 of 14.
+
+New, and blocking: the doc now contradicts itself.
+- **3.** The new bullet says "a compromised dependency installed in any job can use it", yet `:17` and `:108` still
+  say "**outsiders cannot write Drive at all**". A dependency's publisher is an outsider. Verified: every
+  `requirements.txt` entry except `xlrd` is an open `>=` range, and no workflow uses `--require-hashes` (grep: 0).
+  Narrow the claim to "not through this repository's pull requests or forks".
+- **4.** `:68-69` still reads "**Garbage cannot become a record** — this is the security property". With one shared
+  credential any job can write `raw/` past the gate, and a well-formed forged file passes every check (the gate checks
+  format and date, not authenticity). Make it a data-quality statement about the gate only.
+- **Should fix 5.** `:48` "Each writes **only to Staging**" and `:51` "fully public-repo-safe" are still written as
+  present fact. Mark the first as the target and reduce the second to "needs no broker key".
+
+Transparency: findings 3-5 are things I missed in round 1. I re-read the full document at 1909b90 after the branch's
+merge of `main` showed me judge #2's verdict (`judge_9_*`) inside the diff. I checked each finding myself, by grep
+and by reading the lines cited, and I accept them on that evidence, not on judge #2's word.
