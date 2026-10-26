@@ -166,3 +166,15 @@ one but `data-checks`; the story's text said 12, which was a count error), `.git
   does not say where it runs. **Whatever place runs it must not commit the pause log**: the live-window rule reads the
   committed log and would, harmlessly, find nothing. The owner is asked to say where it runs.
 - Gates: ruff, imports, numbers, size clean; 484 tests pass.
+
+### R1b2 code round 2 (judge 2, round 1 on c3b50d8: one should-fix, plus an optional line)
+
+- **Q14:** replacing the `attach_pause_memory(...)` call in `cli.main` with `pass` left every test green. Tests now go through
+  `main` (command patched out): a live command (`quotes record`, `fo-masters`) and a non-live one
+  (`data-librarian index-close`) leave `SHARED_PACER.log` a `LayeredLog` on the committed and the run-local paths, with
+  `live_window` true or false accordingly, and `main()` with no argument reads `sys.argv`. With the call replaced by `pass`
+  four of them fail.
+- **Local sessions** (judge 2's optional line): a hand run or a session on a laptop keeps its own git-ignored
+  `.run/paced-hosts.csv` in its checkout; nothing merges it unless someone runs `ops/commit_pause_log.sh`, so a
+  local pause is not shared and a local run restores only what the committed log holds.
+- Gates: ruff, imports, numbers, size clean; 488 tests pass.

@@ -104,3 +104,38 @@ def test_the_script_sets_the_hooks_path_and_identity_itself_and_never_skips_the_
 
 def test_the_run_local_directory_is_git_ignored():
     assert "research/data/resilience/.run/" in (ROOT / ".gitignore").read_text("utf-8")
+
+
+# ---- through main ----------------------------------------------------------------------------------------
+
+
+class _Parsed:
+    def __init__(self):
+        self.func = lambda args: 0  # the command itself is patched out
+
+
+class _Parser:
+    def parse_args(self, argv):
+        return _Parsed()
+
+
+@pytest.mark.parametrize(
+    ("argv", "live"),
+    [(["quotes", "record"], True), (["fo-masters"], True), (["data-librarian", "index-close"], False)],
+)
+def test_main_wires_the_shared_pacer_before_the_command_runs(monkeypatch, argv, live):
+    from fno.shared.resilience.transition_log import LayeredLog
+
+    monkeypatch.setattr(cli, "build_parser", lambda: _Parser())
+    assert cli.main(argv) == 0
+    assert isinstance(SHARED_PACER.log, LayeredLog) and SHARED_PACER.live_window is live
+    assert (
+        SHARED_PACER.log.committed.path == ROOT / PAUSE_LOG_PATH and SHARED_PACER.log.path == ROOT / PAUSE_LOG_RUN_PATH
+    )
+
+
+def test_main_reads_sys_argv_when_it_is_given_no_argv(monkeypatch):
+    monkeypatch.setattr(cli, "build_parser", lambda: _Parser())
+    monkeypatch.setattr("sys.argv", ["fno", "closes", "read"])
+    cli.main()
+    assert SHARED_PACER.live_window is True
