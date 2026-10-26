@@ -1,14 +1,15 @@
 # R1: one resilience layer (retry, circuit breaker, pacing, no partial data)
 
 Lane 1, two judges (outside services: NSE, Drive, Groww and new sources; the write-once data they feed). Branch
-`story/R1-resilience`. **Design only; story text.** Round 2 of the story (round 1: both judges FAIL on `2d6ea2a`, one
-blocking and ten should-fix, all checked against the code and accepted below). Owner directive (26 Oct 2026, via the
+`story/R1-resilience`. **Design only; story text.** Round 3 of the story (round 1: both judges FAIL on `2d6ea2a`, one
+blocking and ten should-fix; round 2: both judges FAIL on `8ffc937` for two should-fix each, the same two; all checked
+against the code and accepted below). Owner directive (26 Oct 2026, via the
 orchestrator): failures retry politely and never get us blocked, for every source, existing and new. Build starts only
 after this text is judged and the stage-only validation (V1) has passed on real data.
 
 **The rule that governs every line below: R1 is never weaker than today for any source.** It consolidates the existing
 rules into one interface and adds jitter, a half-open probe, memory across runs and alerts; it relaxes no protection
-that exists now. Where an idea would loosen one (a global threshold, "never retry 403", full jitter), it is changed.
+that exists now. Where an idea would loosen one (a global threshold, "never retry 403", full or equal jitter), it is changed.
 
 ## What exists today (measured in the code)
 
@@ -55,13 +56,19 @@ configuration value. Time, sleep and randomness are injected, so every test is d
    supplies its classifier: NSE: 404 not published, 403 = **BLOCK** (no retry, counts toward the breaker), 429 and 5xx
    and network errors = RETRY; **Drive: 403 with a rate-limit reason = RETRY**, other 403 = PERMANENT, 401 = the single
    re-sign (outside the policy). Never retried anywhere: other 4xx, parse and auth failures, a bad URL.
-2. **Backoff with jitter that is never shorter than today's floor.** Wait = `d/2 + random(0, d/2)` with `d =
-   min(cap, base * 2^n)` ("equal jitter"). *Deviation from the brief's "full jitter":* full jitter can wait 0 s, which is
-   weaker than today's fixed 5 s (NSE) and 2 s (Drive) first wait; equal jitter keeps the lower half. `Retry-After` is a
-   floor and honoured up to a ceiling (120 s as today); above it the call stops. Bounded by max attempts **and** max total
-   time. Today's numbers are the first configuration; nothing changes until a number is changed in config.
-3. **`CircuitBreaker`, per source and per outcome, never looser than today.** Counts consecutive **BLOCK or exhausted-
-   retry** outcomes; **404 / not-published never counts**; a success resets. Thresholds are per source: **NSE = 2** (today),
+2. **Backoff: today's waits are the floor, jitter is added upward.** Each source keeps its current per-attempt table, NSE
+   `(5, 15, 45)` s and Drive `(2, 8, 30, 60)` s (they are not `base * 2^n`, so they are configured as tables, not
+   derived). The wait before try *n* is `t_n + random(0, t_n)` (so between `t_n` and `2 * t_n`), capped. *Deviation from
+   the brief's "full jitter", and from my round-2 "equal jitter":* both can wait less than today's first wait (full
+   jitter can wait 0 s; equal jitter with base 5 waits 2.5-5 s); adding jitter only upward never does. A new source with
+   no table starts with a doubling table of its own. `Retry-After` is a floor and honoured up to a ceiling (120 s as
+   today); above it the call stops. Bounded by max attempts **and** max total time. Nothing changes until a number is
+   changed in config.
+3. **`CircuitBreaker`, per source and per outcome, never looser than today.** For NSE, **every 403 and every 429 response
+   counts** (as `RequestPacer.observe` does today on each response, `REFUSAL_STATUS_CODES = (403, 429)`), including a 429 that
+   the retry policy would retry: the **second consecutive** 403 or 429 opens the breaker and **ends the call at once**,
+   with no further try and no wait into the pause (as `raw_source.py` does for a second 429). For other sources it
+   counts consecutive **BLOCK or exhausted-retry** outcomes. **404 / not-published never counts**; a success resets. Thresholds are per source: **NSE = 2** (today),
    Drive = its existing give-up behaviour (no new breaker threshold looser than the code now), Groww = a 429 pauses 60 s as
    today; new sources start at NSE-strict (2) until measured. Closed -> open -> half-open -> closed. **The half-open probe
    is exactly one request, outside the retry policy** (a retried probe would be up to four hits on a blocking host).
@@ -105,10 +112,11 @@ test), so a change is a config change. The global `N = 5` proposed in round 1 is
 
 1. Classification per source (table-driven tests per status): NSE 403 = BLOCK, **Drive 403 `rateLimitExceeded` = RETRY**,
    other Drive 403 = PERMANENT, 404 never counted; the Drive 401 re-sign happens once and is not counted as a retry.
-2. Equal-jitter waits stay within `[d/2, d]`, `Retry-After` is a floor, the ceiling stops the call, and attempts and
-   total time are bounded (injected clock, sleep and random).
-3. The breaker passes closed -> open -> half-open -> closed and half-open -> open; the NSE threshold is 2; a 404 never
-   counts; while open a call raises `Deferred` and **sends no request** (spy session); half-open sends **exactly one
+2. For every attempt *n*, the wait is within `[t_n, 2 * t_n]` of the source's table, **so never below today's wait**
+   (a lower-bound assertion per attempt, per source: NSE 5/15/45, Drive 2/8/30/60); `Retry-After` is a floor, the ceiling
+   stops the call, and attempts and total time are bounded (injected clock, sleep and random).
+3. The breaker passes closed -> open -> half-open -> closed and half-open -> open; the NSE threshold is 2 and **two
+   consecutive 429s open it and no third request is sent** (a spy session); a 404 never counts; while open a call raises `Deferred` and **sends no request** (spy session); half-open sends **exactly one
    request and does not use the retry policy**; the cool-down grows on a re-open and resets on a close.
 4. State survives a new process through the per-source transition CSV (write, new instance, read); two writers that
    append at once merge without loss under `merge=union` (a git test on two clones); a failed log commit is reported.
@@ -121,6 +129,10 @@ test), so a change is a config change. The global `N = 5` proposed in round 1 is
 8. **One builder, no second rule:** a static test lists the allowed `sleep` call sites (the window waits in the inventory,
    each with its reason); a new retry or pacing loop outside the shared package fails it; the old constants
    (`RETRY_WAITS` in two places, `RETRY_GAP_SECONDS`, `MIN_GAP_SECONDS`, `RatePacer`) are gone or are configuration.
+   **Limit of that test, stated:** it finds `sleep(` call sites and the named waits in the allowlist; a loop that waits
+   through another name (for example the `pause` parameter in `fno/shared/numbering/claim.py`, an internal numbering tool
+   with no external call) is not detected, so that module is listed in the allowlist as internal with its reason, and a
+   reviewer checks new waits by hand.
 9. No Groww behaviour changes in market hours: the existing hand-run rule tests still pass unchanged.
 
 ## Build in steps, each judged (so none is too large)
