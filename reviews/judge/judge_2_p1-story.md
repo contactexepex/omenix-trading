@@ -54,9 +54,11 @@ None: story text only, no code. Plants come with the code review.
   not this story.
 - The pipeline design is still a DRAFT with open owner decisions. Phase 1 as scoped needs none of them.
 
-## Addendum 1: story + code, SHA 759153c (round 2 of 2)
+## Addendum 1: story + code, SHA 759153c (interim, not counted as a round)
 
-**FAIL, lane 1, judge 1 of 2.** Gates rerun by me: 206 passed; ruff, check_imports, check_numbers and code size are
+**FAIL, lane 1, judge 1 of 2.** Reviewed because the implementer asked for it explicitly. The orchestrator then
+said 759153c was interim and that round 2 is the implementer's next "round-2 artifact" SHA; these findings are
+early feedback for that SHA. Gates rerun by me: 206 passed; ruff, check_imports, check_numbers and code size are
 clean. `check_records` refuses LICENSE e-mails and `ruff format` flags `tests/ingestion/test_paths.py`; both fail the
 same way on `main`, so neither comes from this branch. Only one workflow was added (`pipeline-staging.yml`, dispatch
 only, pins match the other 13).
@@ -89,5 +91,4 @@ New findings:
 Plants: 29 planted, 25 caught, 4 survived (9a-d).
 
 Notes: Process: code was pushed on top of a story that had FAILED, with its round-1 findings not addressed. This is
-the second departure from quality rule 1. Rounds: this is my second review of P1, so under JUDGE.md "Rounds" the owner
-decides now, unless the orchestrator counts the story and code reviews as separate rounds.
+the second departure from quality rule 1. Rounds: per the orchestrator, round 2 (the last) is the next artifact SHA.
