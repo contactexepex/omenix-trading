@@ -47,3 +47,22 @@ no question for the owner is needed. The rule is never weaker in every possible 
 - Where the log is present, a cooling host gets one forced probe: fewer requests than today, at least one attempt.
 
 Being in the live set is therefore right whatever the context. The story says so honestly and claims nothing about it.
+
+## Addendum 2: SHA 3ff3358 (delta: judge #2's four fixes)
+
+**PASS (story text), lane 1, judge 1.** c705ef5..3ff3358 changes the story only (+40/-14).
+- **B1, two files:** the committed CSV is only read during a run, and rows go to a git-ignored run-local file. Sound:
+  a tracked file can no longer go dirty under a manifest committer's `git pull --no-rebase`. It also gives each later
+  command in the same job (several `python -m fno` steps per workflow) the earlier commands' transitions. The last step
+  pulls first, appends the local rows once, then commits, pulls and pushes. Claim 9's two-clone test and its "rows once,
+  header once" check are the right proofs.
+- **S1, real UTC for the persisted clock:** correct. Monotonic time means nothing in the next process.
+- **S2, the step sets its own hooks path and identity:** correct, and pinned by the static test.
+- **S3, the live set grows under a stated rule** ("the source overwrites in place or shows only the current value").
+  The rule is sound. Over-inclusion is always safe here: a live command only gets one forced probe while a host is
+  cooling, which is still fewer requests than today. So the contestable member (`fpi-daily-by-session`, NSDL) cannot
+  make anything weaker, at worst marginally less cautious than an archive command. `fo-masters` is the strongest case:
+  the ban list is replaced in place (`fo_masters/job.py`).
+
+Note for the build: a restored breaker's message omits "HTTP" (no status was persisted). That is a new text for a new
+case, which no caller pins today. Give it its own test.
