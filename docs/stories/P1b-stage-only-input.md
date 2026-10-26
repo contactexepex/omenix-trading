@@ -28,6 +28,5 @@ Record, so a stage-only run validates the NSE fetch, the Drive write and the sta
 
 Two labels made stale by the `promote` input were corrected (the `days` description and the last step's name). A failed
 stage-only run posts nothing to #fno-desk, by design for now: the run is a manual dispatch, its last step exits 1, so the
-run turns red in GitHub and the dispatcher sees it at once. An alert step is not added: it would need the Slack secret
-in a step that today holds only the Drive ones, and nobody is waiting on an unattended run. Revisit when the workflow is
-scheduled.
+run turns red in GitHub and the dispatcher sees it at once. An alert step is not added: nobody is waiting on an
+unattended run. Revisit when the workflow is scheduled.
