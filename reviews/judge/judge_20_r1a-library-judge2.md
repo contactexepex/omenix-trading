@@ -59,3 +59,10 @@ Gates: 312 passed; `ruff check`, `check_imports`, `test_code_size` clean; new fi
 ## Plants
 
 20 planted, 18 caught. Survivors: A13 and A18 (S2).
+
+## Addendum 1: re-freeze `0929993f5b81aebc339bf1967b9bc60a26c33216` (supersedes `ee441a9`)
+
+The diff from `ee441a9` is `docs/stories/R1-resilience.md` only; the code and tests are identical. **S3: FIXED**
+(`:8`, `:10` and `:51` now state the lifted gate and the replacement checks). Verdict unchanged: **FAIL**, round 1,
+on B1 (not thread-safe), S1 (no persisted day ledger behind claim 5) and S2 (two unpinned behaviours). All of them
+apply to `0929993` as is.
