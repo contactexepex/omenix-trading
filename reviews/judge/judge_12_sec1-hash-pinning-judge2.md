@@ -151,3 +151,22 @@ only).
    bad lock, because `set -eu` stops the script. Use a portable form, e.g. `{ printf '# uv-version: %s\n' "$v"; cat
    "$output"; } > "$output.new" && mv "$output.new" "$output"`.
 2. Minors 1 (`pipx`) and 3 (`PIPELINE_DESIGN.md:127` wording) of Addendum 2 are still open; they ride the next touch.
+
+## Addendum 4: final, `be23751106e133fb520dda54504f4ef45a8a5870` (supersedes `817686e`)
+
+**PASS**, lane 1, judge #2 of two. Checked:
+- **Scope:** against `origin/main` the diff is the 28 SEC1 files only. The research-data and judge files in the
+  delta from `817686e` came from the merge of `main`.
+- **Locks:** pins identical in all three; only comment lines differ.
+- **Gates:** 255 passed; `ruff check`, `check_imports`, `test_code_size` clean.
+- **uv pin:** `ops/relock.sh` pins `expected_uv=0.11.32` and refuses any other version; a test requires each lock's
+  first line to match. Plant: changing the pin fails 3 tests.
+- **Addendum 2 minor 1 (`pipx install`):** FIXED. In the regex and the plants; my own `pipx install foo` in `ops/`
+  now fails 1 test.
+- **Addendum 2 minor 3 (wording):** FIXED. `PIPELINE_DESIGN.md:19` and `:127` now say "malicious when locked / any
+  other open root".
+
+### Still open (minor, not blocking)
+
+`ops/relock.sh:31` still writes the header with GNU-only `sed -i.bak "1i …"` (Addendum 3, minor 1). On macOS the
+relock stops with an error; it never writes a bad lock. Fix on the next touch.
