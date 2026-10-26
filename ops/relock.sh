@@ -15,10 +15,13 @@ set -eu
 cd "$(git rev-parse --show-toplevel)"
 command -v uv >/dev/null 2>&1 || { echo "relock FAILED: uv is not installed (see astral.sh)" >&2; exit 1; }
 
+uv_version=$(uv --version | cut -d' ' -f2)
 lock() {
     output=$1
     shift
     uv pip compile --generate-hashes --universal --python-version 3.11 --quiet -o "$output" "$@"
+    # The version of uv that made the hashes is part of the evidence, so the next bump can compare (story SEC1, claim 3)
+    sed -i.bak "1i # uv-version: $uv_version" "$output" && rm -f "$output.bak"
     echo "wrote $output ($(grep -c '^[A-Za-z0-9]' "$output") packages, $(grep -c -- '--hash=sha256:' "$output") hashes)"
 }
 

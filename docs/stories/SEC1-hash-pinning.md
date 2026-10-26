@@ -132,3 +132,9 @@ lock from a checkout of the repository (`requirements-oauth.lock` is in its root
 Tests: `tests/test_pinned_installs.py` (16). Mutations run by the builder, each caught: `--only-binary` removed from one
 workflow; one `cache-dependency-path` back to `requirements.txt`; a package added to `requirements.txt` without a re-lock;
 an unhashed `python3 -m pip install` added to an `ops/` script; a hash removed from a lock entry.
+
+Round-1 code review (Judge 1, `7ed5fe0`): the story's claim 3 said the `uv` version is recorded in each lock's header and
+in `relock.sh`; it was not. Fixed: `relock.sh` now writes `# uv-version: <version>` as the first line of every lock, and a
+test requires it (a lock without it fails; the builder ran that mutation). Also: `tools/` is now scanned, and
+`packaging` (imported by the test) is a direct entry in `requirements.txt` instead of arriving through `pytest`.
+Counts are unchanged (21/438, 53/1,561, 14/353); dry runs pass again on 3.11 and 3.13. Tests: 254.

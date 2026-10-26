@@ -33,7 +33,7 @@ SCANNED_SUFFIXES = {".yml", ".yaml", ".sh", ".py", ".md"}
 def scanned_files() -> list[Path]:
     """Files that may tell a person or a job to install packages (not stories, reviews, logs or tests, which quote
     history)."""
-    roots = [ROOT / ".github", ROOT / "ops", ROOT / "docs", ROOT / "fno"]
+    roots = [ROOT / ".github", ROOT / "ops", ROOT / "tools", ROOT / "docs", ROOT / "fno"]
     files = [p for r in roots for p in r.rglob("*") if p.is_file() and p.suffix in SCANNED_SUFFIXES]
     files += [p for p in ROOT.glob("*.md")]
     return sorted(p for p in files if "docs/stories" not in p.as_posix() and "__pycache__" not in p.parts)
@@ -136,6 +136,12 @@ def test_all_fourteen_workflow_installs_are_present_and_locked():
     workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
     installs = [line for w in workflows for line in logical_lines(w.read_text("utf-8")) if INSTALL.search(line)]
     assert len(installs) == 14 and all("requirements.lock" in line for line in installs)
+
+
+@pytest.mark.parametrize("lock", sorted(LOCKS))
+def test_each_lock_names_the_uv_version_that_made_it(lock):
+    first = (ROOT / lock).read_text("utf-8").splitlines()[0]
+    assert re.fullmatch(r"# uv-version: \d+\.\d+\.\d+", first), first
 
 
 @pytest.mark.parametrize("lock", sorted(LOCKS))
