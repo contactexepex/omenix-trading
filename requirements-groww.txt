@@ -1,5 +1,6 @@
 # Groww Trade API, market data only (the tool never places orders).
-# Install with:  sh ops/routine_setup.sh --groww   (python -m pip install --use-pep517 into every Python)
+# Install with:  sh ops/routine_setup.sh --groww   (installs requirements-groww.lock, made by ops/relock.sh, with
+# --require-hashes and --use-pep517 into every Python; edit this file, then run ops/relock.sh)
 # The SDK needs `clint` and `args`, which come only as old source packages. Without --use-pep517, pip builds them with
 # the container's own (Debian-patched) setuptools, which fails ("AttributeError: install_layout"); with it, pip builds
 # them in an isolated environment with a current setuptools (story A16c, 15 Oct 2026). pip refuses the flag in this

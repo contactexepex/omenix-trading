@@ -135,7 +135,7 @@ class GrowwProvider(Provider):
         try:
             from growwapi import GrowwAPI
         except ImportError as exc:  # pragma: no cover - depends on optional install
-            raise RuntimeError("Install the Groww SDK first: pip install growwapi") from exc
+            raise RuntimeError("Install the Groww SDK first: sh ops/routine_setup.sh --groww") from exc
         self.GrowwAPI = GrowwAPI
         self._sign_in = GrowwSignIn(lambda: self.GrowwAPI(self._token()), on_failure=on_sign_in_failure)
         self._quiet = quiet or NoQuietWindows()

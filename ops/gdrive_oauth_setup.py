@@ -1,8 +1,8 @@
 """One-time setup, run by the owner on their own computer: lets the cloud upload to the owner's Google Drive as the
 owner (service accounts cannot: they have no storage quota).
 
-    pip install google-auth-oauthlib
-    python3 gdrive_oauth_setup.py client_secret_<...>.json     (from any folder; it needs nothing else)
+    pip install --require-hashes --only-binary=:all: -r requirements-oauth.lock     (from a checkout of the repo)
+    python3 ops/gdrive_oauth_setup.py client_secret_<...>.json
 
 A browser opens; sign in with the Google account that owns the fno-research folder and allow access. The script
 prints three values to THIS terminal only. Copy each into the cloud environment's settings under the printed name.
