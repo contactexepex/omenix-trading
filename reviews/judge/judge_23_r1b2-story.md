@@ -33,3 +33,17 @@ process, bounded); say so with the "one probe" claim, as R1b already does.
 Minor: claim 4 ("no file, no commit on a healthy run") is right, but the commit step's `git pull`/`git push` runs in
 every workflow even when nothing changed. Say that it exits early when the file is unchanged (the story says "only
 when the file exists"; "and changed" would be exact).
+
+## Addendum 1: SHA c705ef5 (round 2)
+
+**PASS (story text), lane 1, judge 1.** fc50ebf..c705ef5 changes the story only.
+- Finding 1 FIXED: `preopen record` is in `LIVE_WINDOW_COMMANDS`, with its reason and the wiring line.
+- All three clarifications are stated: a refused live probe doubles the archive cool-down; overlapping live processes
+  each force one probe; the commit step stops successfully on an unchanged log.
+
+On the open edge (no workflow runs `preopen record`, and where it runs is not recorded): acceptable to leave open, and
+no question for the owner is needed. The rule is never weaker in every possible run context.
+- Where the committed log is absent, the run restores nothing and behaves exactly as today.
+- Where the log is present, a cooling host gets one forced probe: fewer requests than today, at least one attempt.
+
+Being in the live set is therefore right whatever the context. The story says so honestly and claims nothing about it.
