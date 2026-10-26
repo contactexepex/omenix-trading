@@ -39,6 +39,15 @@ answers today, with one addition:
 
 **Library addition (flagged, touches merged R1a):** `CircuitBreaker.record_unanswered()`: from half-open back to open
 for the same cool-down, logging a `reopened` row; a no-op in any other state. Tests and a mutation plant come with it.
+**Where the waiting lives:** in `NsePacer` (a condition per host, under the pacer's lock), not in the library: the library's
+`check()` still refuses while a probe is out, and `NsePacer` turns that into a wait. The library's only edits are
+`record_unanswered()` and the `jitter` fraction.
+
+**Data cost, stated:** (a) a probe that gets no answer re-opens the host for another 15 minutes, so a run that reaches it
+in that time gets `SourceCoolingOff`, where today the door opens after the first 15 minutes whatever happened; (b) the
+threads waiting on a probe that is then refused are refused too, which is more cautious than today (they would each have
+been refused by NSE in turn, and the pause would have come back after two). On a successful probe nothing is lost.
+
 **Stated difference from today:** after a pause, the first request goes alone and the others wait for its answer (at
 most one request timeout) before they start; today all would have gone at once.
 
@@ -120,9 +129,9 @@ no NSE request and **does not exercise this code**. It proves nothing here and i
    workflow is the real test, and an **active** check is made, not "no alert came" (alerts fire only on breaker
    transitions and exhausted retries, so a silent regression would raise none): the session that merged the step reads
    that run's log and compares it with the previous run's: exit code, per-day counts and statuses (saved, not
-   published, refused), the wait pattern. **Stop rule:** any divergence that is not explained by NSE's data (a file
+   published, refused), and the tries and waits per fetch (not the run's duration, which varies with NSE). **Stop rule:** any divergence that is not explained by NSE's data (a file
    reported "not published" that the previous run saved, a changed exception, a breaker that opened without two
-   refusals, a run longer than its predecessor by more than the jitter allows) means the step is reverted at once and
+   refusals, tries or waits outside the table values and the 25% jitter) means the step is reverted at once and
    reported. The data stays consistent meanwhile: a deferred fetch writes nothing.
 
 ## Round 1 findings (each checked and accepted; evidence in the sections above)
