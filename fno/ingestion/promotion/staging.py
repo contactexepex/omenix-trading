@@ -1,10 +1,12 @@
 """The Staging area (docs/PIPELINE_DESIGN.md): where every fetch lands before anything trusts it. A fetcher writes
 here and nowhere else; only the promotion gate turns a staged file into a record.
 
-Layout `<source>/<fetch time>/<archive path>`, e.g. `nse/20261026T153000Z/nse/fo/participant_oi/2026/10/x.csv`. Every
-fetch is a new write-once object, so a newer fetch of the same file is a new copy beside the old one (nothing is
-overwritten, which the Drive stores cannot do for raw files anyway) and the copy's source and fetch time are in its
-path. Staging holds raw, unchecked bytes: garbage may land here and is rejected by the gate.
+Layout `<source>/<archive path>/<fetch time>`, e.g. `nse/nse/derivatives/participant-oi/2026/10/f.csv/20261026T153000Z`
+(the archive path becomes a folder, as a revision's path does). All copies of one file are in one folder, so one
+listing finds them and a lookup costs one listing plus one read per copy however many files are staged. Every fetch is
+a new write-once object (the Drive store cannot overwrite a raw file); a newer fetch is a new copy beside the old one,
+and the source and the fetch time are in the path. The fetch time is UTC `YYYYMMDDTHHMMSSZ` (sorts as time). Staging
+holds raw, unchecked bytes: garbage may land here and is rejected by the gate.
 """
 
 from __future__ import annotations
@@ -43,27 +45,32 @@ class StagingArea:
         self.store = store
 
     def stage(self, source: str, path: str, data: bytes, fetched_at: datetime) -> bool:
-        """Saves one fetch; False (nothing written) when the newest staged copy of this file already has these bytes."""
-        path_parts(source)
+        """Saves one fetch; False (nothing written) when the newest staged copy of this file already has these bytes
+        (an older copy with the same bytes does not count: a file that changed and changed back is staged again)."""
         latest = self.latest(source, path)
         if latest and latest.data == data:
             return False
-        self.store.put(f"{source}/{stamp_of(fetched_at)}/{path}", data)
+        self.store.put(self._name(source, path, stamp_of(fetched_at)), data)
         return True
 
     def copies(self, source: str, path: str) -> list[StagedCopy]:
         """The staged copies of an archive path from one source, earliest fetch first: the order the gate promotes in
         (the first passing copy becomes the record, as the first archived copy does today)."""
-        return [copy for _, copy in self._found(source, path)]
+        return list(self._found(source, path, newest_first=False))
 
     def latest(self, source: str, path: str) -> StagedCopy | None:
-        """The newest staged copy (read last-first, so a stage of a new fetch lists but reads only one file)."""
-        return next((copy for _, copy in self._found(source, path, newest_first=True)), None)
+        """The newest staged copy (one listing, one read)."""
+        return next(self._found(source, path, newest_first=True), None)
 
-    def _found(self, source: str, path: str, newest_first: bool = False):
-        path_parts(source)
-        stamps = sorted(((t, n) for n in self.store.folders(source) if (t := _parse_stamp(n))), reverse=newest_first)
+    def _found(self, source: str, path: str, newest_first: bool):
+        stamps = sorted(((t, n) for n in self.store.checksums(self._name(source, path)) if (t := _parse_stamp(n))),
+                        reverse=newest_first)  # fmt: skip
         for fetched_at, name in stamps:
-            data = self.store.get(f"{source}/{name}/{path}")
+            data = self.store.get(self._name(source, path, name))
             if data is not None:
-                yield fetched_at, StagedCopy(source, fetched_at, path, data)
+                yield StagedCopy(source, fetched_at, path, data)
+
+    @staticmethod
+    def _name(source: str, path: str, stamp: str | None = None) -> str:
+        path_parts(source)
+        return f"{source}/{path}" if stamp is None else f"{source}/{path}/{stamp}"

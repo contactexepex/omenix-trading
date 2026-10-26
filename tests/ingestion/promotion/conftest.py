@@ -39,6 +39,9 @@ class SpyStore(RawFileStore):
     def folders(self, folder):
         return self.store.folders(folder)
 
+    def checksums(self, folder):
+        return self.store.checksums(folder)
+
 
 class RecordingSink(RevisionSink):
     """Remembers the later versions the gate offered; `new` says which bytes count as new (default: all)."""

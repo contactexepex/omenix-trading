@@ -86,7 +86,7 @@ def test_promoting_twice_is_idempotent_and_keeps_each_version_once(staging_store
     promote(gate)
     again = promote(gate)
     assert again.verdict is Verdict.ALREADY_RECORDED and again.revisions == 0
-    assert record_store.saved == [PATH] and len(sink.offered) == 1
+    assert set(record_store.saved) == {PATH} and len(sink.offered) == 1
 
 
 def test_a_record_written_elsewhere_is_never_overwritten_and_a_differing_staged_copy_is_a_revision(
@@ -129,3 +129,32 @@ def test_a_day_with_a_sourced_exception_is_never_promoted(staging_store, record_
     result = promote(gate)
     assert result.verdict is Verdict.REJECTED and "refused content (A23)" in result.reasons[0]
     assert record_store.saved == []
+
+
+def test_a_record_file_without_its_manifest_row_gets_the_row_on_promote(tmp_path, staging_store, sink):
+    """The librarian re-saves a file a stopped run left without its row; the gate does the same (judge 2, S1)."""
+    from fno.ingestion.storage.manifest_folder import FingerprintingStore, ManifestFolder
+    from fno.ingestion.storage.raw_store import LocalFolderStore
+
+    manifests = ManifestFolder(tmp_path / "manifests")
+    plain = LocalFolderStore(tmp_path / "record")
+    plain.put(PATH, GOOD)  # saved, but no manifest row
+    assert manifests.fingerprints(SOURCE) == {}
+    record = FingerprintingStore(plain, manifests, [SOURCE])
+    staging, gate = gate_for(staging_store, record, sink)
+    staging.stage("nse", PATH, GOOD, moment(THURSDAY))
+    assert promote(gate).verdict is Verdict.ALREADY_RECORDED
+    assert list(manifests.fingerprints(SOURCE)) == [NAME]
+
+
+def test_a_manifest_that_disagrees_is_a_conflict_problem_not_a_crash(tmp_path, staging_store, sink):
+    from fno.ingestion.storage.manifest_folder import Fingerprint, FingerprintingStore, ManifestFolder
+    from fno.ingestion.storage.raw_store import LocalFolderStore
+
+    manifests = ManifestFolder(tmp_path / "manifests")
+    manifests.record(SOURCE, Fingerprint(THURSDAY, SOURCE.url_for(PATH), "0" * 64, 5))  # another SHA-256 for the day
+    record = FingerprintingStore(LocalFolderStore(tmp_path / "record"), manifests, [SOURCE])
+    staging, gate = gate_for(staging_store, record, sink)
+    staging.stage("nse", PATH, GOOD, moment(THURSDAY))
+    result = promote(gate)
+    assert result.verdict is Verdict.CONFLICT and "different SHA-256" in result.reasons[0]

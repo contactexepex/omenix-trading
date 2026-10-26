@@ -14,7 +14,7 @@ from enum import Enum
 
 from fno.ingestion.promotion.checks import Candidate, PromotionCheck
 from fno.ingestion.promotion.staging import StagedCopy, StagingArea
-from fno.ingestion.storage.raw_store import RawFileStore
+from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
 
 
 class Verdict(Enum):
@@ -22,6 +22,7 @@ class Verdict(Enum):
     ALREADY_RECORDED = "already recorded"  # the Record held the path before this call
     NOT_STAGED = "not staged"
     REJECTED = "rejected"  # nothing recorded, and every staged copy failed a check; left in Staging
+    CONFLICT = "conflict"  # the Record or its manifest holds other bytes than the copy being written (a problem)
 
 
 class RevisionSink(ABC):
@@ -58,7 +59,13 @@ class PromotionGate:
             if not passing:
                 return Promotion(path, Verdict.REJECTED, tuple(failures))
             held, verdict = passing[0].data, Verdict.PROMOTED
-            self.record.put(path, held)
+        try:
+            # Also for a file already held that a passing copy proves good: saving the same bytes again changes nothing
+            # in Drive but writes a missing manifest row, as the librarian does for a file saved by a stopped run.
+            if any(copy.data == held for copy in passing) or verdict is Verdict.PROMOTED:
+                self.record.put(path, held)
+        except RawFileConflict as conflict:
+            return Promotion(path, Verdict.CONFLICT, (str(conflict),))
         later = [copy for copy in passing if copy.data != held]
         kept = sum(self.revisions.capture(path, copy.data, copy.fetched_at) for copy in later)
         return Promotion(path, verdict, notes=tuple(failures), revisions=kept)

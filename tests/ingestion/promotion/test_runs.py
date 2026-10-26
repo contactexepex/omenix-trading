@@ -80,7 +80,7 @@ def test_a_second_promotion_run_changes_nothing(staging_store, record_store, cal
     run.promote(THURSDAY, THURSDAY)
     report = run.promote(THURSDAY, THURSDAY)
     assert report.days(Verdict.ALREADY_RECORDED) == [THURSDAY] and report.complete
-    assert record_store.saved == [SOURCE.path_for(THURSDAY)]
+    assert set(record_store.saved) == {SOURCE.path_for(THURSDAY)}
 
 
 def test_an_empty_range_is_complete_and_unstaged_days_are_problems(staging_store, record_store, calendar):

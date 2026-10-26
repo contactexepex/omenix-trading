@@ -1,8 +1,10 @@
 # Phase 1 of docs/PIPELINE_DESIGN.md: one dataset through Staging and the promotion gate. By hand only (no schedule):
 # the live collection workflows are untouched and keep writing the Record directly until the owner switches them.
 #   1. `stage` fetches NSE's files for the range into the Drive `staging` area (it can write nothing else);
-#   2. `promote` runs the staged files through the freshness and schema checks into the write-once Record (Drive `raw`
-#      with its manifest row), commits the manifest rows, and posts any file that was NOT promoted to #fno-desk.
+#   2. `promote` runs the staged files through the librarian's rules (calendar session, sourced exceptions, content check)
+#      and the date-identity check into the write-once Record (Drive `raw` with its manifest row); later versions go to
+#      the revisions area; it commits the manifest rows and posts any day left without a record to #fno-desk.
+#      No numeric freshness window runs unless config.yaml sets promotion.max_lag_days (owner decision, unset).
 # Research data only; never trades; no Groww. Secrets: the Drive and Slack ones; none is printed or written to a file.
 name: pipeline-staging
 
@@ -62,7 +64,9 @@ jobs:
           git config user.name "omenix-pipeline-staging"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Stage the range (Staging only)
+        id: stage
         if: ${{ !inputs.dry_run }}
+        continue-on-error: true # one unpublished day must not stop the promote step; the last step fails the run
         run: |
           [[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "days must be a number"; exit 1; }
           python -m fno stage "$DATASET" --from "$(TZ=Asia/Kolkata date -d "-$DAYS days" +%F)"
@@ -70,3 +74,6 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           python -m fno promote "$DATASET" --from "$(TZ=Asia/Kolkata date -d "-$DAYS days" +%F)"
+      - name: Fail the run when staging stopped (the promote step has run either way)
+        if: ${{ steps.stage.outcome != 'success' && !inputs.dry_run }}
+        run: exit 1

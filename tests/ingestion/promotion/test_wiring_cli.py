@@ -127,3 +127,16 @@ def test_from_is_required_so_no_run_scans_all_history():
     for command in ("stage", "promote"):
         with pytest.raises(SystemExit):
             build_parser().parse_args([command, "participant-oi"])
+
+
+def test_the_alert_names_at_most_five_problems_and_the_log_has_them_all(monkeypatch):
+    from fno.ingestion.promotion.gate import Promotion, Verdict
+    from fno.ingestion.promotion.runs import PromotionReport
+
+    results = [
+        (THURSDAY.replace(day=day), Promotion(PATH, Verdict.REJECTED, (f"reason {day}",))) for day in range(1, 9)
+    ]
+    code, _, alerts, text = run_promote(monkeypatch, PromotionReport("d", results))
+    assert code == 1 and len(alerts.sent) == 1
+    assert alerts.sent[0].count("reason") == cli.ALERT_LINES == 5
+    assert text.count("rejected 2026-10-") == 8

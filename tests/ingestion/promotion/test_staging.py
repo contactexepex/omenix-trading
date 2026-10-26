@@ -13,7 +13,7 @@ def test_stage_then_read_back_with_source_and_fetch_time(staging_store):
     assert area.stage("nse", PATH, b"one", moment(THURSDAY)) is True
     (copy,) = area.copies("nse", PATH)
     assert (copy.source, copy.fetched_at, copy.path, copy.data) == ("nse", moment(THURSDAY), PATH, b"one")
-    assert staging_store.saved == [f"nse/{stamp_of(moment(THURSDAY))}/{PATH}"]
+    assert staging_store.saved == [f"nse/{PATH}/{stamp_of(moment(THURSDAY))}"]  # all copies of a file share a folder
 
 
 def test_same_bytes_again_is_not_a_second_copy(staging_store):
@@ -36,7 +36,7 @@ def test_empty_staging_and_other_sources_and_stray_folders(staging_store):
     area = StagingArea(staging_store)
     assert area.copies("nse", PATH) == []
     area.stage("bse", PATH, b"x", moment(THURSDAY))
-    staging_store.store.put("nse/not-a-time/" + PATH, b"stray")
+    staging_store.store.put(f"nse/{PATH}/not-a-time", b"stray")
     assert area.copies("nse", PATH) == []
 
 
@@ -44,3 +44,22 @@ def test_empty_staging_and_other_sources_and_stray_folders(staging_store):
 def test_a_bad_source_tag_is_refused(staging_store, source):
     with pytest.raises(ValueError):
         StagingArea(staging_store).stage(source, PATH, b"x", moment(THURSDAY))
+
+
+def test_the_fetch_time_in_the_path_is_utc_whatever_zone_the_caller_uses(staging_store):
+    from datetime import timedelta, timezone
+
+    ist = timezone(timedelta(hours=5, minutes=30))
+    StagingArea(staging_store).stage("nse", PATH, b"x", moment(THURSDAY, hour=12).astimezone(ist))
+    assert staging_store.saved == [f"nse/{PATH}/20261022T120000Z"]
+
+
+def test_a_lookup_costs_one_listing_and_one_read_per_copy_however_many_files_are_staged(staging_store):
+    area = StagingArea(staging_store)
+    for number in range(50):
+        area.stage("nse", f"nse/d/2026/10/file{number}.csv", b"x", moment(THURSDAY))
+    reads = []
+    original = staging_store.get
+    staging_store.get = lambda path: reads.append(path) or original(path)
+    assert len(area.copies("nse", "nse/d/2026/10/file7.csv")) == 1
+    assert len(reads) == 1  # not one read per staged file
