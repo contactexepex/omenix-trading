@@ -1,4 +1,4 @@
-# Judge 19: R1a resilience library (judge #2)
+# Judge 20: R1a resilience library (judge #2)
 
 Branch `story/R1a-resilience-library`, SHA `ee441a9cc4880320b7011088f492825b1575fb50`; `fno/shared/resilience/`
 (521 lines, 7 modules), unused by any module yet. **FAIL** (round 1), lane 1: 1 blocking, 3 should-fix. The retry
