@@ -34,3 +34,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 21 | R1b NSE source (story text) | 1 | PASS (story, final ab5bba8) | `judge_21_r1b-story.md` |
 | 22 | R1b NSE source, story (judge #2) | 1 | PASS (final story ab5bba8) | `judge_22_r1b-nse-source-judge2.md` |
 | 23 | R1b2 persisted pause (story text) | 1 | PASS (story, round 2, c705ef5) | `judge_23_r1b2-story.md` |
+| 24 | R1b1 NSE layer (code) | 1 | PASS (9034093) | `judge_24_r1b1-code.md` |
