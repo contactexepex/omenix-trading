@@ -4,7 +4,7 @@ Lane 1, two judges (NSE, the schedules that call it, and code the live workflows
 **Story text only; no code until it is judged.** Round 2 (round 1: both judges FAIL on `b9ef26a`, every finding checked
 against the code and accepted, see "Round 1 findings"). The rules are in [R1-resilience.md](R1-resilience.md) (one
 functionality, one owning document); this file says only how R1b applies them. R1a, the library
-(`fno/shared/resilience/`), is merged (`cde3b2f`); R1b adds one small method to it, flagged for the judges below.
+(`fno/shared/resilience/`), is merged (`cde3b2f`); R1b adds one setting to it (`jitter`), flagged for the judges below.
 
 ## Where the layer sits (revised: it stays where the pacer is today)
 
@@ -35,18 +35,25 @@ answers today, with one addition:
 - 403 or 429: re-open, cool-down doubled (cap 24 h); the waiting callers get `SourceCoolingOff`;
 - **any other answered status, 5xx included: close.** Today the pacer ignores 5xx, and one morning 503 must not push
   `index-closes` past its 07:41 retry (judge 2, S2);
-- no answer (timeout, connection error): re-open with the **same** cool-down (not doubled).
+- **no answer (timeout, connection error): close, too.** Today a transport failure never reaches `observe()`, so after
+  the 15 minutes the door is open whatever the next request does; a timeout is no evidence of a block, and a probe that
+  re-paused the host on one would defer data today's code reads (judge 1, round 2, item 1; this replaces my earlier
+  "same cool-down" rule, taken from judge 2's S2, and withdraws `record_unanswered`).
 
-**Library addition (flagged, touches merged R1a):** `CircuitBreaker.record_unanswered()`: from half-open back to open
-for the same cool-down, logging a `reopened` row; a no-op in any other state. Tests and a mutation plant come with it.
+**Waiters.** The waiters released by a closing probe still pass through the per-host `RateLimit`, so they start one second
+apart as every NSE request does (the test asserts the gaps). **If a waiter's bounded wait expires** (the probe thread is
+stuck past the request timeout), the waiter treats the probe as unanswered: the host is closed and it proceeds as a normal
+call. **If the probe thread raises** (any exception, not only a request error), the release of the waiters is in a
+`finally`, so none is left blocked.
+
 **Where the waiting lives:** in `NsePacer` (a condition per host, under the pacer's lock), not in the library: the library's
-`check()` still refuses while a probe is out, and `NsePacer` turns that into a wait. The library's only edits are
-`record_unanswered()` and the `jitter` fraction.
+`check()` still refuses while a probe is out, and `NsePacer` turns that into a wait. The **only** library edit is the
+`jitter` fraction in `RetrySettings` (flagged: it touches merged R1a), with tests and a mutation plant.
 
-**Data cost, stated:** (a) a probe that gets no answer re-opens the host for another 15 minutes, so a run that reaches it
-in that time gets `SourceCoolingOff`, where today the door opens after the first 15 minutes whatever happened; (b) the
-threads waiting on a probe that is then refused are refused too, which is more cautious than today (they would each have
-been refused by NSE in turn, and the pause would have come back after two). On a successful probe nothing is lost.
+**Data cost, stated:** the probe never defers data that today's code reads, except after a 403 or 429, where the pause
+exists to defer it: a timeout, a 5xx or any other answer closes the host. Threads waiting on a probe that is then refused
+(403 or 429) are refused too; that is more cautious than today (each would have met the refusal in turn and the pause
+would have come back after two). On a successful probe nothing is lost.
 
 **Stated difference from today:** after a pause, the first request goes alone and the others wait for its answer (at
 most one request timeout) before they start; today all would have gone at once.
@@ -102,9 +109,10 @@ the live policy's waits lie in `[t, 1.25 t]`. Any other change to an assertion f
 4. One process-wide pacer: two `PacedSession`s share one `NsePacer`; a refusal seen by one pauses the other (a test, as
    `SHARED_PACER` today).
 5. Per host: a pause on `www.nseindia.com` does not stop `nsearchives.nseindia.com` and the reverse; spacing is per host.
-6. The probe: one request after the pause, with the three answers above. Three threads, a 200 probe: all three complete
+6. The probe: one request after the pause, with the answers above. Three threads, a 200 probe: all three complete
    and exactly one request went before them; a 403 probe: all three get `SourceCoolingOff` and only one request was sent
-   (concurrency tests); 5xx closes it; a timeout keeps the same cool-down.
+   (concurrency tests, asserting the 1 s gaps between the released threads); 5xx and a timeout both close it; a waiter
+   whose wait expires proceeds; a probe thread that raises releases the waiters.
 7. One builder: after R1b the loop in `_response`, `RETRY_WAITS` in `retry_policy.py` and `RequestPacer` are gone;
    `retry_policy.py` keeps `verdict` and `retry_after_seconds`. A static test lists the `sleep(` sites.
 8. Deferred writes nothing: when the pause defers a fetch, the stager and library leave Staging, Record, manifests and
