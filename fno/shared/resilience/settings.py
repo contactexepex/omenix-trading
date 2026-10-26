@@ -25,7 +25,7 @@ class SourceSettings:
 
 
 NSE_RETRY = RetrySettings(waits=(5.0, 15.0, 45.0), cap_seconds=90.0, retry_after_ceiling_seconds=120.0,
-                          max_total_seconds=900.0)  # fmt: skip
+                          max_total_seconds=900.0, jitter=0.25)  # fmt: skip
 DEFAULTS: dict[str, SourceSettings] = {
     "nse": SourceSettings(
         retry=NSE_RETRY,
@@ -34,6 +34,17 @@ DEFAULTS: dict[str, SourceSettings] = {
             threshold=2, cool_down_seconds=900.0, cool_down_cap_seconds=DAY_SECONDS, count_exhausted=False
         ),  # fmt: skip
         rate=RateSettings(min_spacing_seconds=1.0),
+    ),
+    "nse_json": SourceSettings(
+        # the public website's JSON: 3 tries, waits 1.5/3.0/4.5 s after each failure (the last one too); a 403 is
+        # retried after a cookie warm-up, so the loop has no classifier of its own beyond "not a 200"
+        retry=RetrySettings(
+            waits=(1.5, 3.0, 4.5),
+            cap_seconds=6.0,
+            retry_after_ceiling_seconds=120.0,
+            max_total_seconds=60.0,
+            jitter=0.25,
+        ),  # fmt: skip
     ),
     "drive": SourceSettings(
         retry=RetrySettings(

@@ -2,8 +2,9 @@
 retries upward with jitter, honour Retry-After, and stop at bounded attempts and total time.
 
 Each source keeps its own per-attempt wait table as the FLOOR (NSE 5/15/45 s, Drive 2/8/30/60 s are today's numbers);
-the wait before try n is `t_n + random(0, t_n)`, so never below today's. Full or equal jitter could wait less than
-today's first wait and is deliberately not used. Time, sleep and randomness are injected, so tests are deterministic."""
+the wait before try n is `t_n + random(0, jitter * t_n)`, so never below today's. Full or equal jitter could wait
+less than today's first wait and is deliberately not used. Time, sleep and randomness are injected, so tests are
+deterministic."""
 
 from __future__ import annotations
 
@@ -21,17 +22,21 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class RetrySettings:
     waits: tuple[float, ...]  # the floor of the wait before retry 1, 2, ...; len(waits) + 1 tries at most
-    cap_seconds: float  # longest jittered wait; checked >= 2 x the largest floor, so no clipping is needed
+    cap_seconds: float  # longest jittered wait; checked >= (1 + jitter) x the largest floor, so no clipping is needed
     retry_after_ceiling_seconds: (
         float  # a Retry-After above this stops the call (the source is blocking, not hiccuping)
     )
     max_total_seconds: float  # the call gives up when waiting would pass this
+    jitter: float = 1.0  # a wait is its floor plus up to `jitter` x the floor (NSE: 0.25, to keep worst cases close)
 
     def __post_init__(self) -> None:
         if not self.waits or any(w <= 0 for w in self.waits):
             raise ValueError("waits must be a non-empty list of positive seconds")
-        if self.cap_seconds < 2 * max(self.waits):
-            raise ValueError(f"cap_seconds {self.cap_seconds} is below twice the largest wait {max(self.waits)}")
+        if self.jitter < 0:
+            raise ValueError("jitter must not be negative")
+        longest = (1 + self.jitter) * max(self.waits)
+        if self.cap_seconds < longest:
+            raise ValueError(f"cap_seconds {self.cap_seconds} is below the longest jittered wait {longest}")
 
     @property
     def max_attempts(self) -> int:
@@ -58,7 +63,7 @@ class RetryPolicy:
         """Seconds to wait before retry `retry_number` (1-based): the table's floor plus upward jitter; Retry-After is a
         floor too."""
         floor = self.settings.waits[retry_number - 1]
-        wait = floor + self.uniform(0.0, floor)
+        wait = floor + self.uniform(0.0, floor * self.settings.jitter)
         return max(wait, retry_after) if retry_after else wait
 
     def run(self, attempt: Callable[[], T], classify: Callable[[T | None, Exception | None], Verdict],
