@@ -61,3 +61,19 @@ no lock (`grep "threading\|Lock()"` in `fno/shared/resilience/`: 0 at bea8dc9). 
 thread pools (`quotes/book_fetch.py:39`, `storage/coverage.py:111`). Once wired, concurrent callers could burst past
 a host's spacing and per-minute limits, which is weaker than today. I did not check concurrency in rounds 1-2. The
 round-2 SHA will be judged with my own concurrency plant (remove the lock, and a parallel-callers test must fail).
+
+## Addendum 4: SHA 37bfa45 (thread-safety fix)
+
+**PASS, lane 1, judge 1.** bea8dc9..37bfa45 adds a lock to `CircuitBreaker` (alerts are sent after it is released) and
+a lock to `RateLimit` (a slot is reserved under the lock and the sleep happens outside it), plus a persisted
+`FileDayLedger` and tests.
+- Gates: 319 passed; ruff, check_imports, check_numbers and format clean.
+- My plants: the `RateLimit` lock replaced by a no-op makes 1 test fail; the `CircuitBreaker` lock replaced by a no-op
+  makes 1 test fail; reserving at "now" instead of the slot's start makes 3 fail.
+- My own real-thread check, independent of the suite: 8 threads at 0.1 s spacing span 0.70 s (minimum measured gap
+  0.098 s, which is timer noise after `acquire`); 50 trials of 16 threads racing a half-open breaker each gave
+  **exactly one** probe.
+
+Note for R1d: `FileDayLedger` persists only within one machine's file. On GitHub runners each job starts from a clean
+checkout, so a per-day budget is shared across runs only if the file is committed (and `merge=union`ed) like the
+transition logs. Its docstring's "can read one low" understates it: N overlapping runs can each miss the others' rows.
