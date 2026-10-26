@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from fno.ingestion.storage import drive_session, retry_policy
+from fno.ingestion.storage import drive_session
 from fno.shared import http_pacing
 from fno.shared.config import ALLOWED_APP_KEYS, load_app_config
 from fno.shared.resilience.settings import DEFAULTS, NEW_SOURCE, settings_for
@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def test_nse_defaults_equal_the_current_retry_policy_and_pacer():
     s = settings_for("nse")
-    assert s.retry.waits == tuple(float(w) for w in retry_policy.RETRY_WAITS)
-    assert s.retry.retry_after_ceiling_seconds == retry_policy.MAX_RETRY_AFTER_SECONDS
-    assert s.breaker.threshold == http_pacing.REFUSALS_BEFORE_PAUSE == 2
-    assert s.breaker.cool_down_seconds == http_pacing.COOL_OFF_SECONDS
+    assert s.retry.waits == (5.0, 15.0, 45.0)  # the old RETRY_WAITS
+    assert s.retry.retry_after_ceiling_seconds == 120.0  # the old MAX_RETRY_AFTER_SECONDS
+    assert s.breaker.threshold == 2  # the old REFUSALS_BEFORE_PAUSE, now this setting
+    assert s.breaker.cool_down_seconds == 900  # the old COOL_OFF_SECONDS
     assert s.rate.min_spacing_seconds == http_pacing.HOST_SPACING_SECONDS["nsearchives.nseindia.com"]
 
 
@@ -32,10 +32,10 @@ def test_groww_defaults_keep_the_sixty_second_pause_the_budgets_and_the_daily_si
     assert settings_for("groww_sign_in").rate.per_day == 150
 
 
-def test_every_default_retry_cap_is_at_least_twice_its_largest_floor():
+def test_every_default_retry_cap_is_at_least_its_largest_jittered_wait():
     for name, source in DEFAULTS.items():
         if source.retry:
-            assert source.retry.cap_seconds >= 2 * max(source.retry.waits), name
+            assert source.retry.cap_seconds >= (1 + source.retry.jitter) * max(source.retry.waits), name
 
 
 def test_a_new_source_starts_as_strict_as_nse():

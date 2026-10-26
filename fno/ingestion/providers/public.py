@@ -16,6 +16,8 @@ import requests
 from fno.ingestion.providers.base import Provider, is_index
 from fno.shared.http_pacing import PacedSession
 from fno.shared.models import IST, OptionChain, OptionQuote
+from fno.shared.resilience.retry import RetryPolicy
+from fno.shared.resilience.settings import settings_for
 
 NSE = "https://www.nseindia.com"
 HEADERS = {
@@ -31,7 +33,8 @@ HEADERS = {
 class PublicData:
     """Thin HTTP client for the public NSE website."""
 
-    def __init__(self, pause: float = 0.4):
+    def __init__(self, pause: float = 0.4, policy: RetryPolicy | None = None):
+        self.policy = policy or RetryPolicy(settings_for("nse_json").retry, time.sleep)
         self.session = PacedSession()
         self.session.headers.update(HEADERS)
         self.pause = pause
@@ -44,13 +47,13 @@ class PublicData:
             self._warmed = True
 
     def nse_json(self, path: str, params: dict | None = None) -> dict:
-        for attempt in range(3):
+        for attempt in range(1, self.policy.settings.max_attempts):
             resp = self.session.get(NSE + path, params=params, timeout=20)
             if resp.status_code == 200 and resp.text.strip():
                 time.sleep(self.pause)
                 return resp.json()
-            self._warm()
-            time.sleep(1.5 * (attempt + 1))
+            self._warm()  # NSE refuses a cookie-less call (a 403 too), so every non-200 is tried again after this
+            self.policy.sleep(self.policy.wait_before(attempt))  # also after the last failure, as before
         resp.raise_for_status()
         raise RuntimeError(f"NSE returned an empty response for {path}")
 

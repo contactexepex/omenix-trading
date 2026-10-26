@@ -13,19 +13,20 @@ from email.utils import parsedate_to_datetime
 import requests
 
 from fno.ingestion.storage.retry_policy import (
-    MAX_RETRY_AFTER_SECONDS,
     NOT_PUBLISHED,
     OK,
     REFUSED,
-    RETRY_WAITS,
     TOO_MANY_REQUESTS,
     UNBUILDABLE,
     retry_after_seconds,
     verdict,
 )
 from fno.shared.constants import MONTH_CODES
-from fno.shared.http_pacing import REFUSALS_BEFORE_PAUSE, SourceCoolingOff
+from fno.shared.http_pacing import SourceCoolingOff
 from fno.shared.models import now_utc
+from fno.shared.resilience.outcomes import Outcome, Verdict
+from fno.shared.resilience.retry import RetryPolicy
+from fno.shared.resilience.settings import settings_for
 
 NOT_PUBLISHED_REASON = "not served (HTTP 404)"
 COOLING_OFF_STOP = "{error}; {left} file(s) not read: run again after the pause"  # a pass over many files stops
@@ -90,9 +91,12 @@ class NseArchiveSource(RawFileSource):
     FILENAME = ""  # format string of the original file name for a day
     TIMEOUT_SECONDS = 60
 
-    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: now_utc()):
-        """`clock`: the time an HTTP-date `Retry-After` is measured from."""
+    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: now_utc(),
+                 policy: RetryPolicy | None = None):  # fmt: skip
+        """`clock`: the time an HTTP-date `Retry-After` is measured from. `policy`: the retry waits (the shared NSE
+        policy by default; a test passes one with no jitter)."""
         self.session, self.sleep, self.clock = session, sleep, clock
+        self.policy = policy or RetryPolicy(settings_for("nse").retry, sleep)
 
     @classmethod
     def filename_for(cls, day: date) -> str:
@@ -142,38 +146,29 @@ class NseArchiveSource(RawFileSource):
         return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
     def _response(self, path: str, head: bool = False) -> requests.Response | None:
-        send, too_many = (self.session.head if head else self.session.get), 0
-        for tries, scheduled in enumerate((*RETRY_WAITS, None), start=1):
-            try:
-                response = send(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
-            except SourceCoolingOff as exc:  # the host is paused: waiting here would only wait into the pause
-                raise RawSourceCoolingOff(f"{self.name}: {path}: {exc}", tries=tries - 1) from exc
-            except UNBUILDABLE as exc:
-                raise RawSourceUnavailable(f"{self.name}: {path}: {exc} (not sent)", tries=tries) from exc
-            except requests.RequestException as exc:
-                if scheduled is None:
-                    raise RawSourceUnavailable(f"{self.name}: {path}: {exc} after {tries} tries", tries=tries) from exc
-                self.sleep(scheduled)
-                continue
-            outcome = verdict(response.status_code)
-            if outcome == OK:
-                return response
-            if outcome == NOT_PUBLISHED:
-                return None
-            if outcome == REFUSED:
-                raise RawFileRefused(self._failed(path, response, tries), response.status_code, tries)
-            too_many = too_many + 1 if response.status_code == TOO_MANY_REQUESTS else 0
-            if too_many >= REFUSALS_BEFORE_PAUSE:  # the pacer has just paused the host: never wait into the pause
-                raise RawSourceCoolingOff(self._failed(path, response, tries), response.status_code, tries)
-            self.sleep(self._retry_wait(path, response, scheduled, tries))
-        raise AssertionError("unreachable")
+        send, url = (self.session.head if head else self.session.get), self.url_for(path)
+        answers = _Answers(self.clock)
+        done = self.policy.run(lambda: send(url, timeout=self.TIMEOUT_SECONDS), answers.classify, answers.observe)
+        if done.outcome is Outcome.OK:
+            return done.result
+        if done.outcome is Outcome.PERMANENT and done.error is None:
+            return None  # 404: not published
+        raise self._raised(path, done, answers)
 
-    def _retry_wait(self, path: str, response: requests.Response, scheduled: int | None, tries: int) -> float:
-        """The wait before the next try; raises when there is none or NSE asks for more than the cap."""
-        asked = retry_after_seconds(response.headers.get("Retry-After"), self.clock())
-        if scheduled is None or (asked is not None and asked > MAX_RETRY_AFTER_SECONDS):
-            raise RawSourceUnavailable(self._failed(path, response, tries), response.status_code, tries)
-        return max(scheduled, asked or 0)
+    def _raised(self, path: str, done, answers: _Answers) -> RawSourceUnavailable:
+        """The exception today's callers know, for how the download ended."""
+        error, tries, status = done.error, done.tries, answers.status
+        if isinstance(error, SourceCoolingOff):  # the host is paused: waiting here would only wait into the pause
+            return RawSourceCoolingOff(f"{self.name}: {path}: {error}", tries=tries - 1)
+        if done.outcome is Outcome.PERMANENT:
+            return RawSourceUnavailable(f"{self.name}: {path}: {error} (not sent)", tries=tries)
+        if error is not None:
+            return RawSourceUnavailable(f"{self.name}: {path}: {error} after {tries} tries", tries=tries)
+        if answers.paused:  # the pacer has just paused the host: never wait into the pause
+            return RawSourceCoolingOff(self._failed(path, done.result, tries), status, tries)
+        if done.outcome is Outcome.BLOCK:
+            return RawFileRefused(self._failed(path, done.result, tries), status, tries)
+        return RawSourceUnavailable(self._failed(path, done.result, tries), status, tries)
 
     def _failed(self, path: str, response: requests.Response, tries: int) -> str:
         asked = response.headers.get("Retry-After")
@@ -181,6 +176,42 @@ class NseArchiveSource(RawFileSource):
         return (
             f"{self.name}: {path}: HTTP {response.status_code}{after} after {tries} {'try' if tries == 1 else 'tries'}"
         )
+
+
+class _Answers:
+    """How one download reads each answer: the verdict for the retry policy, and the run of 429s (a second in a row
+    ends the call at once, since the pacer has just paused the host)."""
+
+    def __init__(self, clock):
+        self.clock, self.status, self.too_many, self.paused = clock, None, 0, False
+        self.refusals_before_pause = settings_for("nse").breaker.threshold
+
+    def classify(self, response, error) -> Verdict:
+        if error is not None:
+            if isinstance(error, SourceCoolingOff):
+                return Verdict(Outcome.BLOCK, answered=False)
+            if isinstance(error, UNBUILDABLE):  # a request that could never be sent: a code fault, never retried
+                return Verdict(Outcome.PERMANENT, answered=False)
+            if isinstance(error, requests.RequestException):
+                return Verdict(Outcome.RETRY, answered=False)
+            raise error
+        self.status = response.status_code
+        outcome = verdict(self.status)
+        if outcome == OK:
+            return Verdict(Outcome.OK)
+        if outcome == NOT_PUBLISHED:
+            return Verdict(Outcome.PERMANENT)
+        if outcome == REFUSED:
+            return Verdict(Outcome.BLOCK)
+        return Verdict(
+            Outcome.RETRY, retry_after=retry_after_seconds(response.headers.get("Retry-After"), self.clock())
+        )
+
+    def observe(self, seen: Verdict) -> bool:
+        if seen.outcome is Outcome.RETRY and seen.answered:
+            self.too_many = self.too_many + 1 if self.status == TOO_MANY_REQUESTS else 0
+            self.paused = self.too_many >= self.refusals_before_pause
+        return self.paused
 
 
 class NseDailyFoSource(NseArchiveSource):
