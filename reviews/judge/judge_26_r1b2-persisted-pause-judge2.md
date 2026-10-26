@@ -66,3 +66,25 @@ I accept it.
    Leaving it in the set is harmless, and it is never weaker. The owner should still state where it runs, and that
    environment must not commit the log file, or it would add an unmanaged writer.
 2. Deferring the Groww-side live captures to R1d is right; the rule has to come with them.
+
+## Addendum 1: round 2, `3ff3358` (story text)
+
+**PASS**, lane 1, judge #2.
+
+| Round-1 finding | Verdict | Evidence (round-2 text) |
+|---|---|---|
+| B1 the dirty tracked log | FIXED | the run only reads the committed CSV and appends to a git-ignored `research/data/resilience/.run/paced-hosts.csv` (`LayeredLog`); only the last step pulls, appends the new rows, commits and pushes. Claim 9 requires the two-clone git test of the refused-pull case and `git check-ignore` |
+| S1 the clock | FIXED | real UTC for the persisted log and restore, monotonic only for in-process spacing; claim 9 tests a restore across differing monotonic clocks |
+| S2 hooks and identity | FIXED | the step sets `core.hooksPath` and the identity itself; the YAML test reads both |
+| S3 the live set | FIXED | `fo-masters` and the two `data-snapshot ...-by-session` kinds added under a stated rule |
+
+**On the rule and the set (my view, reasoning only):** `fpi-daily-by-session` belongs. It is a latest-day-only report
+like its sibling, and the live rule acts only when that host's own breaker is open, so it costs NSDL at most one request
+a run. Under the rule, nothing I can find is missing: index closes, VIX history, flow history, filings and `global-cues
+fill` are all backfills from sources that keep history.
+
+### Minor (wording only)
+
+The rule "a source that overwrites in place" also fits the excluded reference lists (equity list, Nifty 500), which NSE
+replaces in place, but rarely. State the exclusion in the rule itself: "overwrites in place **within the window in
+which the next run would read it**", so the static test's set and the rule agree.
