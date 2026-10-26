@@ -95,3 +95,18 @@ Note (not a finding): `sed -i.bak "1i # ..."` is GNU sed syntax. BSD/macOS sed n
 `relock.sh` would stop with an error (loudly, `set -eu`) on a Mac. It works in the Linux containers where sessions
 relock. If the owner ever relocks on a Mac, a portable form is `{ echo "# uv-version: $v"; cat "$output"; } > tmp && mv
 tmp "$output"`.
+
+## Addendum 4: final SHA be23751 (supersedes 817686e)
+
+**PASS, lane 1, judge 1.** 817686e..be23751 changes 4 files (`ops/relock.sh`, the test, the design doc's residual
+wording and the story). Locks, inputs and workflows are unchanged (`git diff --quiet`). Against `origin/main`, the
+branch touches only the SEC1 paths.
+- `relock.sh` now refuses any uv but `expected_uv=0.11.32`, and a test ties every lock header to that pin. Plant:
+  `expected_uv=0.11.31` makes 3 tests fail. The committed `relock.sh`, run in a clean tree, regenerates all three locks
+  byte-identical.
+- The scanner now covers `pipx install` too.
+- The design doc's residual wording now names "a dependency that was malicious when locked". That is accurate now
+  that hash-pinning is in place.
+- Gates: 255 passed; ruff, check_imports and check_numbers clean.
+
+The note on GNU-only `sed` (Addendum 3) still stands as a note.
