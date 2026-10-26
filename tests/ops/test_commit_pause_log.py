@@ -129,3 +129,21 @@ def test_a_failed_pull_leaves_the_rows_for_the_next_try_and_fails_loudly(repos):
     write_local(a, row(1))
     git(a, "remote", "set-url", "origin", "/nonexistent/origin.git")
     assert run_step(a).returncode != 0 and (a / LOCAL).exists()  # nothing lost; the workflow marks it continue-on-error
+
+
+def test_a_tracked_log_modified_during_the_run_is_refused_too(repos):
+    """The same reproduction with the log already tracked and then edited in place, as an appending run would."""
+    _, clones = repos
+    a, b = clones["a"], clones["b"]
+    (a / LOG).parent.mkdir(parents=True, exist_ok=True)
+    (a / LOG).write_text(HEADER + "\n")
+    git(a, "add", LOG)
+    git(a, "commit", "-q", "-m", "log")
+    git(a, "push", "-q", "origin", "HEAD:main")
+    git(b, "pull", "-q", "origin", "main")
+    (b / LOG).write_text(HEADER + "\n" + row(3) + "\n")
+    git(b, "commit", "-q", "-am", "b's rows")
+    git(b, "push", "-q", "origin", "HEAD:main")
+    (a / LOG).write_text(HEADER + "\n" + row(1) + "\n")  # a's run appended to the tracked file
+    pulled = git(a, "pull", "--no-rebase", "--no-edit", "origin", "main", check=False)
+    assert pulled.returncode != 0 and "overwritten" in pulled.stderr

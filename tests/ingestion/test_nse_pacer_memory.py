@@ -183,3 +183,11 @@ def test_two_overlapping_live_processes_may_each_force_one_probe(tmp_path):
     a, b = process(tmp_path, wall, 2.0, live=True), process(tmp_path, wall, 3.0, live=True)
     a.wait_turn(HOST)
     b.wait_turn(HOST)  # each read the log at its start, so each gets its one probe
+
+
+def test_the_default_wall_clock_is_real_utc_not_derived_from_the_monotonic_one():
+    from fno.shared.http_pacing import SHARED_PACER
+
+    for pacer in (NsePacer(), SHARED_PACER):
+        assert abs((pacer._wall() - datetime.now(UTC)).total_seconds()) < 5  # a monotonic clock would be decades off
+        assert pacer._wall().tzinfo is not None

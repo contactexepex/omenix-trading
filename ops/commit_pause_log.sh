@@ -3,6 +3,8 @@
 # git-ignored run-local file (so no tracked file is dirty while the other committers pull); this merges those rows into
 # the committed log after its own pull, commits and pushes. It sets the hooks path and the identity itself (the
 # record scan always runs), and it never fails the run's data: the workflow marks the step continue-on-error.
+# Note: `git push origin HEAD:main` pushes the whole branch, so it also publishes any commit the run made earlier and
+# has not pushed (the Python committers push their own; this step is last, after them).
 set -u
 LOCAL="research/data/resilience/.run/paced-hosts.csv"
 LOG="research/data/resilience/paced-hosts.csv"

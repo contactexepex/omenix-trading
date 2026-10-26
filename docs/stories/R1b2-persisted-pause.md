@@ -177,4 +177,8 @@ one but `data-checks`; the story's text said 12, which was a count error), `.git
 - **Local sessions** (judge 2's optional line): a hand run or a session on a laptop keeps its own git-ignored
   `.run/paced-hosts.csv` in its checkout; nothing merges it unless someone runs `ops/commit_pause_log.sh`, so a
   local pause is not shared and a local run restores only what the committed log holds.
-- Gates: ruff, imports, numbers, size clean; 488 tests pass.
+- **Judge 1, round 1 (c3b50d8):** a test that the default `NsePacer()` and `SHARED_PACER` read real UTC (within five
+  seconds of `datetime.now(UTC)`; with his plant `wall_clock or self._derived_wall` it fails); a note in the script that
+  `git push origin HEAD:main` also publishes any earlier unpushed commit; and a second reproduction of the refused pull
+  with the log tracked and then edited in place (`overwritten` in git's message).
+- Gates: ruff, imports, numbers, size clean; 490 tests pass.
