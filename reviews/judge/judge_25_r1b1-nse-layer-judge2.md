@@ -70,3 +70,16 @@ Caught by a failing test:
 The breaker's clock is `EPOCH + monotonic` (`_wall_clock`). That is fine in one process, but a transition log written
 with it would hold 2000-01-01-plus-uptime times. A new process (a different monotonic origin) would then misread the
 cool-down. R1b2 must give the NSE breaker the real UTC clock before it writes `research/data/resilience/nse.csv`.
+
+## Addendum 1: round 2, `0c0af47`
+
+**PASS**, lane 1, judge #2. Gates: 432 passed; `ruff check`, `check_imports`, `test_code_size` clean; the pacer and
+characterization tests passed in 12 of 12 repeated runs.
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| S1 the hanging plants | FIXED | the threads are joined with a bound and `assert not is_alive()` (`test_nse_pacer.py:37-38,88-89,162-163`). P2 (an unbounded probe wait) and P12 (an expired wait left half-open) now **fail** (1 test each, about 13 s) instead of hanging |
+| Minor 1 the message race | FIXED | `last_refusal` is set before `record_refusal()` can open the breaker, and the message is built when it is raised; plant "status not recorded" fails 2 tests |
+| Minor 2 the dropped constant assertion | noted in the story | |
+
+The behaviour equivalence traced in round 1 is unchanged: the delta touches only the message construction and tests.

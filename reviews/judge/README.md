@@ -35,5 +35,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 22 | R1b NSE source, story (judge #2) | 1 | PASS (final story ab5bba8) | `judge_22_r1b-nse-source-judge2.md` |
 | 23 | R1b2 persisted pause (story text) | 1 | PASS (story, round 2, c705ef5) | `judge_23_r1b2-story.md` |
 | 24 | R1b1 NSE layer (code) | 1 | PASS (round 2, 0c0af47) | `judge_24_r1b1-code.md` |
-| 25 | R1b1 NSE layer, code (judge #2) | 1 | FAIL (round 1: 1 should-fix) | `judge_25_r1b1-nse-layer-judge2.md` |
+| 25 | R1b1 NSE layer, code (judge #2) | 1 | PASS (round 2, 0c0af47) | `judge_25_r1b1-nse-layer-judge2.md` |
 | 26 | R1b2 persisted pause, story (judge #2) | 1 | FAIL (round 1: 1 blocking, 3 should-fix) | `judge_26_r1b2-persisted-pause-judge2.md` |
