@@ -173,3 +173,19 @@ config key `resilience` (empty by default, so today's numbers apply); `.gitattri
 - Mandatory for R1b-R1d: characterization tests pinning today's exact wait sequences, error classification,
   pause-after-2 and Drive 409 idempotency, each with a plant that fails if behaviour changes; a dry-run dispatch of an
   affected workflow after each merge where it has one.
+
+### R1a round 2 (judge 2's findings, each checked and accepted)
+
+- **B1 thread safety (blocking, measured by the judge):** `RateLimit` and `CircuitBreaker` now hold a per-instance lock
+  around their read-and-update; `RateLimit` reserves its slot under the lock and sleeps outside it (as `RequestPacer`
+  does), and the breaker sends its alert after releasing the lock. Tests: spacing held across 8 threads, the per-minute
+  budget across 9 threads, exactly one `PROBE` among 8 concurrent `check()` calls. Each lock was removed in turn to
+  prove the test fails without it (the tests widen the decision window, since a bare race is rare under the GIL).
+- **S1 claim 5:** `FileDayLedger` (one UTC time per line, a day is the IST date) is built; a test shows two instances over
+  one file refuse the 151st sign-in and that the count resets on the next IST day.
+- **S2 survivors:** tests added that a 404 between two 403s resets the NSE count (and that two 403s in a row do open it,
+  so the reset test is not vacuous), and that a probe answered 404 closes the breaker.
+- **R1c requirement (judge 1):** R1c must show what a deferred Drive write leaves behind (no Staging file, no manifest
+  row, no receipt), since the Drive breaker (threshold 5) is new behaviour on the Record store.
+- **R1d note (judge 2):** a Groww half-open defers concurrent snapshot reads during the probe, where today all reads
+  resume after 60 s; R1d decides and tests that.

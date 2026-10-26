@@ -169,3 +169,27 @@ def test_the_exhaustion_of_a_call_the_breaker_already_stopped_is_not_counted_twi
 def test_a_breaker_with_count_exhausted_off_does_not_count_exhausted_calls():
     s = settings_for("nse")
     assert s.breaker.count_exhausted is False and BreakerSettings(2, 1.0, 2.0).count_exhausted is True
+
+
+def test_nse_a_404_between_two_403s_resets_the_run_of_refusals():
+    call, breaker, _, _ = guarded()
+    call.call(Source(403), nse_classify)  # one counted refusal, the call ends (BLOCK)
+    call.call(Source(404), nse_classify)  # a plain answer ends the run, as RequestPacer.observe does today
+    call.call(Source(403), nse_classify)
+    assert breaker.state is State.CLOSED  # 403, 404, 403 is not two in a row
+
+
+def test_nse_two_403s_in_a_row_open_it_so_the_reset_test_above_is_not_vacuous():
+    call, breaker, _, _ = guarded()
+    call.call(Source(403), nse_classify)
+    call.call(Source(403), nse_classify)
+    assert breaker.state is State.OPEN
+
+
+def test_a_probe_answered_404_closes_the_breaker():
+    call, breaker, wall, _ = guarded()
+    breaker.record_refusal()
+    breaker.record_refusal()
+    wall.advance(901)
+    done = call.call(Source(404), nse_classify)
+    assert done.tries == 1 and breaker.state is State.CLOSED

@@ -2,6 +2,7 @@ import pytest
 
 from fno.shared.resilience.breaker import Admission, BreakerSettings, CircuitBreaker, State
 from fno.shared.resilience.outcomes import Deferred
+from fno.shared.resilience.settings import settings_for
 from fno.shared.resilience.transition_log import Transition, TransitionLog
 from tests.shared.resilience.fakes import SpyAlerts, WallClock
 
@@ -137,3 +138,38 @@ def test_settings_are_validated():
     for bad in [(0, 900.0, 3600.0), (2, 0.0, 3600.0), (2, 900.0, 899.0)]:
         with pytest.raises(ValueError):
             BreakerSettings(*bad)
+
+
+def test_exactly_one_probe_among_concurrent_checks():
+    import threading
+
+    from fno.shared.resilience.breaker import Admission
+
+    import time
+
+    wall = WallClock()
+    breaker = CircuitBreaker("nse", settings_for("nse").breaker, wall)
+    breaker.record_refusal()
+    breaker.record_refusal()
+    wall.advance(901)
+
+    def slow_clock():  # reading the time takes a moment, which is what lets unlocked threads interleave
+        time.sleep(0.02)
+        return wall()
+
+    breaker.clock = slow_clock
+    barrier, results = threading.Barrier(8), []
+
+    def work():
+        barrier.wait()
+        try:
+            results.append(breaker.check())
+        except Deferred:
+            results.append("deferred")
+
+    threads = [threading.Thread(target=work) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert results.count(Admission.PROBE) == 1 and results.count("deferred") == 7

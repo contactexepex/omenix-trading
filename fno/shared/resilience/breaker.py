@@ -8,6 +8,7 @@ alert per transition goes to #fno-desk only. The probe is one request outside th
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -53,6 +54,7 @@ class CircuitBreaker:
         self.state, self.failures = State.CLOSED, 0
         self.cool_down = settings.cool_down_seconds
         self.opened_at: datetime | None = None
+        self._lock = threading.Lock()  # one decision at a time: exactly one thread gets the probe
         self._restore()
 
     def _restore(self) -> None:
@@ -66,45 +68,58 @@ class CircuitBreaker:
 
     def check(self) -> Admission:
         """Asks leave to call. Raises Deferred (nothing sent) while open and cooling or while a probe is out."""
-        if self.state is State.CLOSED:
-            return Admission.CALL
-        if self.state is State.HALF_OPEN:
-            raise Deferred(self.source, "circuit half-open: a probe is already out")
-        assert self.opened_at is not None
-        reopens_at = self.opened_at + timedelta(seconds=self.cool_down)
-        if self.clock() < reopens_at:
-            raise Deferred(self.source, f"circuit open until {reopens_at.isoformat(timespec='seconds')}")
-        self.state = State.HALF_OPEN
-        self._log(HALF_OPEN)
-        return Admission.PROBE
+        with self._lock:
+            if self.state is State.CLOSED:
+                return Admission.CALL
+            if self.state is State.HALF_OPEN:
+                raise Deferred(self.source, "circuit half-open: a probe is already out")
+            assert self.opened_at is not None
+            reopens_at = self.opened_at + timedelta(seconds=self.cool_down)
+            if self.clock() < reopens_at:
+                raise Deferred(self.source, f"circuit open until {reopens_at.isoformat(timespec='seconds')}")
+            self.state = State.HALF_OPEN
+            self._log(HALF_OPEN)
+            return Admission.PROBE
 
     def record_refusal(self) -> None:
-        if self.state is State.HALF_OPEN:  # the probe failed: open again for twice as long
-            self.cool_down = min(self.settings.cool_down_cap_seconds, self.cool_down * 2)
-            self._open(REOPENED)
-            return
-        self.failures += 1
-        if self.failures >= self.settings.threshold and self.state is State.CLOSED:
-            self.cool_down = self.settings.cool_down_seconds
-            self._open(OPENED)
+        with self._lock:
+            alert = self._refused()
+        self._alert(alert)
 
     def record_other(self) -> None:
         """Any answer that is not a counted refusal: ends the run of consecutive refusals; a good probe closes it."""
-        self.failures = 0
-        if self.state is State.HALF_OPEN:
-            self.state, self.cool_down, self.opened_at = State.CLOSED, self.settings.cool_down_seconds, None
-            self._log(CLOSED)
-            self._alert(ALERT_CLOSED.format(source=self.source))
+        with self._lock:
+            alert = self._answered()
+        self._alert(alert)
 
-    def _open(self, event: str) -> None:
+    def _refused(self) -> str | None:
+        if self.state is State.HALF_OPEN:  # the probe failed: open again for twice as long
+            self.cool_down = min(self.settings.cool_down_cap_seconds, self.cool_down * 2)
+            return self._open(REOPENED)
+        self.failures += 1
+        if self.failures >= self.settings.threshold and self.state is State.CLOSED:
+            self.cool_down = self.settings.cool_down_seconds
+            return self._open(OPENED)
+        return None
+
+    def _answered(self) -> str | None:
+        self.failures = 0
+        if self.state is not State.HALF_OPEN:
+            return None
+        self.state, self.cool_down, self.opened_at = State.CLOSED, self.settings.cool_down_seconds, None
+        self._log(CLOSED)
+        return ALERT_CLOSED.format(source=self.source)
+
+    def _open(self, event: str) -> str:
         self.state, self.opened_at, self.failures = State.OPEN, self.clock(), 0
         self._log(event)
-        self._alert(ALERT_OPENED.format(source=self.source, event=event, minutes=self.cool_down / 60))
+        return ALERT_OPENED.format(source=self.source, event=event, minutes=self.cool_down / 60)
 
     def _log(self, event: str) -> None:
         if self.log:
             self.log.append(Transition(self.clock(), self.source, event, self.cool_down))
 
-    def _alert(self, text: str) -> None:
-        if self.alerts:
+    def _alert(self, text: str | None) -> None:
+        """Sent after the lock is released: a slow Slack must not hold up other threads' decisions."""
+        if text and self.alerts:
             self.alerts.send(text)
