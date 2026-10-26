@@ -81,3 +81,73 @@ clean.
    that install too: it is the token-minting moment, and pure-Python wheels exist for its set (unverified here; check
    at build).
 3. Claim 5's DOC2 minors are checked line by line in the build round.
+
+## Addendum 2: build, `7ed5fe03efeda88aca99f37a36ae6eb57fd11999` (28 files)
+
+**PASS**, lane 1, judge #2 of two. Gates re-run by me: 251 passed; `ruff check`, `check_imports`, `test_code_size`
+clean; the new files are formatted. The record scan over the changed files flags only `fno/ingestion/providers/
+groww.py:156`; the same line on `main` gives the identical finding, so it predates this change.
+
+| Claim | Verdict | My evidence |
+|---|---|---|
+| 1: three locks, generated, exact hashed pins | MET | I re-ran `uv pip compile --generate-hashes --universal --python-version 3.11`: `requirements.lock` and `requirements-oauth.lock` are identical apart from comment lines. Counts: 21/53/14 pins, 438/1,561/353 hashes |
+| Locks install | MET | Fresh venv, Python 3.13 Linux, `pip install --dry-run --ignore-installed --require-hashes`. With `--only-binary=:all:`, the base and OAuth locks exit 0. The Groww lock with `--use-pep517` exits 0 |
+| 2: every install is locked | MET | A YAML parse of all 14 workflows: each one installs `"pip install --require-hashes --only-binary=:all: -r requirements.lock"`, and each `cache-dependency-path` is the lock. `ops/routine_setup.sh` uses `--require-hashes` with the right lock for each flavour |
+| 3: the routine keeps every interpreter and its import checks | MET | The diff touches only the `requirements` variables and comments |
+| 4: bump process | MET | `ops/relock.sh`: uv as the trust root, review the diff, never hand-edited |
+| 5: SEC1 truth plus the DOC2 minors | MET | Supply chain "narrowed, not closed", with the open roots listed; the zones row, the receipt-check scope and the Record contract are each marked as the target |
+| S1 (c) prose installs | MET | `groww.py:138` and `GROWW_CANDLE_ROUTINE.md:73` now point at `routine_setup.sh --groww`; the OAuth docstring gives the locked install from a checkout |
+
+### Plants
+
+12 in the real repo files (not the test's fixtures), 10 caught:
+- an unhashed `python -m pip install` in a `run: |` block of a real workflow;
+- `pip3 install` in `ops/`;
+- a new `requirements.txt` line;
+- `--only-binary` removed;
+- the cache path reverted;
+- the OAuth docstring reverted;
+- a README install;
+- `python3.13 -m pip install`;
+- a range in a lock;
+- a new OAuth input line.
+
+Not caught:
+- `pandas>=2` added to `requirements-groww.txt`. An invalid plant: pandas is already pinned in the Groww lock as a
+  dependency of growwapi. A truly new name (`zzznotapkg>=1`) is caught.
+- `pipx install foo` (minor 1).
+
+### Minor (not blocking)
+
+1. The scanner does not match `pipx install`. pipx is used nowhere in the repo; add it to `INSTALL` on the next
+   touch.
+2. `tests/test_pinned_installs.py` imports `packaging`, which comes only from pytest's dependencies. That works today
+   (`packaging==26.3` is in the lock); naming it in `requirements.txt` would make it explicit.
+3. `PIPELINE_DESIGN.md:127` still says "a compromised dependency installed in any job can use it". After SEC1 it is
+   narrower: a dependency already malicious when locked, or the open roots listed above it. Align the wording on the
+   next touch.
+
+### Notes
+
+The first real dispatch is still the proof on the runner (the story says so). Whether the owner's own machine
+installs the OAuth lock binary-only depends on that machine (wheels exist for Python 3.11 and 3.13; I checked Linux
+only).
+
+## Addendum 3: delta, `817686e8b5532dd27ab52ebe5a53a81f0f2dd4e0` (supersedes `7ed5fe0`)
+
+**PASS**, lane 1, judge #2. The delta: `relock.sh` writes `# uv-version:` into every lock, and a test requires it;
+`tools/` is scanned; `packaging>=24.0` is a direct requirement. Checked:
+- The pins are identical in all three locks; only comment lines differ.
+- Gates: 254 passed; `ruff check`, `check_imports`, `test_code_size` clean.
+- Plants: removing the uv-version header is caught; a `pip install` written in `tools/` is caught. Dropping
+  `packaging` from `requirements.txt` is not caught, which is correct: pytest still brings it into the lock, so
+  nothing breaks.
+- Minor 2 of Addendum 2 (`packaging`): FIXED.
+
+### Minor (not blocking)
+
+1. `ops/relock.sh` uses `sed -i.bak "1i # uv-version: …"`. That is GNU sed syntax; BSD/macOS sed needs `1i\` followed
+   by a newline, so on a macOS maintainer machine the relock stops with an error. It fails loudly and never writes a
+   bad lock, because `set -eu` stops the script. Use a portable form, e.g. `{ printf '# uv-version: %s\n' "$v"; cat
+   "$output"; } > "$output.new" && mv "$output.new" "$output"`.
+2. Minors 1 (`pipx`) and 3 (`PIPELINE_DESIGN.md:127` wording) of Addendum 2 are still open; they ride the next touch.
