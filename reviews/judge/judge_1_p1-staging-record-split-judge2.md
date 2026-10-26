@@ -222,3 +222,50 @@ Addendum 2's findings are the checklist below. Gates re-run by me: 229 passed; `
 Run the gates on the merged tree. The first real run is `pipeline-staging.yml` by hand, dry-run first, then one
 dataset over 7 days; record the result in the merge follow-up. The two-judge rule still applies: this PASS is mine
 only.
+
+## Addendum 4: owner-authorized full fresh re-review of `f6120cc132d1fb80edc70036e0d7e4a0695a5dbb`
+
+**FAIL** on one should-fix, which is tests only (S5). There is no code defect and no blocking finding. **This
+changes my Addendum 3 PASS on the same SHA.** Re-done from scratch, the review found three surviving plants in one
+new branch. Under JUDGE.md quality rule 4 (every criterion needs a test that fails when its code is broken), that is
+not a minor.
+
+Re-verified from scratch:
+- 229 tests pass, and every gate is clean.
+- Every changed file, story and workflow re-read in full.
+- The quadratic cost is gone. `Stager` stages into `<source>/<archive path>/<stamp>`, and `copies()` is one
+  `checksums` listing of that path's folder plus one read per copy. My counting script: 50/100/200 days give
+  50/100/200 gets. `test_staging::...one_listing_and_one_read_per_copy` pins it (plants F12 and N5 caught).
+- First copy wins, the librarian's rules apply, S1 repair is in, and identity is checked. Plants F1, F4, F5, F9,
+  F10, F13, F16, N2, N3 and N6 caught.
+- The wording is honest: Claim 1 is code-level only, and the gap list and design doc say plainly that credential
+  separation is not met.
+- No existing workflow is touched; `revisions.py` gets an optional argument with the default unchanged.
+
+### Finding
+
+- **S5 (should fix; tests only): the new re-put and conflict branch in `gate.py` is only partly pinned.** 23 plants
+  in total on this SHA; three survive. I checked by script that the code is correct for each:
+  - **F14:** counting CONFLICT as recorded. Claim 5 says a conflict is a "problem" (alert, exit 1), and today
+    `PromotionReport.problems()` lists it. A regression would silently hide a Record/manifest disagreement.
+  - **N1:** re-putting `passing[0]` instead of `held`. Scenario: the live path recorded X, and Staging holds Y (fetched
+    first), then X. The code gives ALREADY_RECORDED, keeps X, and files Y as a revision (verified). With N1 it would
+    report a false CONFLICT.
+  - **F2:** re-putting `held` with no passing copy equal to it. The guard is unpinned.
+
+  Fix: three tests. (1) A CONFLICT day is in `problems()`, alerts, and exits 1. (2) The X / Y-then-X case above.
+  (3) A held file with no equal passing copy is not re-put, so `record.saved` stays empty.
+
+### Notes (not findings)
+
+1. A damaged held copy is not re-validated by the gate. The librarian reports it as `damaged`; the gate gives
+   ALREADY_RECORDED and files passing copies as revisions. The daily coverage check (`data-checks.yml`) still
+   catches the damage.
+2. A staged copy on a day whose exception was filed after staging is a problem, not "excepted". The stager skips
+   exception days, so this only happens in that window. It is reported, not lost.
+3. `pipeline-staging.yml` checks `DAYS` in the stage step only. The promote step uses it quoted from `env`, so
+   there is no injection; a bad value only fails the step.
+
+### Plants
+
+23 planted on this SHA (Addendum 3's 16 plus N1-N7), 20 caught. Survivors: F2, F14 and N1 (S5).
