@@ -76,3 +76,22 @@ docstring, one error string in `groww.py`, docs and `tests/test_pinned_installs.
 
 Minor (optional): `tools/` is not scanned (no install there today); the test imports `packaging`, which arrives only
 transitively through `pytest`.
+
+## Addendum 3: build, SHA 817686e (round 2)
+
+**PASS, lane 1, judge 1.** 7ed5fe0..817686e changes 7 files.
+- **Finding 1 FIXED.** `ops/relock.sh` writes `# uv-version: <x.y.z>` as the first line of each lock, and a new test
+  requires it. Plant: deleting that line from `requirements.lock` makes 1 test fail.
+- **Reproduced end to end.** Running the committed `ops/relock.sh` (uv 0.11.32) in a clean scratch tree regenerates all
+  three locks **byte-identical** to the branch: 21/438, 53/1,561, 14/353. The only lock-body change since 7ed5fe0 is
+  the `# via -r requirements.txt` annotation for `packaging`, which is now a direct requirement (same version and
+  hashes).
+- **Minors FIXED.** `tools/` is scanned (plant: a `pip install requests` in `tools/plant.sh` fails 1 test), and
+  `packaging` is a direct requirement.
+- Gates: 254 passed; ruff, check_imports and check_numbers clean. Dry runs with `--only-binary=:all:
+  --require-hashes`: 20/20 on Python 3.13 and on 3.11.
+
+Note (not a finding): `sed -i.bak "1i # ..."` is GNU sed syntax. BSD/macOS sed needs `1i\` followed by a newline, so
+`relock.sh` would stop with an error (loudly, `set -eu`) on a Mac. It works in the Linux containers where sessions
+relock. If the owner ever relocks on a Mac, a portable form is `{ echo "# uv-version: $v"; cat "$output"; } > tmp && mv
+tmp "$output"`.

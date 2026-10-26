@@ -23,4 +23,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 10 | P1c stage-only labels | 1 | PASS (ebfafca) | `judge_10_p1c-labels.md` |
 | 11 | P1c stage-only labels (judge #2) | 1 | PASS (round 2, ebfafca) | `judge_11_p1c-stage-only-labels-judge2.md` |
 | 12 | SEC1 hash-pinned requirements, story (judge #2) | 1 | PASS (story a8efd5b; build 7ed5fe0) | `judge_12_sec1-hash-pinning-judge2.md` |
-| 13 | SEC1 hash-pinned requirements (story text) | 1 | PASS story a8efd5b; FAIL build 7ed5fe0 (1 should-fix) | `judge_13_sec1-hash-pinning.md` |
+| 13 | SEC1 hash-pinned requirements (story text) | 1 | PASS (story a8efd5b, build 817686e) | `judge_13_sec1-hash-pinning.md` |
