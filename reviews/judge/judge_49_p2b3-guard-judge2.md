@@ -57,3 +57,40 @@ later commit until someone fixes it by hand. That is loud, with A1, but it stall
 should say "fix the manifest by hand" when `skipped` > 0 and the file does end in a new line.
 
 **Verdict: FAIL** (round 1). Three small items; the guard's design is sound.
+
+## Addendum 1: round 2, 55eea4b (FAIL on one test gap; A1 and T2 fixed)
+
+SHA `55eea4b46526fc1d90a8a1134e36820f79ce4ff2`, which replaces `e41cd1e`. **Gates** (`__pycache__` cleared): 769
+passed; ruff, format, imports and size clean.
+
+**What changed.** `check-manifest` now alerts when the manifest is broken, so A1 is fixed. The alert reads "...NOT
+committed. Re-run the same --from..--to range ... a later run heals only the days its range covers", which covers my
+condition 2, and a test pins the wording. On a broken manifest the guard restores the committed manifest
+(`git checkout -- "$MANIFEST"`), commits the receipts only, pushes, and exits 1. Committing the receipts is right: they
+keep the true evidence time, and the repair keeps a receipt whose digest matches.
+
+**My ruling on the OOM-kill alert:** it is now sufficient. `check-manifest` runs as its own process after the dead
+promote and sends the #fno-desk alert itself.
+
+| Plant | Failed |
+|---|---|
+| G3 the guard removed / G5 the skip branch stages the manifest / G6 no restore of the manifest | 2 / 1 / 1 |
+| G7 the skip branch exits 0 / G8 no guard alert / G9 the receipts dropped on a skip | 2 / 1 / 1 |
+| Carried: C1 wiring / C2 the torn-line stop / C3 overwrite / C6 commit only on success | 1 / 2 / 5 / 1 |
+| **G1 `well_formed` ignores skipped rows** | **0: survives (it failed 1 on e41cd1e; that test was removed)** |
+| **G2 `well_formed` without `check_appendable`** | **0: survives (T1, still open)** |
+
+**T1, widened (should fix, tests only): neither half of "well formed" is pinned on its own.** The new guard tests use
+one torn file that both halves catch, so removing either half leaves everything green. Two cases are needed:
+- (a) a whole-looking last row with **no** trailing new line, which only `check_appendable` catches;
+- (b) a malformed row that **does** end in a new line (for example from `main`), which only the skipped count
+  catches.
+
+Each must make the guard refuse.
+
+T2 (the skip branch commits nothing of the manifest) is fixed by G5 and G6.
+
+**Note (not blocking), carried:** when `main` already holds a malformed row, the alert says "re-run the same range",
+but a re-run cannot fix it; only a hand fix can. Say "or fix the manifest by hand" when the file ends in a new line.
+
+**Verdict: FAIL** (round 2), on T1 only: two test cases, no code change.
