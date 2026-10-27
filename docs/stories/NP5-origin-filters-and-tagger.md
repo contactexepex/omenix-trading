@@ -42,6 +42,10 @@ ported I say so; where it is mine I say so.
   comparisons are the tools until the first real week shows how often it happens. Adding an `Actor` strategy later is one new class.
 - **Wire detection loses the lede** (NP4 decision, E1 default no key sentences): only byline, provider, outlet domain and a title
   attribution are used. Said so in the story; measured on the first real reads.
+- **`cluster/entities.py` (the clusterer's 22-name similarity bar-mover) is left untouched in NP5** (orchestrator, 27 Oct 2026).
+  Replacing it changes clustering output and forces a new cluster-file algorithm version, which is a Record-format change: it
+  belongs to NP6 (cluster file format 2 in a new algorithm-version folder), where the Tagger feeds the entity bar. NP5 changes no
+  recorded byte and no existing output.
 - **No new dependency, no network, no clock**: standard library only (`re`, `html`).
 
 ## Rows and tests promised
