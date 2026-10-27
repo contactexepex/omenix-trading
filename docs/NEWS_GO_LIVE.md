@@ -48,7 +48,7 @@ main. `news-resolve` and `news-read-pages` are probes unless `apply` is ticked.
 | `materiality_invalid/rolled_back/damaged/unavailable`, and `materiality_missing` for a file used before | the same for the materiality terms, which only order reads: always degrade, never stop | as above |
 | `pass_note_unreadable` | the last read-pass note is damaged, so the pin cannot be checked | the pass degrades; look at the newest note under `news/read-passes/1/` |
 | `read_conflict`, `cluster_conflict`, `resolution_conflict` | a write-once file exists with other bytes; nothing was overwritten | investigate; do not delete |
-A file that was **never configured** is not an error, for either run: **cluster v2 records `companies_version` 0 and the run is green; the read pass is green and newest first.** A file **used before and now gone** is red in both (`company_list_missing`, `materiality_missing`): cluster v2 stops, the read pass degrades.
+A file that was **never configured** is not an error, for either run: **cluster v2 records `companies_version` 0 and the run is green; the read pass is green and newest first.** A file **used before and now gone** is red: `company_list_missing` stops cluster v2 and degrades the read pass; `materiality_missing` degrades the read pass (cluster v2 does not use the materiality file).
 
 ## 5. Retiring the version 1 cluster run
 Only after the owner reads gate 4 and switches the scheduled cluster run to algorithm 2: the version 1 run stops; its files stay forever
