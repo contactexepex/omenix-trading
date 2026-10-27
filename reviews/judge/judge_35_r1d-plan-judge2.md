@@ -61,3 +61,27 @@ decision would rest on the first one.
 - The R1d2 parking, R1d3 (`jitter 0` for the 15:40 close read) and the R1d4 ordering are sound.
 
 **Verdict: FAIL** (round 1). Both fixes are text plus one named test; the design stands.
+
+## Addendum 1: round 2, 1508163 (PASS, four text nits)
+
+Branch `story/R1d-plan`, SHA `1508163a9fc5d595c7b969aae81485f45210856c`, docs only. R1d1 is now a pure consolidation:
+- the spacings are pinned exactly: intraday 4/s, index 2.5/s in total with the recorders one at a time, NIFTY
+  unpaced, candles 0.5 s;
+- no host ceiling, and the reason is now "today has none; the unpaced recorder's peak is unmeasured", with "390 a
+  minute works" gone (S1 fixed);
+- the pause stays one per `GrowwProvider` instance, as today (index recorders share one, other commands their own), so
+  the shared-pause change is withdrawn and S2's loss question is moot;
+- the one-provider-per-root test is named (point 4), and the topology tests are condition 4.
+
+Nothing claims or does less than today. **PASS.**
+
+Nits to fix in the frozen text (not blocking):
+1. `groww.py:139` -> `:140` (the sign-in line); `quotes/slot.py:18,30` -> `:18,29`. Both numbers came from my own
+   messages; my error.
+2. Point 3: "intraday (`intraday/feed_wiring.py:51`)" names the A16h feed probe. The intraday recorder is
+   `intraday/wiring.py:63`.
+3. The "Groww 429" row of the "today" table still says "per process". Today it is per provider; with one provider per
+   process the effect is the same, but the row should match point 3.
+4. The point-4 test lists 7 sites. Two more build a Groww provider today, `cli.py:87` and `providers/groww_check.py:15`
+   (one each). Better to make the test a scan of every `GrowwProvider(`/`get_provider(` call site than a fixed list,
+   so a new root cannot escape it. With per-provider pauses kept, a missed root is not weaker, only unguarded.
