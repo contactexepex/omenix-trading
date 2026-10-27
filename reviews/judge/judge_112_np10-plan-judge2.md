@@ -91,3 +91,12 @@ against main).
 - This is the same rule as B1: no quoted owner words that are not on record.
 
 **Verdict: PASS** (round 2, `97b6df6`), with condition C1 before merge.
+
+## Addendum 2
+
+**C1 check at `b3e676a`.** The opening line now quotes only the words logged in `conversations/2026-10-28.md` (commit
+`742f9c9`). "Small" is marked as the plan's own bound, not as the owner's word.
+
+**Gates (text only):** the doc-reading tests, 79 passed.
+
+**C1: met. Verdict: PASS** (`b3e676a`).
