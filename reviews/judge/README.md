@@ -46,3 +46,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 33 | R1d4 characterization, lane-2 check (judge #2) | 2 | PASS (e5ea34d) | `judge_33_r1d4-characterization-check.md` |
 | 34 | R1d plan (Groww and the rest) | 1 | PASS (round 3, 1508163; 2 conditions carried to R1d1 code) | `judge_34_r1d-plan.md` |
 | 35 | R1d plan, Groww pacing (judge #2) | 1 | PASS (round 2, 1508163) | `judge_35_r1d-plan-judge2.md` |
+| 36 | R1d1 Groww consolidation, code (judge #2) | 1 | FAIL (round 1, 4dcc886) | `judge_36_r1d1-code-judge2.md` |
+| 37 | R1d1 Groww reads on the shared primitives (code) | 1 | FAIL (round 1, 4dcc886) | `judge_37_r1d1-code.md` |
