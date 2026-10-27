@@ -53,3 +53,31 @@
 No order path, no secret, no Groww call, no request, and no change to an existing Record file (only new writes are format 2).
 
 ## Verdict: FAIL round 1 at 20c8c32. B1 and B2 are required, both small.
+
+## Addendum 1: round 2 at a72a037: PASS
+
+Reviewed `git diff 20c8c32 a72a037`, which also carries NP1 final d6f28e4, so the `fullmatch` merge condition is in.
+
+**Gates (strong evidence).** ruff and check_imports are clean; 1377 passed; contract plants all `ok`.
+
+**B1 fixed (strong evidence, my probes re-run).** `article/formats.py` is now the one definition: an integer format we know, and exactly that format's keys.
+
+| Comparison | Result |
+|---|---|
+| v1 against its v2 twin | same version |
+| v1 against v2 with another title | different |
+| stub against v2 | different |
+| v2 against v2 with another `source_domain` | different |
+| v2 against v2 with another `wrapper_link` | same (uncompared, as designed) |
+| format `true`, `1.0`, `"2"`, `None`, `3` | refused |
+
+**B2 fixed.** `clean_https_link` refuses a line break, a space, any port (443 included), credentials and `https:/`. It lower-cases the scheme and host (`HTTPS://A.EXAMPLE/X?Q=1#f` → `https://a.example/X?Q=1`, path case kept) and drops the fragment.
+
+**Judge 74's F1 (the revision name changed with the format) is fixed by searching the key's existing revisions with `same_version`.** That is right, but there is one minor point (reasoning only):
+- The collision check now raises whenever a file with the computed name exists, **without comparing it**. That trusts the listing to have found every revision.
+- Listings are fresh (`google_drive.py`: only found IDs are cached, never an absence), so this holds today. A listing that ever missed a file would raise a false `RECORD_CONFLICT`: loud, never lost.
+- Restoring "same bytes there → NO_OP" before raising would make it independent of the listing. Optional.
+
+**Minor (not blocking).** `clean_https_link` keeps invisible or non-ASCII path characters (U+200B, `é`). These are legal IRI text, but NP2b's resolver should treat the link as untrusted input, as NP0 already says. A trailing U+00A0 is trimmed by `strip()`.
+
+**Verdict: PASS round 2 at a72a037.** It merges after NP1, and NP1's merge is held for owner decision H.
