@@ -64,3 +64,54 @@
   feeds broad. That is correct, and the story should record it as a change from the plan.
 
 **Verdict: FAIL** (round 1, `e01cb08`). B1 means the feature writes nothing under a normal schedule.
+
+## Addendum 1
+
+**Round 2 re-review at `fa3b90e`.** This is the logic head. The merge-gating head is the post-split rebase, which I
+will re-confirm then.
+
+**What changed since `e01cb08`:**
+- The new `provenance/sweep.py`: every closed IST day of the last 9 that has no file is read from ALL staged polls of
+  the two UTC days covering it, for every feed, whatever the run's range was.
+- `first_look`, keyed by path and fetch time.
+- `provenance_polls_missing`.
+- Rows B18 to B22.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2020 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 637 files clean.
+- `test_code_size`: 3 passed.
+- **The full plant runner: 286 of 286 `ok`.**
+- `RECORD_CONTRACT.md` at about 505 lines is not counted, as the orchestrator asked: the docs split resolves it before
+  merge.
+
+**B1: closed.**
+- My round-1 probe, re-run with the branch's fixtures (daily `--from` equal to `--to` for DAY, DAY+1 and DAY+2), now
+  writes `<DAY>.json` on the next day, once.
+- The behaviour is pinned by failing plants:
+  - B18: sweep removed;
+  - B18b: one UTC day only;
+  - B19: missing not counted;
+  - B20: poll identity by path only.
+- `provenance_polls_missing` exists and is counted.
+
+**Condition C1 (before the merge-gating head): one damaged provenance file stops the sweep for EVERY day, silently**
+(*strong evidence*, reproduced).
+- `ProvenanceWriter.open_days` wraps the whole list in one `try` and returns `[]` on `ProvenanceUnreadable`, in the
+  belief that "flush reports the damaged day". But `flush` reports only days in the collector, and with "from today"
+  runs an old damaged day is never collected.
+- Reproduced: I placed a damaged `<DAY-3>.json`, staged a poll on DAY, and ran promote for DAY and then DAY+1.
+  - Result: no `<DAY>.json` is ever written;
+  - the run line is green, with no code;
+  - the poll stays staged under the cleanup gate.
+- **Fix:**
+  - decide per day in `open_days`, skipping only the damaged day;
+  - report `provenance_unreadable` for it;
+  - add a test and a plant.
+
+**Note (not blocking):** a poll staged LATE, after its day already has a file, gets in only through the range pass.
+If no run's range covers it, the cleanup gate keeps it staged but nothing counts it. That is rare, because a poll is
+staged at fetch time. Say it in the story.
+
+**Verdict: PASS** (round 2, `fa3b90e`), with condition C1 to be met in the post-split head that gates the merge.
