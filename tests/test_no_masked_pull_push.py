@@ -14,6 +14,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PAIR = re.compile(r"git pull\b[^\n]*&&[^\n]*git push\b")
+SWALLOWED = re.compile(r"git push\b[^\n]*(\|\|\s*(true|:)(?!\w)|;\s*(exit 0|true)(?!\w))")  # a failure turned into success
 
 
 def blocks() -> list[tuple[str, str]]:
@@ -28,8 +29,19 @@ def blocks() -> list[tuple[str, str]]:
 
 
 def commands(block: str) -> list[str]:
-    """The non-empty, non-comment lines of a run block."""
-    return [line.strip() for line in block.splitlines() if line.strip() and not line.strip().startswith("#")]
+    """The non-empty, non-comment lines of a run block, with a `\\` continuation joined to the line it continues."""
+    joined, pending = [], ""
+    for raw in block.splitlines():
+        line = raw.strip()
+        if line.endswith("\\"):
+            pending += line[:-1].rstrip() + " "
+            continue
+        line, pending = pending + line, ""
+        if line and not line.startswith("#"):
+            joined.append(line)
+    if pending.strip():
+        joined.append(pending.strip())
+    return joined
 
 
 def problems(block: str) -> list[str]:
@@ -40,7 +52,7 @@ def problems(block: str) -> list[str]:
             continue
         is_last = index == len(lines) - 1
         retry_loop = line.endswith("&& exit 0") and lines[-1] == "exit 1"
-        if not (is_last or retry_loop):
+        if SWALLOWED.search(line) or not (is_last or retry_loop):
             bad.append(line)
     return bad
 
@@ -68,3 +80,15 @@ def test_the_scan_catches_the_exact_pattern_that_failed_p2d_and_accepts_the_two_
     comment_after = last + "# a comment is not a command\n"
     assert problems(masked) and not problems(last) and not problems(loop) and not problems(comment_after)
     assert problems("git pull a && git push b\necho done\n")
+
+
+def test_the_scan_also_catches_a_continuation_a_swallowed_failure_and_a_one_line_exit_0():
+    """judge 55 F1: three shapes that used to slip past."""
+    continued = 'git pull --no-rebase origin main \\\n  && git push origin HEAD:main\nexit "$broken"\n'
+    assert problems(continued)
+    assert problems("git pull origin main && git push origin HEAD:main || true\n")
+    assert problems("git pull origin main && git push origin HEAD:main || :\n")
+    assert problems("git pull origin main && git push origin HEAD:main; exit 0\n")
+    assert problems("git pull origin main && git push origin HEAD:main; true\n")
+    last_continued = "git add x\ngit pull origin main \\\n  && git push origin HEAD:main\n"
+    assert not problems(last_continued)  # a continued pair that IS the last command is as safe as one line

@@ -69,6 +69,11 @@ were lost, the run was green and silent; the coverage check and receipt repair r
   the intraday recorder sends one for a whole run however many marks failed). The guard test (`tests/test_no_masked_pull_push.py`) scans every
   workflow and `ops/` script and is shown to catch the exact pattern of the P2d F1 finding and to accept the two safe shapes. Plants fail a test for:
   the mark, "any" turned into "all", the alert removed, the exit code lowered, and the helper bypassed in each of the seven edited paths.
+- **Guard test blind spots closed (judge 55 F1):** a `\` continuation is joined before the scan, and a pair followed by `|| true`, `|| :`,
+  `; exit 0` or `; true` is flagged even as the last command; one case each.
+- **Named as uncovered (judge 55 F2, awaiting the orchestrator's ruling):** the intraday sync's FOREIGN_STAGED refusal ("NOT pulled or committed":
+  another writer staged files, so the recorder pulled and committed nothing) still ends green. It is not silent: the sync posts its own alert once per
+  run. Counting it as a failure would change a Groww routine's exit code for a case already alerted; I recommend leaving it named here.
 - **Not done, listed:** swapping the seven already-correct callers to the helper (a later behaviour-preserving refactor); failing a run when the
   commit itself crashes (it is already red); the Python committer's other callers' own alert wording.
 
