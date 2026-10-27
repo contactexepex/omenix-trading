@@ -33,8 +33,18 @@ starts true for no one; the owner chooses.
 has 20 such category queries and 6 outlet feeds, the starting point), the template for a targeted query, and the manual publisher
 feeds. `news plan-feeds` writes the result as the next `feeds-vN.json` (same salt, the existing write-once rule). So **the fetcher,
 Staging, the gate and the poll log do not change at all**: they read a feed list as today. A new company list changes the plan at the
-next `plan-feeds`, not the code. Two small changes to P2 code: `MAX_FEEDS` (50) and the feed id pattern limit are raised (a config
-constant, with the test that pins the old limit updated) because a plan can hold more than 50 feeds.
+next `plan-feeds`, not the code. **Feed ids are stable, derived from content, and never reused (judge 77 F1).** The gate's `kinds_ever_listed` raises
+`FEED_KIND_CHANGED` when one id has two kinds across versions, which stops promotion and the staging cleanup, and staged polls live
+under `<feed id>/`. So a planned feed's id is `q-` plus 8 hex characters of the SHA-256 of its kind and its normalised query: the
+same query always has the same id, however the list is reordered or extended, and a different query can never take it. The
+binding lives in the id itself (no table to lose). The planner refuses a version in which two different queries hash to one id, or
+in which an id already used with another kind appears (the two checks that make a re-plan safe), and a test re-plans the same list in
+another order and with extra companies and asserts every surviving id is unchanged. Manual publisher feeds keep their `feed-NN` ids.
+This needs the id pattern widened to accept `q-<8 hex>` (a P2 change, listed below); the old 999-id lifetime cap goes away.
+Three small changes to P2 code in all, each behaviour-preserving for the feeds that exist, each with a test: (1) `MAX_FEEDS` raised
+(a config constant; the test that pins the old limit is updated); (2) the feed id pattern accepts the planned form;
+(3) `news/session.py`: `NewsSession` is given the per-run pacer built from the feed list instead of the module's `NEWS_PACER`
+(`NEWS_PACER` stays as the default for any other caller).
 
 **5. Pacing, with no change to the live pacer.** I first thought this needed a register-host API on `nse_pacer.py` (the orchestrator
 flagged it as a shared live file). It does not: `NsePacer(spacing={...})` already takes a per-host spacing table, and unknown hosts get
@@ -42,7 +52,19 @@ flagged it as a shared live file). It does not: `NsePacer(spacing={...})` alread
 host})`. **`fno/shared/nse_pacer.py` is not touched**, the NSE limiter's behaviour cannot change, and no host name is written in code
 (the host comes from the private list). A test pins that the NSE table is unchanged.
 
+**5b. Privacy test (judge 77 F2).** `companies-vN.json` and `discovery-vN.json` are written only to the private Drive config area. The
+record scan does not catch a list of names, so a test walks the repository and fails if any file named `companies-v*.json` or
+`discovery-v*.json` exists in it (built in NP3a, `test_no_company_or_discovery_list_is_ever_in_the_repository`); fixtures in tests use
+invented names only, and the seed command's printed line is counts and a code, never a symbol or a name (tested with marker names).
+
 **6. Load.** One request per planned feed per run, 1.5 s apart for the search service: 100 feeds take about 2.5 minutes, 200 about 5.
+**Staging volume against the cleanup (judge 77 F4).** Up to one staged poll per planned feed per run: 200 feeds hourly is up to 4,800
+staged polls a day (Google's answers change constantly, so I assume few are `unchanged`), against the staging cleanup's `--limit 500`
+per run (it examines the oldest first, trashes only polls strictly older than 7 days whose articles are all in the Record). At 4,800 a
+day the cleanup falls behind at the default limit. Proposed: run the cleanup daily with `--limit 6000` (the report-only run first
+reports the real count) or a few times a day at 2,000; the cost is Drive reads, about one per examined poll. Not decided here; the
+staging cleanup workflow's `limit` input already exists, so it is a value, not code.
+
 The service answers at most 100 items per query (agentic measured 7 Oct), so a query that returns 100 over a long window is a signal
 of loss, counted in the run line (as agentic's `google_skipped`), not hidden.
 
