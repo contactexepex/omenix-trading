@@ -815,5 +815,113 @@
   "file": "fno/ingestion/news/resolve/pacing.py",
   "old": "PUSHBACK_STATUSES = (429, 503, 403)",
   "new": "PUSHBACK_STATUSES = (429, 503)"
+ },
+ {
+  "id": "Q1",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "new": ""
+ },
+ {
+  "id": "Q2",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_list_with_a_mistake_is_refused_with_one_fixed_code"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            if owner.setdefault(normalise_label(text), company.symbol) != company.symbol:\n                raise _invalid()",
+  "new": "            owner.setdefault(normalise_label(text), company.symbol)"
+ },
+ {
+  "id": "Q3",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_version_edited_after_it_was_used_is_skipped_for_the_older_good_one"
+  ],
+  "file": "fno/ingestion/news/versioned.py",
+  "old": "            if version in used and digest != used[version]:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Q4",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        raw = legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "        raw = master.get(symbol) or legal.get(symbol) or n500.get(symbol)"
+ },
+ {
+  "id": "Q5",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_without_apply_nothing_is_written_and_the_line_is_counts_only"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if apply:\n        config.put(FIRST_FILE, seed.data)",
+  "new": "    if True:\n        config.put(FIRST_FILE, seed.data)"
+ },
+ {
+  "id": "Q6",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if config.checksums(COMPANIES_FOLDER):\n        raise SeedFailed(codes.COMPANY_LIST_EXISTS)\n",
+  "new": ""
+ },
+ {
+  "id": "Q7",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if normalise_label(name) in taken:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Q8",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or pattern.count(\"?\") > MAX_OPTIONALS\n",
+  "new": ""
+ },
+ {
+  "id": "Q9",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_rows_the_list_checks_would_refuse_are_skipped_and_counted_so_the_seed_still_passes_them"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if not SYMBOL.match(symbol) or not normalise_label(name) or len(name) > MAX_TEXT:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Q10",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "    parse_company_list(data, 1)  # what",
+  "new": "    (lambda *a: None)(data, 1)  # what"
+ },
+ {
+  "id": "Q11",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_when_the_lists_disagree_the_equity_list_wins_over_the_nifty_500_and_that_over_the_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "n500.get(symbol) or legal.get(symbol) or master[symbol]"
+ },
+ {
+  "id": "Q12",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
+  "new": ""
  }
 ]
