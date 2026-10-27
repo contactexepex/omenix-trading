@@ -92,3 +92,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 79 | NP3a company list (code, judge #1) | 1 | FAIL (round 1, 6504962); PASS (round 2, 1a1e5d6; allow-list grammar) | `judge_79_np3a-company-list.md` |
 | 80 | NP3b feed plan, code (judge #2) | 1 | PASS (4fa33b2, 0d6adbe) | `judge_80_np3b-feed-plan-judge2.md` |
 | 81 | NP3b feed planner (code, judge #1) | 1 | PASS (0d6adbe, then 4fa33b2) | `judge_81_np3b-feed-planner.md` |
+| 82 | NP2c resolve pass (code, judge #1) | 1 | FAIL (round 1, feb5fa9) | `judge_82_np2c-resolve-pass.md` |
