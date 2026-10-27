@@ -11,7 +11,7 @@ ported I say so; where it is mine I say so.
 
 ## What it builds (three small pure parts, one dictionary)
 1. **`NameDictionary(CompanyListSource)` and `Tagger` (NP5a).** For each company of the injected list: its name and aliases as
-   whole words, case-insensitive, and its symbol in parentheses, case-sensitive (`(TCS)`, `(NSE: TCS)`), after its exclusions are removed
+   whole words, case-insensitive, and its symbol in parentheses, case-sensitive (`(SYM1)`, `(NSE: SYM1)`, with invented symbols), after its exclusions are removed
    from the text. **Headline first** (agentic's rule, issue 29): the title is the subject; the summary (plain text: tags, entities, URLs,
    bare domains and the trailing outlet name removed) is used only when the title names no company; a search query that found the item
    never tags it. Output `Tag(primary, mentioned, confidence)`: a company named in the title is primary; several title companies, a
@@ -20,7 +20,7 @@ ported I say so; where it is mine I say so.
 2. **`OriginReader` and `PromotionalFilter` (NP5b).** From facts only: the outlet's domain (`source_domain` of the article file, or the read
    file's host), the read file's provider and bylines, and the title; against the public rules already in `config/news_sources.yaml`
    (8 wire agencies with names and domains, the promotional providers and domains). An article whose byline, provider, outlet domain or
-   title (a trailing "(Reuters)"-style attribution) names an agency is a copy of that agency's story: one origin however many outlets carry it.
+   title (a trailing "(AgencyA)"-style attribution) names an agency is a copy of that agency's story: one origin however many outlets carry it.
    A promotional provider or domain flags `promotional`. Marker phrases in the text are matched with the bounded pattern grammar below.
 3. **`MaterialTerms` (NP5b).** Weighted title terms deciding which articles are worth a page read first. The terms and weights are the
    owner's content: a private `config/materiality-vN.json` read with the same versioned-file discipline as the company list and the
@@ -29,12 +29,22 @@ ported I say so; where it is mine I say so.
    high confidence (agentic's selection, ported as a rule, not its numbers).
 
 ## Decisions I am making (the judge should overrule what is wrong)
-- **One pattern grammar for every owner-supplied pattern.** Exclusions (NP3a), material terms and promotional marker phrases all use
-  the same allow-list (plain text, up to two `(?:A|B)` groups, at most four optional letters, one trailing `\\w*`). The code lives in one
-  place and is imported, not copied. Cost to the owner: no full regular expressions anywhere (already accepted for exclusions).
+- **One pattern grammar for every owner-supplied or shipped pattern, widened by a few literal characters (judge 90 F1).** Exclusions
+  (NP3a), material terms and the shipped promotional marker phrases all use the same allow-list (plain text, up to two `(?:A|B)`
+  groups, at most four optional letters, one trailing `\\w*`). Checked against the shipped `config/news_sources.yaml`: 2 of its 8
+  `promotional.text` phrases do not fit today (`... Rank #` and `Target Price \\(Mid\\)`: a `#` and escaped parentheses are not in the
+  literal alphabet), so applying the grammar unchanged would make the source rules refuse to load and break every news reader. NP5a
+  therefore adds the literals `#`, `/`, `:` and the escaped `\\(` and `\\)` (the escaped full stop is already allowed). Literals add no
+  ambiguity, so the bounds that make matching safe (groups, optional letters, one trailing word tail) are untouched. The shipped
+  phrases are NOT rewritten (their `#` and parentheses are meaningful). The source-rule loader (NP1) validates `promotional.text` with the
+  grammar, so a bad phrase fails at load with a fixed code, and a test loads the shipped file and checks every shipped phrase. The code
+  lives in one place (`fno/ingestion/news/safe_pattern.py`, extracted from `companies/parse.py`) and is imported, not copied. Cost
+  to the owner: no full regular expressions anywhere (already accepted for exclusions).
 - **The hard time bound on tagging is a text cap.** judge 78 measured an allowed pattern taking 25 s on a 3,000-character summary before
   the group cap; the grammar now bounds it by construction, and **every pattern still runs against at most the first 1,000
-  characters** of the title or plain-text summary (defence in depth, a plant: a very long summary with the heaviest allowed pattern
+  characters** of the title, or of the plain-text summary AFTER it is cleaned (tags, entities, URLs and the trailing outlet name are
+  removed first, so a cap never cuts away an attribution that cleaning would have kept, and the outlet's own suffix does not use up
+  the cap) (defence in depth, a plant: a very long summary with the heaviest allowed pattern
   finishes inside a stated bound). Names and aliases are matched as escaped literals, never as the owner's patterns.
 - **Not ported in this cut: the "actor" rules** (a bank acting on another company: analyst actions, holdings, venues, `broker: true`).
   They are long, US-broker-specific heuristics and the company list has no `broker` flag. Effect (reasoning only): a headline such as a
@@ -54,7 +64,11 @@ exclusions remove text before matching; headline first and the summary only as f
 rule; plain-text cleaning (a Google summary linking the search host never tags anything); the 1,000-character cap; a wire agency from
 each of byline, provider, domain and title attribution; a promotional provider or domain; unlisted outlets never counted as vetted;
 material terms need weight and a single high-confidence company; the private materiality file's discipline; nothing in the repository
-holds a company name or a materiality term (a test walks the repository, as NP3a does for companies).
+holds a materiality file. **What is actually enforced, said plainly:** NP3a's repository walk checks FILE NAMES only
+(no `companies-v*.json`, `discovery-v*.json`; NP5b adds `materiality-v*.json`); it cannot know the owner's private names, so a blanket
+"no company name anywhere in the repository" cannot be checked mechanically and is not claimed. What guards it: the seed ships only the
+four public index names (content-checked), the commit hook's record scan catches value-shaped leaks, and code, tests and docs use
+invented placeholders only (this plan included).
 
 | # | Story | Contents | Lines (est.) |
 |---|---|---|---|
@@ -62,7 +76,7 @@ holds a company name or a materiality term (a test walks the repository, as NP3a
 | NP5b | Origins and materiality | `OriginReader`, `PromotionalFilter`, `MaterialTerms`, `materiality-vN.json` adapter, the read-model view that joins an article with its resolution and read file | ~400 |
 
 ## What I cannot promise (said plainly)
-- Name quality: short or common names ("Titan", "Page") will tag wrong text; exclusions and `low` confidence are the tools.
+- Name quality: short or common names (a company whose name is also an ordinary word) will tag wrong text; exclusions and `low` confidence are the tools.
 - Recall of the tagger is bounded by the aliases the owner writes: the seed ships only the four index aliases, so the first tags are
   name-only (known go-live step).
 - Wire detection without a lede will miss some agency copies; the rate is unmeasured until real reads exist.
