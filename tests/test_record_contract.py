@@ -10,7 +10,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = (ROOT / "docs" / "RECORD_CONTRACT.md").read_text()
+DOCS = ("RECORD_CONTRACT.md", "NEWS_RECORD_CONTRACT.md")  # one owning document per area (DEL1 follow-up split)
+TEXTS = {name: (ROOT / "docs" / name).read_text() for name in DOCS}
+DOC = "\n".join(TEXTS.values())
 PLANTS = json.loads((ROOT / "tools" / "contract_plants.json").read_text())
 ROW = re.compile(r"^\| ([A-Z]\d+[a-z]?) \|.*\|$", re.M)
 TEST_ID = re.compile(r"`(tests/[\w/.]+\.py(?:::\w+)?)`")
@@ -59,8 +61,8 @@ def test_every_plant_names_a_real_file_and_text():
         assert plant["old"] in (ROOT / plant["file"]).read_text(), plant["id"]
 
 
-def test_the_document_stays_under_500_lines():
-    assert len(DOC.splitlines()) < 500
+def test_each_document_stays_under_500_lines():
+    assert all(len(text.splitlines()) < 500 for text in TEXTS.values())
 
 
 def stated_only_rows() -> set[str]:
