@@ -1,0 +1,20 @@
+"""The fixed reason codes of a news fetch (invariant 1 of P2): the only words a log line, an alert or a report may use
+about a poll. A code never carries a URL, a query, a headline or an exception message."""
+
+FETCHED, UNCHANGED = "fetched", "unchanged"  # saved to Staging / the same bytes as the newest staged poll
+BLOCK_PAGE = (
+    "block_page"  # a redirect, or an answer that is not a feed (consent, CAPTCHA, "sorry"): a stop for the host
+)
+REFUSED = "refused"  # HTTP 403 or 429
+HOST_PAUSED = "host_paused"  # the shared pacer has paused the host after earlier refusals
+HOST_BLOCKED = "host_blocked"  # not asked: the host was blocked earlier in this run
+FETCH_FAILED = "fetch_failed"  # no answer, or an HTTP status that is not a refusal
+STAGE_FAILED = "stage_failed"  # Staging (Drive) would not take the bytes
+UNEXPECTED = "unexpected_error"  # anything else; only the exception class is ever named
+FEED_LIST_MISSING = "feed_list_missing"
+FEED_LIST_INVALID = "feed_list_invalid"
+FEED_LIST_ROLLED_BACK = "feed_list_rolled_back"  # the newest version is older than one already used
+FEED_LIST_DAMAGED = "feed_list_damaged"  # a version already used has been edited in place; the last good one is used
+
+OK_CODES = (FETCHED, UNCHANGED)
+HOST_STOPS = (BLOCK_PAGE, REFUSED, HOST_PAUSED)  # after one of these no other feed on the host is asked this run

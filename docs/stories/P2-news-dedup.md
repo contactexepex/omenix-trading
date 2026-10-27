@@ -169,6 +169,59 @@ repository's logs and Drive.
 - **The reference repository.** The design suggests studying `contactexepex/agentic-stock-prediction` for a proven dedup;
   attaching it mints credentials, so it is the owner's decision, and nothing here depends on it.
 
+## P2a as built (fetch into Staging)
+
+- **Code:** `fno/ingestion/news/` (`feeds.py`, `session.py`, `response_check.py`, `fetcher.py`, `snapshot_log.py`, `job.py`,
+  `cli.py`, `wiring.py`), the command `python -m fno news fetch`, and `.github/workflows/news-fetch.yml` with
+  `workflow_dispatch` only (a test fails if a schedule is added).
+- **Feed list (Judge 1's versioning point):** write-once files `feeds/feeds-v<N>.json` in a private `config` area of the Drive
+  folder; the newest by number is used (v10 beats v9); the owner adds a version instead of editing one. A missing, invalid or
+  older-than-already-used list stops the run before any request, with a fixed code. **An edited version is detected:** the
+  first use of each list version logs its SHA-256 (`feed_lists.csv`); a version whose file no longer has that hash was edited in place, is
+  skipped, the next older good version is used, and the run reports `feed_list_damaged` and alerts (never silent); if every
+  version was edited the run stops with the same code before any request.
+  **To change the feeds the owner adds a new file** `feeds/feeds-v<N+1>.json` (the next number) in the private `config`
+  area; the next run reads it with no halt. Never edit an existing version. The highest version used is read back from
+  `feed_lists.csv` in the poll-log folder (one row per version ever used: its first-use time and its SHA-256; a run of
+  unchanged polls still leaves it). The list is read directly from Drive **with no receipt** (it is not a
+  Record file and does not go through the verified cache); its integrity is checked by the SHA-256 logged when a version is first used. **The list format requires a random `salt`
+  of 16 or more characters** (a list without one is refused), so the committed hash cannot confirm a guessed list.
+  Cases: a first-time invalid version stops the run (`feed_list_invalid`, so a typo is caught at once and the previous list
+  is not silently used); a version edited after use falls back to the last good one and alerts. **The fallback can
+  therefore go below the highest version used** (an alerted rollback): that is intended, because the newer file was damaged
+  and the older one is known-good. The two cases differ on purpose: a never-used invalid version has no known-good meaning
+  and stops the run so an owner's typo is caught at once, while an edited used version had one. Reasoning only for adding a
+  version rather than editing: the owner never halts the pipeline and a bad version leaves the previous one in place.
+- **Session:** `NewsSession`, a subclass of the shared `PacedSession` used by the news fetcher alone: a reject-all cookie
+  policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged. The session
+  also pins the `urllib3` logger to WARNING, because at DEBUG it logs the host and the full request line, query included
+  (judge 44 F1; tested through the real session against a local HTTP server with DEBUG captured).
+- **A bad host or any unexpected error (judge 45 S3).** The feed-list check refuses a host that cannot be encoded (for example
+  `a..b`) up front; the fetch loop turns any exception, not only a request error, into the code `fetch_failed`; and the command
+  turns anything unexpected into one fixed line (`news fetch stopped: unexpected_error <ClassName>`) plus a #fno-desk alert,
+  never a traceback, because a message can carry a URL.
+- **The salt is stable and secret.** It is a fixed random value inside the private `feeds-v<N>.json` (so the logged hash is the
+  same on every run and edit detection never false-alarms), it is used only to make the committed hash unguessable, and it is
+  never copied into any committed file (tested).
+- **Hosts stay out of the committed pause log (judge 44 F3).** The shared pacer's committed log and its #fno-desk alerts name
+  the host. The news session therefore has its own pacer (`NEWS_PACER`), never attached to either: a news pause lasts for the
+  run only, with no memory across runs (the workflow is manual): a pause by Google is not carried to the next run, which asks
+  once more, as the Yahoo block rule does (A17e). Tested with the real pacer, with a control showing the shared
+  session does write the host. The alternative, declaring the news hosts non-private and using the shared pacer for
+  cross-run memory, is the orchestrator's and owner's call; this is the safe default.
+- **Answers:** a redirect, or a 200 without a feed root element, is `block_page`; 403/429 is `refused`; both stop the rest of
+  that host for the run, as does `host_paused` from the shared pacer. Other failures are `fetch_failed`. Only the fixed code is
+  kept: never an exception message, a URL or a title.
+- **Staging:** the raw bytes go to `news/<feed id>/<YYYY>/<MM>/<DD>/poll/<stamp>`; an unchanged poll (the same bytes as the newest
+  staged copy) is not stored again, which also slows the growth of Staging. A poll-log row is written only after Staging accepted
+  the bytes.
+- **Not in P2a:** the gate (P2b), clustering (P2c), the cluster record (P2d), the article key, the revision handling and the
+  per-poll reconciliation of items: they need the parsed items.
+- **Proof:** 68 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
+  over a planted marker URL, query, host and headline, the failure paths and DEBUG logging; mutation plants on the cookie policy,
+  redirects, the feed check, the host stop, file-first ordering, the privacy paths, the version rules, the alert and the schedule.
+  One plant survives and is equivalent: `return_ok` returning True changes nothing while `set_ok` stores no cookie.
+
 ## Deferred to the owner's go-live (not done in this build)
 
 A scheduled run of `news-fetch.yml` and of the promotion job; the first real fetch into Staging; the first real promotion of

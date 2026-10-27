@@ -88,10 +88,20 @@ def test_a_file_ledger_carries_the_day_across_two_instances_and_resets_on_the_ne
 
 
 def test_spacing_holds_across_threads():
+    """Deterministic (a frozen clock; the sleeps the limiter asks for are the slots it handed out), so thread wake-up
+    jitter under load cannot shrink an observed gap: 8 callers must be given 8 distinct slots, 0.05 s apart."""
     import threading
     import time
 
-    rate = RateLimit("src", RateSettings(min_spacing_seconds=0.05, max_wait_seconds=10.0))
+    asked, lock = [], threading.Lock()
+
+    def record(seconds):
+        with lock:
+            asked.append(seconds)
+
+    rate = RateLimit(
+        "src", RateSettings(min_spacing_seconds=0.05, max_wait_seconds=10.0), sleep=record, clock=lambda: 0.0
+    )
     decide = rate._next_start
 
     def slow_decide(now):  # deciding takes a moment, which is what lets unlocked threads interleave
@@ -100,21 +110,13 @@ def test_spacing_holds_across_threads():
         return start
 
     rate._next_start = slow_decide
-    starts, lock = [], threading.Lock()
-
-    def work():
-        rate.acquire()
-        with lock:
-            starts.append(time.monotonic())
-
-    threads = [threading.Thread(target=work) for _ in range(8)]
+    threads = [threading.Thread(target=rate.acquire) for _ in range(8)]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
-    starts.sort()
-    gaps = [b - a for a, b in zip(starts, starts[1:])]
-    assert len(starts) == 8 and min(gaps) >= 0.03  # unlocked, the same threads are let through 0.0 s apart
+    # the first caller is free; unlocked, several callers would compute the same slot and ask for the same wait
+    assert sorted(asked) == pytest.approx([0.05 * n for n in range(1, 8)])
 
 
 def test_per_minute_budget_holds_across_threads():

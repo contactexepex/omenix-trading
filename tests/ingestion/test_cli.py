@@ -12,8 +12,8 @@ from fno.ingestion.cli import build_parser
 SUBCOMMANDS = sorted({
     "chain", "circulars", "closes", "data-cache", "data-coverage", "data-fingerprints", "data-librarian",
     "data-repair", "data-revisions", "data-snapshot", "drive-check", "filings", "flows", "fo-masters",
-    "global-cues", "groww-check", "intraday", "participant-oi", "pipeline", "preopen", "promote", "quotes", "stage",
-    "vix-history",
+    "global-cues", "groww-check", "intraday", "news", "participant-oi", "pipeline", "preopen", "promote", "quotes",
+    "stage", "vix-history",
 })  # fmt: skip
 
 
@@ -27,7 +27,7 @@ def _choices() -> dict:
 
 def test_every_subcommand_is_registered() -> None:
     assert set(_choices()) == set(SUBCOMMANDS)
-    assert len(SUBCOMMANDS) == 24
+    assert len(SUBCOMMANDS) == 25
 
 
 @pytest.mark.parametrize("name", SUBCOMMANDS)

@@ -190,24 +190,23 @@ def test_the_pacers_default_spacing_table_is_one_second_for_both_nse_hosts():
 
 
 def test_spacing_holds_across_threads():
+    """Deterministic: a frozen clock, and the waits the pacer asks for are the slots it handed out (6 callers, 0.05 s
+    apart; the first is free). Timing callers after they wake would let scheduler jitter under load shrink the gap."""
     import threading
-    import time
 
-    p = NsePacer(spacing={HOST: 0.05})
-    starts, lock = [], threading.Lock()
+    asked, lock = [], threading.Lock()
 
-    def work():
-        p.wait_turn(HOST)
+    def record(seconds):
         with lock:
-            starts.append(time.monotonic())
+            asked.append(seconds)
 
-    threads = [threading.Thread(target=work) for _ in range(6)]
+    p = NsePacer(spacing={HOST: 0.05}, clock=lambda: 0.0, sleep=record)
+    threads = [threading.Thread(target=p.wait_turn, args=(HOST,)) for _ in range(6)]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
-    starts.sort()
-    assert min(b - a for a, b in zip(starts, starts[1:])) >= 0.04
+    assert sorted(asked) == pytest.approx([0.05 * n for n in range(1, 6)])
 
 
 def test_a_403_is_retried_after_a_cookie_warm_up_because_nse_refuses_the_first_call(monkeypatch):
