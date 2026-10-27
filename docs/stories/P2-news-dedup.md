@@ -13,7 +13,8 @@ apply; the invariants below take its place.
 2. **No garbage in the Record.** A poll that does not parse as the feed's format, has no items, or has items without a
    title, link or time stays in Staging with its reason and is alerted to #fno-desk; nothing reaches the Record.
 3. **No secrets, no cookies, no keys.** The feeds are public; nothing is signed in to. Raw text and clusters live in
-   private Drive only; GitHub gets receipts, manifest rows and counts (never a headline), under the existing record scan.
+   private Drive only; GitHub gets receipts, manifest rows and counts (never a headline, a title, a slug or an article URL: see D1), under the
+   existing record scan.
 4. **Write-once.** Articles are written once under their id; a cluster file is never changed (a story that gains a source
    later appears in a *later* cluster file), exactly as the global-cue copies work.
 5. **Clustering never deletes or hides an article.** Every article stays in the Record under its own id; a cluster is a
@@ -46,6 +47,34 @@ apply; the invariants below take its place.
   lands in ONE cluster, never two (the title-shingle and entity stages must catch it); a plant that removes the title stage
   must fail it.
 
+## Design decisions from the design review (judge 42, D1-D8)
+
+- **D1, nothing that identifies an article goes to GitHub.** The standard manifest has a `url` column
+  (`manifest_folder.py`), so news gets its own manifest: `date,article_id,status,sha256,size_bytes` (a hash id, never a URL,
+  title or slug). Snapshot-log rows carry a fixed feed id, not a query string. Alerts and logs carry counts, feed ids, a
+  reason class and short hash ids, never a title (D8). **Test:** a planted headline and URL run through fetch, gate and
+  clustering; every file that is committed (manifests, receipts, logs, alert text) is scanned for it and must not hold it.
+- **D2, the article key.** A publisher item's key is the SHA-256 of its canonical URL. An unresolved Google News item has no
+  publisher URL, so its key is the SHA-256 of `google-news:` plus the item's own `guid` when it has one, otherwise of
+  its normalised title, source name and publication date. **Test:** one item seen in two polls (and one without a guid)
+  gives one article, not two.
+- **D3, URL canonicalisation uses an explicit allow-list** of parameters to remove (`utm_*`, `fbclid`, `gclid`, `igshid`,
+  `mc_cid`, `mc_eid`), plus the fragment and a default port, and lower-cases the host. Every other parameter is kept, in
+  sorted order. **Test:** a non-tracking parameter (`id=123`) survives, and two URLs differing only in tracking parameters
+  give one key.
+- **D4, the article file is fixed fields only:** id, feed id, source name, title, canonical URL (publisher items), published
+  time and the *first* `seen_at`. A later poll of the same article changes nothing: it is not a revision, and it is not
+  lost either, because every poll stays in Staging. A changed title for a known id is ignored (first wins).
+- **D5, cluster id tie-break and lineage.** The cluster id is the hash of its earliest article's id, earliest by publication
+  time, ties broken by the smaller article id. When a later-arriving earlier article, or a merge of two clusters, changes
+  an id, the new file has a `previous_cluster_ids` column naming the ids it replaces, so a consumer can follow a story.
+- **D6, the cluster file header** states the algorithm version, the window end (the run's as-of time) and the input rule
+  (articles with first `seen_at` at or before the window end and published within the window before it), so a file can be
+  reproduced from the Record alone.
+- **D7, articles that leave the window** stay in the Record for ever under their own ids; they simply stop appearing in
+  newer cluster files, and the older cluster files that listed them stay as they were.
+- **D8, alerts carry no titles** (see D1): counts, feed id, reason class and short hash ids.
+
 ## Dedup state: where it lives
 
 There is **no separate mutable dedup state**. The Record's article files are the state; each clustering run recomputes
@@ -77,7 +106,13 @@ for P2b-d. Verifiable from this repository's logs and Drive, unlike the Groww an
 - **The similarity threshold and window.** Not guessed: set from collected Staging data and a labelled pair set (true
   duplicates, near-misses, same-topic-different-story), with the measured precision and recall brought to the owner for
   sign-off, since it trades a false merge (lost signal) against duplicates.
-- **Retention.** Staging copies are never deleted today (P1 gap list), so polling for months grows Drive; no rule yet.
+- **Retention.** Staging copies are never deleted today (P1 gap list). Reasoning only, every figure an assumption (no feed
+  has been fetched): about 10 feeds polled every 15 minutes is 960 polls a day, an answer of 50-100 KB each, so roughly
+  50-100 MB a day, 18-36 GB a year, mostly repeated headlines (article and cluster files are small beside that). Options:
+  (1) leave Staging unbounded; (2) prune Staging by age (for example 30 days) once its articles are promoted, keeping the
+  Record for ever; (3) poll less often (hourly cuts it fourfold). Suggested default pending the owner: poll hourly first and
+  decide pruning after a week of real sizes. **Whatever is chosen, a poll that failed the gate is never pruned before
+  someone has looked at it.**
 - **The reference repository** above.
 
 ## Deferred to the owner's go-live (not done in this build)
