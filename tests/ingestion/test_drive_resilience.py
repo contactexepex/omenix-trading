@@ -394,3 +394,63 @@ def test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_s
     assert SIDECAR  # the sidecar name the guarded store reads
     with pytest.raises(AttributeError):
         compare._snapshot(store, DATASET, day)  # None.decode(): loud, never a snapshot of a missing file
+
+
+# ---- the quote writer: a failed save is never complete and never canonical (judge 1's writer-side test) ------
+
+
+class MemoryStore(RawFileStore):
+    name = "memory"
+
+    def __init__(self, fail_csv=False):
+        self.files, self.fail_csv = {}, fail_csv
+
+    def get(self, path):
+        return self.files.get(path)
+
+    def put(self, path, data):
+        if self.fail_csv and path.endswith(".csv"):
+            raise requests.ConnectionError("Drive failed on every try")
+        self.files[path] = data
+
+
+def record_one_attempt(store):
+    """One real attempt of the recorder over the offline sample provider (a full, complete chain and its books)."""
+    from fno.ingestion.providers.sample import SampleProvider
+    from fno.ingestion.quotes.recorder import QuoteSnapshotRecorder
+    from fno.ingestion.quotes.slot import Slot
+    from fno.shared.models import IST
+
+    now = datetime(2026, 10, 9, 15, 5, tzinfo=IST)
+    recorder = QuoteSnapshotRecorder(
+        SampleProvider({}), store, clock_now=lambda: now, sleep=lambda s: None, slot=Slot("NIFTY", cross_check=False)
+    )
+    recorder.pacer = None
+    return recorder._attempt(now.date(), canonical_allowed=True)
+
+
+def test_the_recorder_over_a_working_store_is_complete_and_writes_the_canonical_marker():
+    store = MemoryStore()
+    result = record_one_attempt(store)
+    assert result.complete and not result.raw_file_error
+    assert any(path.endswith(".canonical") for path in store.files)  # the control: the assertions below are not vacuous
+
+
+def test_a_csv_save_that_fails_every_try_is_incomplete_writes_no_canonical_marker_and_marks_the_sidecar_not_saved():
+    import json
+
+    store = MemoryStore(fail_csv=True)
+    result = record_one_attempt(store)
+    assert result.raw_file_error and not result.complete
+    assert not any(path.endswith(".canonical") for path in store.files)  # canonical implies complete implies saved
+    (sidecar,) = [data for path, data in store.files.items() if path.endswith(".meta.json")]
+    meta = json.loads(sidecar)
+    assert meta["raw_file_saved"] is False and meta["complete"] is False
+
+
+def test_the_worst_retry_after_case_stays_inside_the_policys_total_limit():
+    """A header of 300 s waits 120 s each of four times, plus five requests that each time out at 60 s: 780 s, under the
+    900 s limit, so the policy never gives up early on a long Retry-After (judge 1)."""
+    retry = settings_for("drive").retry
+    worst = 4 * min(300, DRIVE_RETRY_AFTER_CAP_SECONDS) + 5 * drive_session.TIMEOUT_SECONDS
+    assert worst == 780 and worst < retry.max_total_seconds == 900.0

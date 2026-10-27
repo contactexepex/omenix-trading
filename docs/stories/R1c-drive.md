@@ -76,14 +76,19 @@ unmapped, and no site disagreed on file-first.
 
 Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): the one row-equivalent that is designed to be writable without its
 file. If the CSV save fails, the sidecar is still written with `RAW_FILE_SAVED=False` (`recorder.py:274`; absent means
-saved). The safety rests on the reader, and this repository has exactly one reader of the sidecar,
-`DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`): a flag of false returns `None` without touching Drive (the file
+saved). The safety rests on the readers, and this repository has **two** (corrected after judge 1 found the second): the guarded
+`DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`), and `quotes/compare.py:40`, which reads the sidecar directly and
+the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
+`recorder.py:285-286` writes only for a `complete` attempt (`recorder.py:261-263`), and `complete` requires no failures, the
+raw-save error being one (`recorder.py:258-259`): canonical implies complete implies saved; if they ever disagreed the
+guarded read returns `None` and the comparison fails loudly. For the guarded reader: a flag of false returns `None` without touching Drive (the file
 is not counted and no receipt or row is derived from it); a flag of true with no file in the private store raises
 `RawQuoteMissing`, and a file whose SHA-256 differs from the sidecar's `csv_sha256` raises `RawQuoteHashMismatch`, so the
 reader also reconciles the claim with Drive's real state. Readers outside this repository (the dashboard) are not
-checked here; that is an open question for the owner. **Reader-side tests (required, part of the list below):** flag
+checked here; that is an open question for the owner. **Required tests (part of the list below):** reader side: flag
 false returns `None` and makes no Drive read; flag true and the file missing raises `RawQuoteMissing`; a mismatched hash
-raises.
+raises; the comparison never builds a snapshot from a file that was not saved. Writer side (judge 1): over the offline
+sample provider, a CSV save that fails every try is incomplete, writes no canonical marker and marks the sidecar not saved.
 
 **The deferral log**
 (`intraday/backfill.py:108`) records sessions put off and claims no file.
@@ -202,5 +207,14 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   the raw-save error being one (`recorder.py:258-259`): canonical implies complete implies saved. If they ever disagreed, the
   guarded read returns `None` for a not-saved flag and the comparison fails loudly (`None.decode()`), never a snapshot of a
   missing file. Pinned by `test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_saved` (with the
-  reader ignoring the flag, it fails). A test that a failed save writes no canonical marker would need the recorder's
-  attempt method, which has no test harness in this repository; it is covered by the chain above and left as a stated gap.
+  reader ignoring the flag, it fails). The writer-side test judge 1 required exists: the recorder's `_attempt` runs offline over the sample provider (a
+  small harness: `Slot("NIFTY", cross_check=False)`, an in-memory store whose CSV `put` raises), and a failed save gives
+  `complete` false, no `.canonical` marker and a sidecar with `raw_file_saved` false; the control run over a working store is
+  complete and writes the marker. With the raw-save error not counted as a failure it fails (below).
+- **Added mutation plants, each caught:** the raw-save error not counted as a failure (a failed save then goes complete and
+  canonical); the not-saved flag not set on the sidecar; the quote reader ignoring the flag (now also caught by the comparison
+  test); the Retry-After cap raised to 300 s; the library ceiling lowered to 120 s (judge 2's plant); the retry of a
+  `ConnectionError` removed from the classifier.
+- **Retry-After worst case pinned:** a test computes 4 x 120 + 5 x 60 = 780 s and asserts it is under the policy's 900 s
+  limit, so a long header never makes the policy give up early.
+- Gates: ruff, imports, numbers, size clean; 517 tests pass.
