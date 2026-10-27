@@ -199,3 +199,32 @@ def test_every_place_that_builds_a_groww_provider_is_known_and_builds_one():
         assert len(_calls_in(FNO / path, {"GrowwProvider", "get_provider"})) <= 1 or path.endswith(
             "providers/__init__.py"
         )
+
+
+# ---- no ceiling: nothing but each caller's own spacing (judge 36) ----------------------------------------------------
+
+
+def test_the_intraday_pacer_has_no_per_minute_or_per_day_budget_and_no_wait_cap():
+    clock = Clock()
+    pacer = RatePacer(PER_SECOND, clock, clock.sleep)
+    for _ in range(241):  # 241 starts across 60 s: a per-minute cap below 241 would add waiting
+        pacer.wait()
+    assert clock.now == pytest.approx(60.0)
+    assert (pacer._limit.settings.per_minute, pacer._limit.settings.per_day) == (None, None)
+    assert pacer._limit.settings.max_wait_seconds == float("inf") and not pacer._limit._slots
+
+
+def test_the_candle_source_has_no_per_minute_or_per_day_budget_and_no_wait_cap():
+    clock = Clock()
+    api = types.SimpleNamespace(
+        EXCHANGE_NSE="NSE", SEGMENT_CASH="C", CANDLE_INTERVAL_MIN_15="15", CANDLE_INTERVAL_MIN_1="1",
+        get_historical_candles=lambda **kw: {"candles": []},
+    )  # fmt: skip
+    from datetime import date, datetime
+
+    source = GrowwCandleSource(api, lambda: datetime(2026, 10, 27, 16, 0), clock.sleep, clock)
+    for _ in range(121):
+        source.candles(date(2026, 10, 26), date(2026, 10, 26))
+    assert clock.now == pytest.approx(60.0)
+    settings = source._gap.settings
+    assert (settings.per_minute, settings.per_day) == (None, None) and settings.max_wait_seconds == float("inf")
