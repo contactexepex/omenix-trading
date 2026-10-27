@@ -86,5 +86,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 73 | NP2a article format 2 (code, judge #1 of 2) | 1 | FAIL (round 1, 20c8c32); PASS (round 2, a72a037) | `judge_73_np2a-article-format-2.md` |
 | 74 | NP2a article format 2, code (judge #2 of 2) | 2 | PASS (a72a037; FAIL 20c8c32) | `judge_74_np2a-article-format-2-judge2.md` |
 | 75 | NP2b link resolver, code (judge #2 of 2) | 1 | FAIL (round 1, 3cc0c62) | `judge_75_np2b-link-resolver-judge2.md` |
-| 76 | NP2b link resolver (code, judge #1 of 2) | 1 | FAIL (round 1, 3cc0c62) | `judge_76_np2b-link-resolver.md` |
+| 76 | NP2b link resolver (code, judge #1 of 2) | 1 | FAIL (round 1, 3cc0c62); PASS (round 2, 356b149) | `judge_76_np2b-link-resolver.md` |
 | 77 | NP3 company list and feed plan, plan doc (judge #2) | 2 | FAIL (round 2, 8459517; round 1 eb05a7b) | `judge_77_np3-plan-judge2.md` |

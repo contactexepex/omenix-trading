@@ -66,3 +66,36 @@
 No order path, no secret, no Groww call, no write; nothing calls this code yet. Politeness to an outside service is a carried-over rule, and B1 breaks it.
 
 ## Verdict: FAIL round 1 at 3cc0c62. B1 (pace every request and stop on a refusal) and the docstring correction are required.
+
+## Addendum 1: round 2 at 356b149: PASS
+
+Reviewed `git diff 3cc0c62 356b149`. The lock is unchanged. Gates were run in a fresh venv installed from `requirements.lock`.
+
+**Gates (strong evidence).** 1454 passed; ruff and check_imports are clean; contract plants all `ok`, L1 to L12.
+
+**B1 fixed (strong evidence).**
+- **Pacing.** `RequestSpacer` is a request hook on the library's one client, so every request waits at least 1.5 s after the previous one, a failed one included. The library's own wait is off (`interval=None`). With a fake clock, four requests gave three sleeps of 1.5 s.
+- **The stop.** `PushbackStop` (a response hook) plus `stopped_hook` (a request hook) stop the run at the first 429, 503 or "sorry" page, and every later batch returns `paused` without starting a decoder.
+- **Checked on httpx 0.28.1:** the response hook fires on a **redirect response**. A POST that redirected to the "sorry" path set the stop, and the sorry hop itself was never requested (only the first path was contacted).
+- **Plants (each one undone; all fail tests):**
+
+| Plant | Result |
+|---|---|
+| pacer not hooked | 2 failed |
+| stop not observed | 4 failed |
+| stopped hook removed | 4 failed |
+| 503 not a stop | 2 failed |
+| sorry only via the location header | 1 failed |
+| no early pause per batch | 1 failed |
+| hook ignores userinfo and port | 2 failed |
+| library interval set to 0 | 1 failed |
+| 1.5 s floor removed | 1 failed |
+
+**Docstring fixed.** It now states that the library requests only its own fixed URLs and that the hooks are the real controls.
+
+**Notes (not blocking).**
+- 403 is not a stop. `PUSHBACK_STATUSES = (429, 503)` follows NP0's list for this service, but omenix's own refusal set is `(403, 429)` (`nse_pacer.REFUSAL_STATUS_CODES`). Requests are now paced, so a run of 403s cannot hammer the service; adding 403 would match P2's rule. I recommend it.
+- "One instance is one run." `build_link_resolver` makes a new resolver on every call. NP2c must build it once per run, or the stop and the pacer reset between calls. Pin that in NP2c.
+- An explicit `:443` is normalised away by httpx before the hook sees it, as the story says. `clean_https_link` already refuses it before the link is handed over.
+
+**Verdict: PASS round 2 at 356b149.**
