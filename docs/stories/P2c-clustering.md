@@ -33,6 +33,25 @@ this plan only turns them into files and tests. **P2c is a pure function: no I/O
   and are reported by count. Plant: drop a singleton.
 - Privacy: no function returns or logs a title; clusters hold keys only. The master privacy marker test runs through clustering.
 
+## How it meets the Record, the version, the output and the privacy surface
+
+- **Reads, never writes (P2c has no I/O).** The reader that feeds it is P2d: it lists `news/articles/` and reads each article file
+  from the Record (revisions are NOT inputs: the first file is the story's text of record; a revision only matters to a reader
+  who asks for it). P2c itself takes `Article` values, so the Record cannot be mutated from here; the P2d wiring test proves the
+  reader has no `put`.
+- **Versioned clusterer.** `ALGORITHM_VERSION` is a constant written in the cluster file header (design D6); a changed
+  threshold, window, stage or entity list bumps it, and a new version writes a new path, never over an old file (invariant 7).
+- **Point in time.** The input rule is the design's: articles with `first_seen_at` at or before the window end and effective time
+  `e = max(published, first_seen_at)` inside the window. The same inputs give the same bytes; a rerun is a no-op.
+- **Output (P2d, not P2c).** One cluster file per run in the Record, `news/clusters/<algorithm version>/<window end>.json`, write-once,
+  with a SHA-256 receipt and a manifest row like an article. P2c returns the values only.
+- **Privacy surface.** A cluster holds the cluster id, member **keys** (hashes), `previous_cluster_ids`, counts and the header.
+  No title, URL, query or feed id appears in any value, log line or alert; the P2c privacy test runs the marker headline and URL
+  through clustering and searches every returned value and every log line.
+- **New risks.** (1) Cost: pairwise comparison inside a window is O(n²); a window of 1,000 to 3,000 articles is fine, and shingle
+  buckets are the next step if it is not (reasoning only; not measured). (2) The entity list can raise or lower the bar, so a wrong
+  entry changes which stories merge, never whether an article is kept (invariant 4 holds regardless).
+
 ## What I cannot prove, said plainly
 
 - **The threshold and the window length have no real data behind them yet.** The design says they are set from collected data;
