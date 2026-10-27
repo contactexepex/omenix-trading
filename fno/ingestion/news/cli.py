@@ -75,10 +75,12 @@ def cmd_news_promote(args, out=print) -> int:
     return 0 if ok else 1
 
 
-GUARD_ALERT = (
-    "Omenix F&O news promote: the news manifest is {code}; it was NOT committed. Re-run the same --from..--to range "
-    "to repair the missing rows (a later run heals only the days its range covers)"
-)
+GUARD_ALERTS = {  # fixed texts: codes only, never a row, a path or a title
+    codes.MANIFEST_BROKEN: "Omenix F&O news promote: news manifest: manifest_broken; commit skipped; "
+    "re-run the same --from..--to range to repair (a later run heals only the days its range covers)",
+    codes.MANIFEST_ROW_SKIPPED: "Omenix F&O news promote: news manifest: manifest_row_skipped; commit skipped; "
+    "a row of the manifest is not whole: fix by hand",
+}
 
 
 def cmd_news_check_manifest(args, out=print) -> int:
@@ -89,9 +91,10 @@ def cmd_news_check_manifest(args, out=print) -> int:
     from fno.ingestion.news.record.manifest import NewsManifest
     from fno.ingestion.news.wiring import POLL_LOG_FOLDER
 
-    if NewsManifest(args.folder or POLL_LOG_FOLDER).well_formed():
+    problem = NewsManifest(args.folder or POLL_LOG_FOLDER).problem()
+    if problem is None:
         out("news manifest: whole")
         return 0
-    out(f"news manifest: {codes.MANIFEST_BROKEN}")
-    out(build_alert_sender().send(GUARD_ALERT.format(code=codes.MANIFEST_BROKEN)))
+    out(f"news manifest: {problem}")
+    out(build_alert_sender().send(GUARD_ALERTS[problem]))
     return 1

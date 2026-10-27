@@ -138,7 +138,8 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   time), and a receipt without its row is harmless. Tested with real git against a bare origin.
 - **Healing is range-bound (runbook):** the rows of a killed run are re-added only by a later promote whose `--from`..`--to`
   covers those days (the idempotent re-promote); a plain daily run does not heal an older gap. The alert says so: "re-run the
-  same --from..--to range". The owner's schedule should cover recent days.
+  same --from..--to range" for a torn file (`manifest_broken`), and "fix by hand" for a not-whole row in a complete file
+  (`manifest_row_skipped`); fixed texts, codes only. A last row that is whole but has no new line is also `manifest_broken`. The owner's schedule should cover recent days.
 - **Follow-up, not blocking (judge 48):** `kinds_ever_listed` reads every feed-list version without checking each against the
   hashes in `feed_lists.csv`, so an edited version could change a kind silently. The list is private and write-once, the fetch job
   owns the ledger, and a wrong kind gives a duplicate, not a loss. Decide later whether to harden it.
