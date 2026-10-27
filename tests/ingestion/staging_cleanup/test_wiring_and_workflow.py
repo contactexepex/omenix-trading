@@ -81,3 +81,18 @@ def test_a_news_free_run_never_reads_the_feed_list(monkeypatch, tmp_path):
     monkeypatch.setattr(wiring, "PrivateFeedLists", lambda store: SimpleNamespace(kinds_ever_listed=broken))
     cleanup = wiring.build_staging_cleanup(False, 10, ["nse"])
     assert set(cleanup.proofs) == {"nse"}
+
+
+def test_the_fingerprints_adapter_finds_a_record_files_row_by_its_file_name(tmp_path):
+    from datetime import date
+
+    from fno.ingestion.storage.manifest_folder import Fingerprint
+    from fno.ingestion.storage.source_lists import RAW_SOURCES
+
+    source = RAW_SOURCES[0]
+    path = source.path_for(date(2026, 10, 1))
+    manifests = ManifestFolder(tmp_path / "manifests")
+    manifests.record(source, Fingerprint.of(source, path, b"bytes"))
+    adapter = wiring.ArchiveFingerprints(manifests)
+    assert adapter.sha256_of(path) == Fingerprint.of(source, path, b"bytes").sha256
+    assert adapter.sha256_of("nowhere/x.csv") is None

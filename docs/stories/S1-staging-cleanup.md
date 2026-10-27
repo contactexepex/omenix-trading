@@ -55,9 +55,9 @@ a missing article; one that trashes a copy younger than 7 days (or exactly 7); a
   (`StagingCleanup`, report-only without a deleter), `wiring.py` (composition root, docstring states the code-level limit), `cli.py`
   (`python -m fno staging cleanup [--apply] [--limit N] [--source TAG]`); `StagingArea` gained read-only `stamps`, `read`, `archive_paths`;
   `.github/workflows/staging-cleanup.yml` is dispatch-only, `apply` off by default, in the `pipeline-staging` concurrency group.
-- **Tests** (`tests/ingestion/staging_cleanup/`): 43, offline. Contract rows E1 to E3. Eleven deliberate breaks each fail a test: deleter accepts any
+- **Tests** (`tests/ingestion/staging_cleanup/`): 63, offline. Contract rows E1 to E5. Eleven deliberate breaks each fail a test: deleter accepts any
   path, no second check before Drive, stamp not validated, an un-promoted copy proven, any Record file counts (bytes not compared), a doubt
-  proves, a news poll trashed, exactly 7 days trashed, age ignored, a failed trash counted as trashed, an already-gone counted as trashed,
+  proves, a news poll trashed while an article is not in the Record, exactly 7 days trashed, age ignored, a failed trash counted as trashed, an already-gone counted as trashed,
   a deleter built without `apply`.
 - **Not testable offline:** the real Drive trash call. The first live run is a report-only dispatch by the owner.
 - Existing tests edited: the subcommand list and count (`staging`), the pinned-installs count (18 workflows), and the pause-log test's
