@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import os
 
+from fno.ingestion.storage.data_store import new_run_id
 from fno.ingestion.storage.data_wiring import receipt_folder
 from fno.ingestion.storage.drive_items import DriveItems
 from fno.ingestion.storage.folder_merge import FolderMerge
+from fno.ingestion.storage.receipt_rebuild import ReceiptRebuild
 from fno.ingestion.storage.receipt_repair import ReceiptRepair
 from fno.ingestion.storage.wiring import OWNER_UPLOAD_SETTINGS, build_owner_drive
 
@@ -26,3 +28,8 @@ def build_folder_merge(env=os.environ) -> FolderMerge:
 
 def build_receipt_repair(env=os.environ) -> ReceiptRepair:
     return ReceiptRepair(DriveItems(_owner_drive(env)), receipt_folder())
+
+
+def build_receipt_rebuild(env=os.environ) -> ReceiptRebuild:
+    """Reads the owner's Drive, writes only `receipts/` (story RR1)."""
+    return ReceiptRebuild(_owner_drive(env), receipt_folder(), new_run_id())
