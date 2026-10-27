@@ -1005,7 +1005,7 @@
    "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_it_refuses_a_trailing_line_break_included"
   ],
   "file": "fno/ingestion/news/feeds.py",
-  "old": "|q-[0-9a-f]{8})",
+  "old": "|q-[0-9a-f]{12})",
   "new": "|)"
  }
 ]

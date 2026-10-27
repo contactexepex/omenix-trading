@@ -100,7 +100,7 @@ def test_the_ids_a_feed_list_accepts(good):
         "feed-01\n",
         "q-0123456789ab\n",
         "x-0123456789ab",
-        "q-0123456789ab",
+        "q-0123456789ab\n",
         "",
     ],
 )
