@@ -47,6 +47,9 @@ a missing article; one that trashes a copy younger than 7 days (or exactly 7); a
   (`NseCopyProof`). News polls: the Record keeps an article's fields (title, summary, canonical link, times), NOT the raw poll, which also holds
   the full body, author, categories and, for wrapper items, the real link. Removing a poll is therefore NOT lossless, so it is the owner's
   decision. Owner chose (b), trash after promote, built as `NewsPollProof` (`news_proof.py`): a poll is trashed only when every article in it is in the Record. What that permanently loses once the 30-day Drive trash expires: the poll's body, author, categories and wrapper-item real links, none of which the Record keeps.
+- **Errors are loud, never silent (S1b, contract row E6):** a proof never swallows an error. If it cannot decide (Drive down, a damaged index, a
+  bug) `StagingCleanup` keeps the copy, counts `proof_error` and turns the run red with an alert. A damaged staged poll that is not a refused poll
+  therefore reds every run until it is fixed; that is intended (an undecidable copy keeps its data and keeps being reported).
 - **Before emptying the Drive trash:** read the run's report first. A trashed copy is recoverable for about 30 days; emptying the trash by hand makes
   the removal permanent, and for news polls that is the loss stated above.
 - **What cleaning staging does and does not do:** staging is in the private Drive, not in GitHub, so this saves Drive storage only; the

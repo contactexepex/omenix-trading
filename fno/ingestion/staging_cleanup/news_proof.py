@@ -12,7 +12,8 @@ left staged on purpose, which are re-read on every run):
 - NONE of its items was rejected (a rejected item stays staged with its code), and it has at least one article;
 - EVERY article is already held by the Record exactly as the writer would treat it (a NO_OP in the writer's own rule,
   `ArticlePlanner`, in the article file or the revision file of that version) AND has its manifest row.
-An unreadable Record, a revision-name collision or any error answers False."""
+A refused poll answers False. Any other error (Drive down, a collision, a bug) is NOT swallowed here: it propagates and
+`StagingCleanup` keeps the copy, counts it as `proof_error` and turns the run red."""
 
 from __future__ import annotations
 
@@ -45,9 +46,7 @@ class NewsPollProof(PromotedProof):
             if reading.rejected or not reading.articles:
                 return False
             return all(self._held(article) for article in reading.articles)
-        except PollRejected:
-            return False
-        except Exception:  # noqa: BLE001 - any doubt (Drive down, a collision, a damaged file) keeps the poll
+        except PollRejected:  # the one expected refusal: the gate left such a poll staged
             return False
 
     def _held(self, article: Article) -> bool:
