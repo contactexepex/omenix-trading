@@ -121,3 +121,13 @@ def test_an_entity_encoded_tag_is_stripped_and_does_not_hide_a_sentence_end():
     assert snippet == "Zzalpha Ltd. reported a profit of Rs. 500 crore. Shares rose 4%."
     assert "&lt;" not in snippet and "<" not in snippet and sentences(clean(body))[-1] == "Shares rose 4%."
     assert summary_extract("Tom &amp; Jerry &rsquo;s plan.") == "Tom & Jerry ’s plan."
+
+
+def test_comparison_signs_in_the_text_are_kept_and_only_real_tags_and_comments_go():
+    """Judge 119 C1: after entities are decoded first, '<' and '>' between words must not be read as a tag."""
+    assert (
+        summary_extract("EPS &lt; Rs 5 this year and margin &gt; 10% next.")
+        == "EPS < Rs 5 this year and margin > 10% next."
+    )
+    assert summary_extract("&lt;p&gt;A.&lt;/p&gt;&lt;p&gt;B&lt;/p&gt;") == "A. B"
+    assert summary_extract("<!-- c -->x<br/>y") == "x y"

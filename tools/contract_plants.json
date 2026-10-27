@@ -1694,6 +1694,15 @@
   "new": "text = html.unescape(_TAGS.sub(\" \", body[:MAX_SCAN]))"
  },
  {
+  "id": "A10",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_comparison_signs_in_the_text_are_kept_and_only_real_tags_and_comments_go"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "_TAGS = re.compile(r\"</?[A-Za-z!][^<>]*>\")",
+  "new": "_TAGS = re.compile(r\"<[^<>]*>\")"
+ },
+ {
   "id": "T1",
   "tests": [
    "tests/ingestion/news/tagging/test_tagger.py::test_the_summary_is_used_only_when_the_title_names_nobody_and_then_only_as_mentioned",

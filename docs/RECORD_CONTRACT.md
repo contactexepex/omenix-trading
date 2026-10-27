@@ -323,6 +323,7 @@ Owner decision E1 = YES (logged in `conversations/2026-10-28.md`): the read file
 | A7 | Only format 2 with exactly its keys is a read file; an old format, an unknown key or a missing snippet field is refused. | `parse_read`, `FORMAT` | `tests/ingestion/news/reads/test_snippet.py::test_a_file_of_the_old_format_or_with_an_unknown_key_is_refused`<br>`tests/ingestion/news/reads/test_snippet.py::test_the_snippet_is_its_own_field_the_body_hash_and_length_are_unchanged_and_nothing_prints_it` | format 1 written | **tested, plant run** |
 | A8 | A hostile run of full stops is split in linear time (a run is matched once, from its start, possessively). | `_STOP` | `tests/ingestion/news/reads/test_snippet.py::test_a_hostile_run_of_full_stops_is_read_in_linear_time` | every start position tried | **tested, plant run** |
 | A9 | An entity-encoded tag in the body is decoded and then stripped, so no markup is stored and a sentence end beside it still splits. | `clean` | `tests/ingestion/news/reads/test_snippet.py::test_an_entity_encoded_tag_is_stripped_and_does_not_hide_a_sentence_end` | tags stripped before entities decoded | **tested, plant run** |
+| A10 | Comparison signs between words are kept; only a tag or comment (a `<` followed by a letter, `/` or `!`) is stripped. | `_TAGS` | `tests/ingestion/news/reads/test_snippet.py::test_comparison_signs_in_the_text_are_kept_and_only_real_tags_and_comments_go` | any `<...>` is a tag | **tested, plant run** |
 
 ## The tagger (NP5a)
 

@@ -16,7 +16,7 @@ ABBREVIATIONS = frozenset(
     {"rs.", "mr.", "mrs.", "ms.", "dr.", "ltd.", "co.", "no.", "vs.", "inc.", "sr.", "jr.", "st."}
 )
 
-_TAGS = re.compile(r"<[^<>]*>")
+_TAGS = re.compile(r"</?[A-Za-z!][^<>]*>")  # a tag or comment starts with a letter or "!": "EPS < 5 and > 3" is text
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]+")
 _STOP = re.compile(r"(?<![.!?।])[.!?।]++(?=\s+\S)")  # a run of stops, then space, then something follows
 
