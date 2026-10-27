@@ -1487,7 +1487,8 @@
   "tests": [
    "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_that_could_carry_a_body_is_refused",
    "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_round_trips_holds_facts_only_and_is_deterministic",
-   "tests/ingestion/news/reads/test_pass.py::test_the_read_file_holds_no_body_and_the_line_holds_no_link_key_or_host"
+   "tests/ingestion/news/reads/test_pass.py::test_the_read_file_holds_only_a_short_snippet_and_the_line_holds_no_link_key_or_host",
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_is_in_the_read_file_only_never_in_a_report_a_manifest_a_receipt_or_the_rest_of_the_drive"
   ],
   "file": "fno/ingestion/news/reads/read_file.py",
   "old": "        if len(data) > MAX_BYTES:",
@@ -1500,8 +1501,8 @@
    "tests/ingestion/news/reads/test_extract_and_file.py::test_the_access_outcome"
   ],
   "file": "fno/ingestion/news/reads/extract.py",
-  "old": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), not free_to_read(node),",
-  "new": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), False,"
+  "old": "paywalled = not free_to_read(node)",
+  "new": "paywalled = False"
  },
  {
   "id": "Y12",
@@ -1576,7 +1577,7 @@
  {
   "id": "Y18",
   "tests": [
-   "tests/ingestion/news/reads/test_extract_and_file.py::test_five_long_names_in_a_three_byte_script_still_fit_the_read_file"
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_five_long_names_and_a_full_snippet_in_a_three_byte_script_still_fit_the_read_file"
   ],
   "file": "fno/ingestion/news/reads/read_file.py",
   "old": "ensure_ascii=False).encode(\"utf-8\")",
@@ -1590,6 +1591,116 @@
   "file": "fno/ingestion/news/reads/cli.py",
   "old": "from fno.ingestion.news.reads.limits import PAGES",
   "new": "from fno.ingestion.news.reads.run import PAGES"
+ },
+ {
+  "id": "A1",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_only_the_first_three_sentences_are_kept"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "MAX_SENTENCES = 3",
+  "new": "MAX_SENTENCES = 4"
+ },
+ {
+  "id": "A2",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_never_passes_the_character_cap_and_ends_at_a_word_boundary"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "MAX_CHARS = 600",
+  "new": "MAX_CHARS = 6000"
+ },
+ {
+  "id": "A2b",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_never_passes_the_character_cap_and_ends_at_a_word_boundary"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "return (head.rsplit(\" \", 1)[0] if \" \" in head and text[MAX_CHARS] != \" \" else head).rstrip()",
+  "new": "return head.rstrip()"
+ },
+ {
+  "id": "A3",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_full_stop_after_rs_or_a_title_before_a_number_or_a_lower_case_word_is_not_a_sentence_end"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "return not (following.isdigit() or following.islower())",
+  "new": "return True"
+ },
+ {
+  "id": "A3b",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_full_stop_after_rs_or_a_title_before_a_number_or_a_lower_case_word_is_not_a_sentence_end"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "return word in ABBREVIATIONS",
+  "new": "return False"
+ },
+ {
+  "id": "A4",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_paywalled_page_and_a_meta_only_page_keep_no_snippet"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "\"\" if paywalled else summary_extract(",
+  "new": "summary_extract("
+ },
+ {
+  "id": "A5",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_short_partial_page_gives_its_whole_short_body_under_the_same_caps",
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_is_its_own_field_the_body_hash_and_length_are_unchanged_and_nothing_prints_it"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "facts.provider, facts.summary_extract,",
+  "new": "facts.provider, \"\","
+ },
+ {
+  "id": "A6",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_is_its_own_field_the_body_hash_and_length_are_unchanged_and_nothing_prints_it"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "summary_extract: str = field(default=\"\", repr=False)",
+  "new": "summary_extract: str = field(default=\"\")"
+ },
+ {
+  "id": "A7",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_file_of_the_old_format_or_with_an_unknown_key_is_refused",
+   "tests/ingestion/news/reads/test_snippet.py::test_the_snippet_is_its_own_field_the_body_hash_and_length_are_unchanged_and_nothing_prints_it"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "FORMAT = 2",
+  "new": "FORMAT = 1"
+ },
+ {
+  "id": "A8",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_hostile_run_of_full_stops_is_read_in_linear_time"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "(?<![.!?।])[.!?।]++(?=",
+  "new": "[.!?।]+(?="
+ },
+ {
+  "id": "A9",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_an_entity_encoded_tag_is_stripped_and_does_not_hide_a_sentence_end"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "text = _TAGS.sub(\" \", html.unescape(body[:MAX_SCAN]))",
+  "new": "text = html.unescape(_TAGS.sub(\" \", body[:MAX_SCAN]))"
+ },
+ {
+  "id": "A10",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_comparison_signs_in_the_text_are_kept_and_only_real_tags_and_comments_go"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "_TAGS = re.compile(r\"</?[A-Za-z!][^<>]*>\")",
+  "new": "_TAGS = re.compile(r\"<[^<>]*>\")"
  },
  {
   "id": "T1",
@@ -2476,6 +2587,33 @@
   "file": "fno/ingestion/news/text_rules.py",
   "old": "\"\\u00a0\": \" \"})",
   "new": "\"\\u00a0\": \"\\u00a0\"})"
+ },
+ {
+  "id": "F21",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_no_break_space_beside_the_separator_is_cut_with_it_and_the_headline_keeps_its_own_text"
+  ],
+  "file": "fno/ingestion/news/text_rules.py",
+  "old": "head = fold(title[: -len(name)])",
+  "new": "head = title[: -len(name)]"
+ },
+ {
+  "id": "F22",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used"
+  ],
+  "file": "fno/ingestion/news/cluster/matcher.py",
+  "old": "form = title_form(article.title, article.source)",
+  "new": "form = title_form(article.title)"
+ },
+ {
+  "id": "F22b",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_the_version_two_preparer_also_hands_the_source_to_the_title_form"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "shingles(title_form(article.title, article.source))",
+  "new": "shingles(title_form(article.title))"
  },
  {
   "id": "B1",

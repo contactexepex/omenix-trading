@@ -17,10 +17,11 @@ def fold(text: str) -> str:
 def without_outlet(title: str, source: str | None) -> str:
     """A title without a trailing " - Outlet" or " | Outlet" naming the source (Google News adds it), so the outlet's
     own name never tags. Only after a separator: a title that ends in the source's name as a word keeps it. The match
-    is on folded text but the cut is on the title given (`fold` swaps one character for one), so quotes survive."""
+    and the separator test are on folded text but the cut is on the title given (`fold` swaps one character for one,
+    so lengths agree and quotes survive); a no-break space beside the separator is a space."""
     name = fold(source or "").strip()
     if name and fold(title)[-len(name) :].lower() == name.lower():
-        head = title[: -len(name)]
+        head = fold(title[: -len(name)])
         if head.rstrip() != head and head.rstrip().endswith(tuple(_SEPARATORS.strip())):
-            return head.rstrip(_SEPARATORS)
+            return title[: len(head.rstrip(_SEPARATORS))]
     return title
