@@ -90,8 +90,10 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
 - **One bad item never costs the poll its others (judge 46 K1).** A link the standard library cannot parse (a bad port, a broken
   IPv6 host) is counted as `item_unreadable` and the rest of the poll is read; a wrapper item does not use its link, so it is kept.
   A time that overflows, or has a year outside 1990-2100, is no time (RFC 822 reads "01 Jan 0001", a feed's minimum-date default,
-  as 2001): the item is kept as `seen`. This is not an age check; nothing is rejected for its time.
-- **Proof:** 67 offline tests on synthetic feeds; mutation plants on every check, the XML scan (declaration list, case, NUL view,
+  as 2001, so on the RFC 822 path only the year as written is checked): the item is kept as `seen`. A fraction (`.1234`), a comma
+  fraction or a basic `T1234` time is never read as a year, and `00010101T000000+0500` (no standalone year, overflows on conversion)
+  is no time rather than an error. This is not an age check; nothing is rejected for its time.
+- **Proof:** 75 offline tests on synthetic feeds; mutation plants on every check, the XML scan (declaration list, case, NUL view,
   cap), the parser's refusal order, the link choice, the tracking list, the zone rule, the separator, the key inputs, the fixed
   fields and the reconciliation count each fail a test. Two plants first survived because a test built its input from the constant
   it protected; the numbers are now pinned.

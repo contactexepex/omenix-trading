@@ -50,6 +50,10 @@ def test_a_non_default_port_and_a_blank_value_are_kept():
         ("2026-10-27T08:00:00+05:30", datetime(2026, 10, 27, 2, 30, tzinfo=UTC), PUBLISHED),
         ("2026-10-27T08:00:00", datetime(2026, 10, 27, 8, 0, tzinfo=UTC), ASSUMED_UTC),  # no zone: UTC, flagged
         ("2031-01-01T00:00:00Z", datetime(2031, 1, 1, tzinfo=UTC), PUBLISHED),  # the future is accepted, never rejected
+        # judge 46 E2: four digits after a decimal point, a comma or a T are a fraction or a time, never a year
+        ("2026-10-26T10:00:00.1234Z", datetime(2026, 10, 26, 10, 0, 0, 123400, tzinfo=UTC), PUBLISHED),
+        ("2026-10-26T10:00:00,1234Z", datetime(2026, 10, 26, 10, 0, 0, 123400, tzinfo=UTC), PUBLISHED),
+        ("2026-10-26T1234Z", datetime(2026, 10, 26, 12, 34, tzinfo=UTC), PUBLISHED),
         ("", None, SEEN),
         ("last Tuesday", None, SEEN),
     ],
@@ -142,3 +146,9 @@ def test_a_wrapper_article_holds_no_url_and_an_item_without_a_time_is_kept_as_se
     wrapper = build_article(WRAPPER, item(link="https://wrapper.example/redirect?x=1", guid="g", published=""), SEEN_AT)
     assert wrapper.canonical_url == "" and wrapper.time_source == SEEN and wrapper.published_at == ""
     assert b"redirect" not in wrapper.to_bytes()
+
+
+@pytest.mark.parametrize("text", ["00010101T000000+0500", "99991231T235959-0500"])
+def test_a_time_with_no_standalone_year_that_overflows_on_conversion_is_no_time_not_an_error(text):
+    """judge 46 E1: the year pre-check cannot see these, so the OverflowError clause is what keeps them from raising."""
+    assert parse_time(text) == (None, SEEN)
