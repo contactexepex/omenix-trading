@@ -1916,5 +1916,14 @@
   "file": "fno/ingestion/news/tagging/text.py",
   "old": "if name and title.lower().endswith(name.lower()):",
   "new": "if name and title.endswith(name):"
+ },
+ {
+  "id": "U16",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_the_view_hands_the_articles_source_to_the_tagger"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "self.tagger.tag(article.title, article.summary, article.source)",
+  "new": "self.tagger.tag(article.title, article.summary)"
  }
 ]

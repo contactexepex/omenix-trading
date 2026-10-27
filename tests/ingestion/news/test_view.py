@@ -109,3 +109,14 @@ def test_the_outlet_suffix_of_a_title_never_makes_the_view_material():
     assert VIEWER.view(
         article(canonical_url=url, title="Zzalpha merger talks - Pub Daily", source="Pub Daily")
     ).material
+
+
+def test_the_view_hands_the_articles_source_to_the_tagger():
+    """Judge 95 addendum: the only production path of the outlet-suffix rule (judge 92 F2) for the tag."""
+    outlet = article(
+        canonical_url="https://pub.example/news/a", title="Markets close higher - Zzalpha", source="Zzalpha"
+    )
+    assert VIEWER.view(outlet).tag.symbols == ()
+    assert VIEWER.view(
+        article(canonical_url="https://pub.example/news/a", title="Zzalpha shares rise")
+    ).tag.primary == ("ZZAL",)
