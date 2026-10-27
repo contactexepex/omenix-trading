@@ -196,9 +196,17 @@ repository's logs and Drive.
   policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged. The session
   also pins the `urllib3` logger to WARNING, because at DEBUG it logs the host and the full request line, query included
   (judge 44 F1; tested through the real session against a local HTTP server with DEBUG captured).
+- **A bad host or any unexpected error (judge 45 S3).** The feed-list check refuses a host that cannot be encoded (for example
+  `a..b`) up front; the fetch loop turns any exception, not only a request error, into the code `fetch_failed`; and the command
+  turns anything unexpected into one fixed line (`news fetch stopped: unexpected_error <ClassName>`) plus a #fno-desk alert,
+  never a traceback, because a message can carry a URL.
+- **The salt is stable and secret.** It is a fixed random value inside the private `feeds-v<N>.json` (so the logged hash is the
+  same on every run and edit detection never false-alarms), it is used only to make the committed hash unguessable, and it is
+  never copied into any committed file (tested).
 - **Hosts stay out of the committed pause log (judge 44 F3).** The shared pacer's committed log and its #fno-desk alerts name
   the host. The news session therefore has its own pacer (`NEWS_PACER`), never attached to either: a news pause lasts for the
-  run only, with no memory across runs (the workflow is manual). Tested with the real pacer, with a control showing the shared
+  run only, with no memory across runs (the workflow is manual): a pause by Google is not carried to the next run, which asks
+  once more, as the Yahoo block rule does (A17e). Tested with the real pacer, with a control showing the shared
   session does write the host. The alternative, declaring the news hosts non-private and using the shared pacer for
   cross-run memory, is the orchestrator's and owner's call; this is the safe default.
 - **Answers:** a redirect, or a 200 without a feed root element, is `block_page`; 403/429 is `refused`; both stop the rest of
@@ -209,7 +217,7 @@ repository's logs and Drive.
   the bytes.
 - **Not in P2a:** the gate (P2b), clustering (P2c), the cluster record (P2d), the article key, the revision handling and the
   per-poll reconciliation of items: they need the parsed items.
-- **Proof:** 64 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
+- **Proof:** 68 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
   over a planted marker URL, query, host and headline, the failure paths and DEBUG logging; mutation plants on the cookie policy,
   redirects, the feed check, the host stop, file-first ordering, the privacy paths, the version rules, the alert and the schedule.
   One plant survives and is equivalent: `return_ok` returning True changes nothing while `set_ok` stores no cookie.

@@ -4,6 +4,7 @@ used, is alerted to #fno-desk as the same line: no feed, URL, query or title is 
 
 from __future__ import annotations
 
+from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedListError
 
 ALERT = "Omenix F&O news fetch: {line}"
@@ -26,6 +27,8 @@ def cmd_news_fetch(args, out=print) -> int:
         line, ok = report.line(), report.ok
     except FeedListError as stopped:
         line, ok = STOPPED_LINE.format(code=stopped), False
+    except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
+        line, ok = STOPPED_LINE.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}"), False
     out(line)
     if not ok:
         out(build_alert_sender().send(ALERT.format(line=line)))

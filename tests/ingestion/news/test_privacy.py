@@ -10,6 +10,7 @@ import logging
 import re
 from pathlib import Path
 
+import pytest
 import requests
 
 from fno.ingestion.news import cli as news_cli
@@ -89,3 +90,58 @@ def test_no_feed_url_is_in_the_committed_tree():
     assert len(scanned) > 100  # the walk found the code
     found = [f"{p.relative_to(ROOT)}" for p in scanned if pattern.search(p.read_text("utf-8"))]
     assert found == []
+
+
+# ---- judge 45 S3: an error that is not a RequestException, and the salt ------------------------
+
+
+def test_a_bad_host_is_refused_by_the_feed_list_up_front():
+    from fno.ingestion.news import codes
+    from fno.ingestion.news.feeds import parse_feed_list
+    from tests.ingestion.news.fakes import feed_list_bytes
+
+    with pytest.raises(FeedListError, match=codes.FEED_LIST_INVALID):
+        parse_feed_list(feed_list_bytes(f"https://a..b/{MARK_PATH}?q={MARK_QUERY}"), 1)
+
+
+def test_an_error_that_is_not_a_request_error_is_a_fixed_code_and_never_carries_the_marker(tmp_path, caplog, capsys):
+    from fno.ingestion.news import codes
+
+    caplog.set_level(logging.DEBUG)
+    drive = LocalFolderStore(tmp_path / "drive")
+    put_version(drive, 1, FEED_URL)
+    boom = UnicodeError(f"label empty or too long: {FEED_URL} {MARK_HEADLINE}")  # not a RequestException
+    log = NewsSnapshotLog(tmp_path / "repo")
+    fetcher = NewsFetcher(Session(**{FEED_URL: boom}), StagingArea(drive), log, lambda: NOW)
+    run = NewsFetchJob(PrivateFeedLists(drive), fetcher, log, lambda: NOW)
+    assert run.run().counts == {codes.FETCH_FAILED: 1}
+    assert not leaks(caplog.text + capsys.readouterr().out)
+
+
+def test_anything_the_command_does_not_expect_is_a_fixed_line_and_an_alert_never_a_traceback(monkeypatch, capsys):
+    alerts, printed = [], []
+
+    def explode():
+        raise RuntimeError(f"drive said no to {FEED_URL} {MARK_HEADLINE}")
+
+    monkeypatch.setattr("fno.ingestion.news.wiring.build_news_fetch", explode)
+    monkeypatch.setattr(
+        "fno.ingestion.composition.build_alert_sender",
+        lambda: type("A", (), {"send": lambda self, text: alerts.append(text) or text})(),
+    )
+    assert news_cli.cmd_news_fetch(None, out=printed.append) == 1
+    assert printed[0] == "news fetch stopped: unexpected_error RuntimeError" and len(alerts) == 1
+    assert not leaks(" ".join(printed + alerts) + capsys.readouterr().out)
+
+
+def test_the_salt_is_stable_across_runs_and_never_written_to_any_committed_file(tmp_path):
+    from tests.ingestion.news.fakes import SALT
+
+    drive, repo = LocalFolderStore(tmp_path / "drive"), tmp_path / "repo"
+    put_version(drive, 1, FEED_URL)
+    log = NewsSnapshotLog(repo)
+    for _ in range(2):  # the same file read twice gives the same logged hash: no false 'edited' alarm
+        fetcher = NewsFetcher(Session(**{FEED_URL: Reply()}), StagingArea(drive), log, lambda: NOW)
+        assert NewsFetchJob(PrivateFeedLists(drive), fetcher, log, lambda: NOW).run().counts.get("damaged") is None
+    committed = "".join(p.read_text("utf-8") for p in repo.rglob("*") if p.is_file())
+    assert SALT not in committed and len(log.used_feed_lists()) == 1

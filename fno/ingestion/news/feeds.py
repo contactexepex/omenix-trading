@@ -53,13 +53,20 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
     except (UnicodeDecodeError, ValueError, KeyError, TypeError):
         raise FeedListError(codes.FEED_LIST_INVALID) from None
     ids = [feed.feed_id for feed in feeds]
+    try:
+        hosts_ok = all(
+            f.host and f.host.encode("idna") for f in feeds
+        )  # a host urllib3 would fail on is refused up front
+    except (ValueError, UnicodeError, TypeError, AttributeError):
+        raise FeedListError(codes.FEED_LIST_INVALID) from None
     valid = (
         isinstance(salt, str)
         and len(salt) >= MIN_SALT_LENGTH
         and 0 < len(feeds) <= MAX_FEEDS
         and len(set(ids)) == len(ids)
         and all(FEED_ID.match(i) for i in ids)
-        and all(isinstance(f.url, str) and f.url.startswith("https://") and f.host for f in feeds)
+        and hosts_ok
+        and all(isinstance(f.url, str) and f.url.startswith("https://") for f in feeds)
     )
     if not valid:
         raise FeedListError(codes.FEED_LIST_INVALID)

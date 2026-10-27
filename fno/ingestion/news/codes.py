@@ -10,6 +10,7 @@ HOST_PAUSED = "host_paused"  # the shared pacer has paused the host after earlie
 HOST_BLOCKED = "host_blocked"  # not asked: the host was blocked earlier in this run
 FETCH_FAILED = "fetch_failed"  # no answer, or an HTTP status that is not a refusal
 STAGE_FAILED = "stage_failed"  # Staging (Drive) would not take the bytes
+UNEXPECTED = "unexpected_error"  # anything else; only the exception class is ever named
 FEED_LIST_MISSING = "feed_list_missing"
 FEED_LIST_INVALID = "feed_list_invalid"
 FEED_LIST_ROLLED_BACK = "feed_list_rolled_back"  # the newest version is older than one already used

@@ -62,8 +62,8 @@ class NewsFetcher:
             response = self.session.get(feed.url, timeout=TIMEOUT_SECONDS)
         except SourceCoolingOff:
             return codes.HOST_PAUSED
-        except requests.RequestException:
-            return codes.FETCH_FAILED  # the message can carry the URL: only the code is kept
+        except Exception:  # noqa: BLE001 - a bad host raises a UnicodeError, not a RequestException; the message can carry the URL
+            return codes.FETCH_FAILED  # only the code is kept
         verdict = classify(response.status_code, response.is_redirect, response.content)
         return self._stage(feed, feeds, response.content) if verdict == codes.FETCHED else verdict
 
