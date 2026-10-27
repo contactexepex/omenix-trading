@@ -36,8 +36,8 @@ def _whole(row: dict) -> bool:
 
 
 class NewsManifest:
-    def __init__(self, folder: Path):
-        self.log = CsvRowLog(Path(folder) / FILE_NAME)
+    def __init__(self, folder: Path, file_name: str = FILE_NAME):
+        self.log = CsvRowLog(Path(folder) / file_name)
         rows = self.log.rows()
         whole = [r for r in rows if _whole(r)]
         self.skipped = len(rows) - len(whole)  # rows that are not whole: reported by the gate, never silently dropped

@@ -35,6 +35,7 @@ def add_news_parser(subparsers) -> None:
     check.add_argument(
         "folder", nargs="?", type=Path, default=None, help="the manifest folder (default: the repository's)"
     )
+    check.add_argument("--file", default=None, help="the manifest file in that folder (default: articles.csv)")
     check.set_defaults(func=cmd_news_check_manifest)
 
 
@@ -88,10 +89,10 @@ def cmd_news_check_manifest(args, out=print) -> int:
     never publish a torn line. It judges the file, not promote's exit code: a rejection still commits good rows. A
     broken manifest is loud: exit 1 and an alert."""
     from fno.ingestion.composition import build_alert_sender
-    from fno.ingestion.news.record.manifest import NewsManifest
+    from fno.ingestion.news.record.manifest import FILE_NAME, NewsManifest
     from fno.ingestion.news.wiring import POLL_LOG_FOLDER
 
-    problem = NewsManifest(args.folder or POLL_LOG_FOLDER).problem()
+    problem = NewsManifest(args.folder or POLL_LOG_FOLDER, args.file or FILE_NAME).problem()
     if problem is None:
         out("news manifest: whole")
         return 0

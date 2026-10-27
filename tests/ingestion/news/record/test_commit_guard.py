@@ -21,10 +21,15 @@ STEP = "Commit the news manifest and receipts (the manifest only when it is whol
 SHA = "b" * 64
 
 
+SCRIPT = ROOT / "ops" / "commit_news_record.sh"
+
+
 def step_script() -> str:
+    """The guard is one script that both news workflows call; the workflow step must be exactly that call."""
     flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
     (job,) = flow["jobs"].values()
-    return next(s for s in job["steps"] if s.get("name") == STEP)["run"]
+    assert next(s for s in job["steps"] if s.get("name") == STEP)["run"] == "bash ops/commit_news_record.sh"
+    return SCRIPT.read_text()
 
 
 def git(cwd, *args, check=True):
@@ -111,7 +116,7 @@ def test_the_guard_command_is_loud_and_names_the_range_bound_repair(tmp_path, mo
         "fno.ingestion.composition.build_alert_sender",
         lambda: type("A", (), {"send": lambda s, m: sent.append(m) or "sent"})(),
     )
-    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR})()
+    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR, "file": None})()
     assert news_cli.cmd_news_check_manifest(args, out=printed.append) == 1
     assert printed[0] == "news manifest: manifest_broken" and "same --from..--to range" in sent[0]
     assert "days its range covers" in sent[0]
@@ -124,7 +129,7 @@ def test_a_whole_manifest_passes_the_guard_command_and_sends_nothing(tmp_path, m
     monkeypatch.setattr(
         "fno.ingestion.composition.build_alert_sender", lambda: type("A", (), {"send": lambda s, m: sent.append(m)})()
     )
-    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR})()
+    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR, "file": None})()
     assert news_cli.cmd_news_check_manifest(args, out=lambda line: None) == 0 and sent == []
 
 
@@ -153,7 +158,7 @@ def _alert_for(tmp_path, monkeypatch, text):
         "fno.ingestion.composition.build_alert_sender",
         lambda: type("A", (), {"send": lambda s, m: sent.append(m) or ""})(),
     )
-    args = type("Args", (), {"folder": _manifest_file(tmp_path, text)})()
+    args = type("Args", (), {"folder": _manifest_file(tmp_path, text), "file": None})()
     return news_cli.cmd_news_check_manifest(args, out=printed.append), printed, sent
 
 
@@ -171,10 +176,11 @@ def test_the_alert_text_is_fixed_and_says_what_to_do_for_each_cause(tmp_path, mo
 def test_the_broken_branch_of_the_step_never_adds_the_manifest():
     """judge 49 T2, for this design: the broken branch commits receipts but must not `git add` the manifest."""
     run = step_script()
-    broken = run[run.index("\nelse") :]
-    assert 'git add "$RECEIPTS"' in broken and '"$MANIFEST"' not in broken.replace(
-        'git checkout -- "$MANIFEST"', ""
-    ).replace('rm -f "$MANIFEST"', "")
+    broken = run[run.index("\nelse") : run.index("\nfi")]
+    assert (
+        "git add" not in broken and 'git checkout -- "$MANIFEST"' in broken
+    )  # the receipts are added after the branch
+    assert run.index('git add -- "$folder"') > run.index("\nfi")  # for both outcomes
 
 
 def test_a_failed_job_always_alerts_the_desk_channel_even_when_promote_was_killed():
