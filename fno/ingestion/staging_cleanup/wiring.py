@@ -8,8 +8,10 @@ stamp), builds `staging/...` itself, and hard-refuses any path not strictly insi
 before Drive. In report-only mode no deleter is built at all. The limit is in this code, not in credentials (the one
 Drive credential is shared, as for the promotion gate), and it is pinned by tests with a Record path as the plant.
 
-News polls are not removed: the Record keeps an article's fields, not the raw poll, so a promoted poll is not lossless
-to drop. They have `KeepForever` until the owner decides; changing that is one entry in `proofs()`."""
+NSE copies are trashed only when the Record holds the same bytes AND the manifest has that file's SHA-256 (the receipt
+chain for a Record file starts at its manifest row). News polls (owner choice (b), 27 Oct 2026) are trashed once every
+article in the poll is in the Record; the raw poll's extra fields (body, author, categories, wrapper links) are then
+gone for good, because the Record keeps an article's fields, not the raw poll. Each rule is one entry in `proofs()`."""
 
 from __future__ import annotations
 
@@ -26,11 +28,14 @@ from fno.ingestion.staging_cleanup.cleanup import StagingCleanup
 from fno.ingestion.staging_cleanup.news_proof import NewsPollProof
 from fno.ingestion.staging_cleanup.proof import NseCopyProof, PromotedProof
 from fno.ingestion.staging_cleanup.trash import DriveStagingTrash
+from fno.ingestion.storage.manifest_folder import ManifestFolder, source_of
 from fno.ingestion.storage.raw_store import AreaStore
 from fno.ingestion.storage.revisions import RevisionArchive
+from fno.ingestion.storage.source_lists import RAW_SOURCES
 from fno.ingestion.storage.wiring import (
     OWNER_UPLOAD_SETTINGS,
     RAW_AREA,
+    build_manifest_folder,
     build_owner_drive,
     build_revision_archive,
 )
@@ -48,9 +53,28 @@ class ArchiveRevisionHolds:
         return any(r.sha256 == sha256 for r in self.archive.index.for_path(path))
 
 
-def proofs(record: AreaStore, archive: RevisionArchive, kinds: dict[str, str]) -> dict[str, PromotedProof]:
+class ArchiveFingerprints:
+    """Read-only: the manifest SHA-256 of a Record file (None when its dataset has no manifest or no row for it)."""
+
+    def __init__(self, manifests: ManifestFolder):
+        self.manifests = manifests
+
+    def sha256_of(self, path: str) -> str | None:
+        try:
+            source = source_of(path, RAW_SOURCES)
+        except ValueError:
+            return None
+        return self.manifests.fingerprints(source).get(path.rsplit("/", 1)[-1])
+
+
+def proofs(
+    record: AreaStore, manifests: ManifestFolder, archive: RevisionArchive, kinds: dict[str, str]
+) -> dict[str, PromotedProof]:
     news = NewsPollProof(kinds, ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER))
-    return {NSE_TAG: NseCopyProof(record, ArchiveRevisionHolds(archive)), NEWS_TAG: news}
+    return {
+        NSE_TAG: NseCopyProof(record, ArchiveFingerprints(manifests), ArchiveRevisionHolds(archive)),
+        NEWS_TAG: news,
+    }
 
 
 def build_staging_cleanup(apply: bool, limit: int, env=os.environ) -> StagingCleanup:
@@ -61,4 +85,6 @@ def build_staging_cleanup(apply: bool, limit: int, env=os.environ) -> StagingCle
     record = AreaStore(drive, RAW_AREA)
     trash = DriveStagingTrash(drive) if apply else None
     kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
-    return StagingCleanup(staging, proofs(record, build_revision_archive(env), kinds), trash, limit=limit)
+    return StagingCleanup(
+        staging, proofs(record, build_manifest_folder(), build_revision_archive(env), kinds), trash, limit=limit
+    )

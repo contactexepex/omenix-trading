@@ -367,8 +367,18 @@
    "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_is_never_trashed"
   ],
   "file": "fno/ingestion/staging_cleanup/proof.py",
-  "old": "            return (held is not None and held == copy.data) or self.revisions.holds(copy.path, digest)",
+  "old": "            return self.revisions.holds(copy.path, digest)",
   "new": "            return True"
+ },
+ {
+  "id": "E5",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_record_file_without_a_manifest_row_keeps_the_staged_copy",
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_manifest_row_for_other_bytes_keeps_the_staged_copy"
+  ],
+  "file": "fno/ingestion/staging_cleanup/proof.py",
+  "old": "                return self.fingerprints.sha256_of(copy.path) == digest",
+  "new": "                return True"
  },
  {
   "id": "E3",

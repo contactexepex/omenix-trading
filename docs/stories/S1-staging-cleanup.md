@@ -46,11 +46,10 @@ a missing article; one that trashes a copy younger than 7 days (or exactly 7); a
 - **Split by what is lossless.** NSE copies: the Record holds the same bytes, so removing a proven-promoted copy loses nothing: BUILT
   (`NseCopyProof`). News polls: the Record keeps an article's fields (title, summary, canonical link, times), NOT the raw poll, which also holds
   the full body, author, categories and, for wrapper items, the real link. Removing a poll is therefore NOT lossless, so it is the owner's
-  decision. The code has `KeepForever` for news as the default; the choices (never remove / remove after promote / archive the raw poll to the
-  Record first, then remove) are one entry in `staging_cleanup/wiring.py::proofs()`. No news poll is removed by this story.
+  decision. Owner chose (b), trash after promote, built as `NewsPollProof` (`news_proof.py`): a poll is trashed only when every article in it is in the Record. What that permanently loses once the 30-day Drive trash expires: the poll's body, author, categories and wrapper-item real links, none of which the Record keeps.
 - **What cleaning staging does and does not do:** staging is in the private Drive, not in GitHub, so this saves Drive storage only; the
   repository and clone size is the receipts story (R2).
-- **Built in `fno/ingestion/staging_cleanup/`**: `trash.py` (the narrow deleter), `proof.py` (`NseCopyProof`, `KeepForever`), `cleanup.py`
+- **Built in `fno/ingestion/staging_cleanup/`**: `trash.py` (the narrow deleter), `proof.py` (`NseCopyProof`, which also needs the manifest row, `PromotedProof`), `cleanup.py`
   (`StagingCleanup`, report-only without a deleter), `wiring.py` (composition root, docstring states the code-level limit), `cli.py`
   (`python -m fno staging cleanup [--apply] [--limit N] [--source TAG]`); `StagingArea` gained read-only `stamps`, `read`, `archive_paths`;
   `.github/workflows/staging-cleanup.yml` is dispatch-only, `apply` off by default, in the `pipeline-staging` concurrency group.

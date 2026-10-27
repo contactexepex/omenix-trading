@@ -10,7 +10,7 @@ import pytest
 
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.staging_cleanup.cleanup import MAX_AGE, StagingCleanup
-from fno.ingestion.staging_cleanup.proof import KeepForever, NseCopyProof
+from fno.ingestion.staging_cleanup.proof import NseCopyProof
 from fno.ingestion.staging_cleanup.trash import StagingTrash
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
 
@@ -27,6 +27,27 @@ class Revisions:
 
     def holds(self, path: str, sha256: str) -> bool:
         return (path, sha256) in self.held
+
+
+class Fingerprints:
+    """The manifest as the proof sees it: `rows` maps a path to its SHA-256; a path not in it has no row."""
+
+    def __init__(self, rows: dict[str, str]):
+        self.rows = rows
+
+    def sha256_of(self, path: str) -> str | None:
+        return self.rows.get(path)
+
+
+class RecordRows:
+    """A manifest that has a row for every Record file, with that file's own SHA-256 (the normal, fully promoted state)."""
+
+    def __init__(self, record: AreaStore):
+        self.record = record
+
+    def sha256_of(self, path: str) -> str | None:
+        data = self.record.get(path)
+        return None if data is None else hashlib.sha256(data).hexdigest()
 
 
 class Trash(StagingTrash):
@@ -49,8 +70,9 @@ class World:
     def stage(self, data: bytes, at: datetime, source: str = "nse", path: str = PATH) -> None:
         self.staging.stage(source, path, data, at)
 
-    def cleanup(self, trash=None, revisions=None, limit=500, proofs=None):
-        proofs = proofs or {"nse": NseCopyProof(self.record, revisions or Revisions()), "news": KeepForever()}
+    def cleanup(self, trash=None, revisions=None, limit=500, rows=None):
+        manifest = Fingerprints(rows) if rows is not None else RecordRows(self.record)
+        proofs = {"nse": NseCopyProof(self.record, manifest, revisions or Revisions())}
         return StagingCleanup(self.staging, proofs, trash, clock=lambda: NOW, limit=limit)
 
 
@@ -111,8 +133,8 @@ def test_a_source_without_a_rule_is_never_trashed(tmp_path):
     w.stage(b"poll", OLD, source="news", path="feed-01/2026/10/01/poll")
     w.stage(b"other", OLD, source="other", path="x/y")
     trash = Trash()
-    report = w.cleanup(trash).run(["news", "other"])
-    assert trash.calls == [] and report.counts["unproven"] == 1 and report.counts["no_rule"] == 1
+    report = w.cleanup(trash).run(["news", "other"])  # this world wires a rule for nse only
+    assert trash.calls == [] and report.counts["unproven"] == 0 and report.counts["no_rule"] == 2
 
 
 def test_a_failed_trash_is_counted_and_makes_the_run_not_ok(tmp_path):
@@ -138,9 +160,9 @@ def test_a_record_that_cannot_be_read_keeps_the_copy(tmp_path):
         def get(self, path):
             raise OSError("Drive down")
 
-    proof = NseCopyProof(Down(LocalFolderStore(tmp_path / "x"), "raw"), Revisions())
+    proof = NseCopyProof(Down(LocalFolderStore(tmp_path / "x"), "raw"), Fingerprints({}), Revisions())
     trash = Trash()
-    report = w.cleanup(trash, proofs={"nse": proof}).run(["nse"])
+    report = StagingCleanup(w.staging, {"nse": proof}, trash, clock=lambda: NOW).run(["nse"])
     assert trash.calls == [] and report.counts["unproven"] == 1
 
 
@@ -181,3 +203,21 @@ def test_the_walk_finds_staged_paths_at_any_depth(tmp_path, sources):
         w.stage(b"good", OLD, path=path)
         w.record.put(path, b"good")
     assert w.cleanup(None).run(sources[:1]).counts["would_trash"] == 2
+
+
+def test_a_record_file_without_a_manifest_row_keeps_the_staged_copy(tmp_path):
+    w = World(tmp_path)
+    w.stage(b"good", OLD)
+    w.record.put(PATH, b"good")
+    trash = Trash()
+    report = w.cleanup(trash, rows={}).run(["nse"])
+    assert trash.calls == [] and report.counts["unproven"] == 1
+
+
+def test_a_manifest_row_for_other_bytes_keeps_the_staged_copy(tmp_path):
+    w = World(tmp_path)
+    w.stage(b"good", OLD)
+    w.record.put(PATH, b"good")
+    trash = Trash()
+    report = w.cleanup(trash, rows={PATH: hashlib.sha256(b"other").hexdigest()}).run(["nse"])
+    assert trash.calls == [] and report.counts["unproven"] == 1

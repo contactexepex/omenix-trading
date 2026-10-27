@@ -11,6 +11,7 @@ from fno.ingestion.staging_cleanup import wiring
 from fno.ingestion.staging_cleanup.news_proof import NewsPollProof
 from fno.ingestion.staging_cleanup.proof import NseCopyProof
 from fno.ingestion.staging_cleanup.trash import DriveStagingTrash
+from fno.ingestion.storage.manifest_folder import ManifestFolder
 from fno.ingestion.storage.raw_store import LocalFolderStore
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -26,6 +27,7 @@ def built(monkeypatch, tmp_path, apply):
     monkeypatch.setattr(wiring, "build_revision_archive", lambda env=None: SimpleNamespace(index=None))
     monkeypatch.setattr(wiring, "PrivateFeedLists", lambda store: SimpleNamespace(kinds_ever_listed=lambda: KINDS))
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "manifests")
+    monkeypatch.setattr(wiring, "build_manifest_folder", lambda: ManifestFolder(tmp_path / "manifests"))
     return wiring.build_staging_cleanup(apply, 10)
 
 
@@ -59,3 +61,10 @@ def test_the_workflow_is_dispatch_only_report_only_by_default_and_each_job_seria
     text = WORKFLOW.read_text()
     assert "--source nse" in text and "--source news" in text
     assert "git push" not in text and "git commit" not in text  # it commits nothing
+
+
+def test_the_deleters_staging_root_is_the_area_the_gate_stages_into():
+    from fno.ingestion.promotion.wiring import STAGING_AREA
+    from fno.ingestion.staging_cleanup.trash import STAGING_ROOT
+
+    assert STAGING_ROOT == STAGING_AREA
