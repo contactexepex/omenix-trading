@@ -8,6 +8,7 @@ Nothing is ever deleted."""
 
 from __future__ import annotations
 
+from fno.ingestion.storage.manifest_commit import commit_failed
 from fno.shared.models import now_utc
 
 KEPT = "{path}: keep the copy created {created} ({verified}); {count} other copy(ies) emptied and renamed"
@@ -15,7 +16,6 @@ MOVE = "  move {path}"
 NOTHING = "{path}: one folder, nothing to merge"
 MERGED = "{path}: merged; every receipt under it reads back"
 RECEIPT = "{path}: receipt sha256 {sha256}, {size} bytes, written {written_at}, writer {writer}, run {run_id}"
-NOT_COMMITTED_MARK = "NOT committed"  # the committer's refusal line (manifest_commit.NOT_COMMITTED)
 RECEIPT_WHAT = "DR1-0 repair of {path}"  # the receipts committer's message names it
 
 
@@ -85,4 +85,4 @@ def cmd_receipt(args, out=print, repair=None, committer=None) -> int:
         committer = build_receipt_committer()
     line = committer.commit(RECEIPT_WHAT.format(path=args.path))
     out(line)
-    return 1 if NOT_COMMITTED_MARK in line else 0
+    return 1 if commit_failed(line) else 0

@@ -7,12 +7,11 @@ from __future__ import annotations
 import calendar
 from datetime import date, datetime, timedelta
 
-from fno.ingestion.storage.manifest_commit import exit_for_commit
+from fno.ingestion.storage.manifest_commit import commit_failed, exit_for_commit
 from fno.shared.models import today_local
 
 SUMMARY = "flows table {name}: {entered} session(s) entered ({rewritten} rewritten), {waiting} waiting"
 ALERT = "Omenix F&O flow history {name}: {count} problem(s): {first}; see {where}"
-NOT_COMMITTED = " NOT committed"
 SHOWN_IN_ALERT = 3
 NSDL_FIRST_MONTH = date(2019, 1, 31)
 NSDL_SUMMARY = (
@@ -54,7 +53,7 @@ def cmd_flows_table(args, out=print) -> int:
     for committer in build_committers():
         outcome = committer.commit(f"flows table {name}")
         out(outcome)
-        if NOT_COMMITTED in outcome:
+        if commit_failed(outcome):
             problems.append(outcome)
     for line in problems:
         out(line)

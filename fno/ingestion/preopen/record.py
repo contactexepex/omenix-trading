@@ -18,7 +18,7 @@ from fno.ingestion.preopen.problems import Problem
 from fno.ingestion.preopen.run import LATE, OK, PartResult, PreopenRun
 from fno.ingestion.research_data.calendar import CalendarError
 from fno.ingestion.storage.data_store import DataStore
-from fno.ingestion.storage.manifest_commit import ManifestRecorder
+from fno.ingestion.storage.manifest_commit import ManifestRecorder, commit_failed
 from fno.ingestion.storage.raw_store import RawFileConflict
 from fno.shared.alerts.sender import AlertSender
 from fno.shared.capture_errors import CaptureError, CaptureErrorLog
@@ -30,7 +30,6 @@ DONE, WITH_PROBLEMS = "pre-open recorded", "pre-open recorded with problems: {pr
 ALERT = "A22 pre-open capture {day}: {problems}"
 CHECK_WITH_PROBLEMS = "open check with problems: {problems}"
 CHECK_ALERT = "A22 open check {day}: {problems}"
-NOT_COMMITTED = " NOT committed"
 DAY_ROW_TAKEN = "day row already written by an earlier run; this run's row not kept"
 EARLY_TAKEN = "file already written by an earlier run; this run's not kept"
 SAVE_ERRORS = (OSError, RuntimeError, ValueError)  # Drive and its settings; RawFileConflict is a RuntimeError
@@ -84,7 +83,7 @@ class PreopenRecorder:
             return [Problem(f"{result.part} file", "not saved to Drive", type(error).__name__)]
         outcome = self.early_commit.commit(f"pre-open {result.part} {day}")
         self.out(outcome)
-        return [Problem(f"{result.part} file", "commit failed", outcome)] if NOT_COMMITTED in outcome else []
+        return [Problem(f"{result.part} file", "commit failed", outcome)] if commit_failed(outcome) else []
 
     def _save_raw(self, day: date, result: PartResult) -> list[Problem]:
         if result.answer is None:
@@ -112,7 +111,7 @@ class PreopenRecorder:
         for committer in self.committers:
             outcome = committer.commit(f"pre-open {day}")
             self.out(outcome)
-            if NOT_COMMITTED in outcome:
+            if commit_failed(outcome):
                 problems.append(Problem("commit", "failed", outcome))
         if not problems:
             self.out(done)

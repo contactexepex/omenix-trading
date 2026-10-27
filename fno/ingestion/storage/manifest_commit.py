@@ -25,7 +25,7 @@ NOT_COMMITTED = "{label} NOT committed: {step} failed: {reason}. Commit {folder}
 # the words that tell a failed commit from a pushed one and from "nothing new to commit", read from the template above
 NOT_COMMITTED_MARK = NOT_COMMITTED.partition("{label}")[2].partition(":")[0]
 COMMIT_FAILED_ALERT = (
-    "Omenix F&O {what}: the manifest rows were NOT committed or pushed (the run log has the reason); "
+    "Omenix F&O {what}: the manifest rows were left uncommitted and unpushed (the run log has the reason); "
     "the files are in Drive, commit the manifests by hand"
 )
 NO_HOOKS = "core.hooksPath is not set, so the public-record scan would not run (git config core.hooksPath .githooks)"

@@ -22,6 +22,7 @@ import requests
 from fno.ingestion.global_cues.preopen import LIVE, STALE
 from fno.ingestion.global_cues.preopen_outcome import FAILURE, Problem
 from fno.ingestion.research_data.calendar import CalendarError
+from fno.ingestion.storage.manifest_commit import NOT_COMMITTED_MARK, commit_failed
 
 # every failure one index's read can meet: the network (a block included), the answer, Drive, the private table
 FAILURES = (
@@ -40,7 +41,6 @@ ALL_STALE = "no live level: every open market stale"
 WINDOW_OPENS, WINDOW_CLOSES = time(8, 50), time(9, 5)  # IST: after A22's GIFT Nifty read, before its pre-open read
 CLOSED_WINDOW = "{index}: FAILED, not read: the window closed at 09:05 IST"
 CLOSED_WINDOW_PROBLEM = "{index}: failed (not read: the window closed at 09:05 IST)"
-NOT_COMMITTED_MARK = "NOT committed"
 NOT_A_TRADING_DAY = "preopen: not a trading day (NSE's calendar): nothing read"
 
 
@@ -116,10 +116,10 @@ def _committed(out, committers: Callable[[], list]) -> bool:
     try:
         lines = [committer.commit("pre-open Asian levels") for committer in committers()]
     except FAILURES as exc:
-        lines = [f"pre-open receipts {NOT_COMMITTED_MARK}: {type(exc).__name__}"]
+        lines = [f"pre-open receipts{NOT_COMMITTED_MARK}: {type(exc).__name__}"]
     for line in lines:
         out(line)
-    return not any(NOT_COMMITTED_MARK in line for line in lines)
+    return not any(commit_failed(line) for line in lines)
 
 
 def _record(problems: list[Problem]) -> None:

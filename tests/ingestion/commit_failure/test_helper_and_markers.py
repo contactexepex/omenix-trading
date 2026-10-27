@@ -1,16 +1,13 @@
-"""CF1: the one definition of "this commit failed", and the markers the seven callers that read the line keep."""
+"""CF1: the one definition of "this commit failed"; the seven callers that read the line ask it."""
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
 
-from fno.ingestion.circulars import job as circulars_job
-from fno.ingestion.close_read import cli as close_read_cli
-from fno.ingestion.flow_history import cli as flow_history_cli
-from fno.ingestion.fo_masters import job as fo_masters_job
-from fno.ingestion.global_cues import preopen_cli
-from fno.ingestion.preopen import record as preopen_record
-from fno.ingestion.storage import manifest_commit, repair_cli
+from fno.ingestion.storage import manifest_commit
 from fno.ingestion.storage.manifest_commit import NOT_COMMITTED_MARK, commit_failed, exit_for_commit
 from tests.ingestion.commit_failure.real_lines import real_lines
 
@@ -56,20 +53,36 @@ def test_the_alert_names_the_command_and_carries_no_row(lines):
     assert "data-librarian nse-fo" in sent[0] and "secret-row-123" not in sent[0] and "manifests/" not in sent[0]
 
 
-@pytest.mark.parametrize(
-    "mark",
-    [
-        close_read_cli.NOT_COMMITTED_MARK,
-        circulars_job.NOT_COMMITTED_MARK,
-        fo_masters_job.NOT_COMMITTED_MARK,
-        preopen_cli.NOT_COMMITTED_MARK,
-        repair_cli.NOT_COMMITTED_MARK,
-        preopen_record.NOT_COMMITTED,
-        flow_history_cli.NOT_COMMITTED,
-    ],
-)
-def test_every_caller_that_keeps_its_own_marker_still_matches_the_failure_line_and_nothing_else(lines, mark):
-    """The seven that already fail on the line keep their own constant (swapping them is a later refactor); this pins
-    that a changed message cannot silently disable one."""
-    assert mark.strip() == NOT_COMMITTED_MARK.strip()
-    assert mark in lines.failed and mark not in lines.pushed and mark not in lines.nothing
+def string_literals_outside_docstrings(source: str) -> list[str]:
+    tree = ast.parse(source)
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+    }
+    return [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in docstrings
+    ]
+
+
+def test_no_code_outside_the_committer_keeps_its_own_copy_of_the_failure_words():
+    """P5b (judge 57): a source scan, not a name check. The words of the committer's failure line live only in
+    manifest_commit.py; every reader asks `commit_failed` (their behaviour is pinned in test_seven_callers.py)."""
+    root = Path(manifest_commit.__file__).parents[2]
+    holders = [
+        path.relative_to(root).as_posix()
+        for path in sorted(root.rglob("*.py"))
+        if path.name != "manifest_commit.py"
+        and any(NOT_COMMITTED_MARK.strip() in text for text in string_literals_outside_docstrings(path.read_text()))
+    ]
+    assert holders == []
+
+
+def test_the_scan_sees_a_literal_put_back_and_ignores_a_docstring():
+    assert string_literals_outside_docstrings('MARK = " NOT committed"\n')
+    docstrings_only = '"""NOT committed"""\ndef f():\n    """NOT committed"""\n'
+    assert string_literals_outside_docstrings(docstrings_only) == []

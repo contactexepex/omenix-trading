@@ -14,8 +14,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PAIR = re.compile(r"git pull\b[^\n]*&&[^\n]*git push\b")
-# a failed push turned into success
-SWALLOWED = re.compile(r"git push\b[^\n]*(\|\|\s*(true|:)(?!\w)|;\s*(exit 0|true)(?!\w))")
+# what may follow the push: nothing, `|| exit <non-zero>`, or (the retry loop's success) `&& exit 0`. Anything else,
+# such as `|| true`, `|| echo failed` or `; exit 0`, turns a failed push into a green step.
+AFTER_PUSH = re.compile(r"git push\b[^|;&\n]*(.*)$")
+SAFE_TAIL = re.compile(r"^(\|\|\s*exit\s+[1-9]\d*|&&\s*exit 0)?$")
 
 
 def blocks() -> list[tuple[str, str]]:
@@ -53,7 +55,9 @@ def problems(block: str) -> list[str]:
             continue
         is_last = index == len(lines) - 1
         retry_loop = line.endswith("&& exit 0") and lines[-1] == "exit 1"
-        if SWALLOWED.search(line) or not (is_last or retry_loop):
+        tail = AFTER_PUSH.search(line).group(1).strip()
+        stops_on_failure = tail.startswith("||")  # SAFE_TAIL below limits it to `|| exit <non-zero>`
+        if not SAFE_TAIL.match(tail) or not (is_last or retry_loop or stops_on_failure):
             bad.append(line)
     return bad
 
@@ -91,5 +95,9 @@ def test_the_scan_also_catches_a_continuation_a_swallowed_failure_and_a_one_line
     assert problems("git pull origin main && git push origin HEAD:main || :\n")
     assert problems("git pull origin main && git push origin HEAD:main; exit 0\n")
     assert problems("git pull origin main && git push origin HEAD:main; true\n")
+    assert problems("git pull origin main && git push origin HEAD:main || echo failed\n")
+    assert problems("git pull origin main && git push origin HEAD:main || exit 0\n")
+    assert not problems("git pull origin main && git push origin HEAD:main || exit 1\n")
+    assert not problems("git pull origin main && git push origin HEAD:main || exit 1\necho later\n")
     last_continued = "git add x\ngit pull origin main \\\n  && git push origin HEAD:main\n"
     assert not problems(last_continued)  # a continued pair that IS the last command is as safe as one line

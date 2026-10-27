@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from fno.ingestion.research_data.calendar import SessionCalendar
-from fno.ingestion.storage.manifest_commit import ManifestRecorder
+from fno.ingestion.storage.manifest_commit import ManifestRecorder, commit_failed
 from fno.ingestion.storage.snapshot_taker import NOT_SERVED
 from fno.ingestion.storage.trading_days import is_trading_day
 from fno.shared.alerts.sender import AlertSender
@@ -20,7 +20,6 @@ NO_LIST_TODAY = (
     "no ban list archived for today's session {day} (NSE wrote none, or every run before its replacement failed)"
 )
 STEP_OK, STEP_FAILED = "{name}: ok: {line}", "{name}: failed: {reason}"
-NOT_COMMITTED_MARK = " NOT committed"
 ALERT = "Omenix F&O master files for {day}: NOT complete: {failures}. Run log: {where}"
 NOT_SERVED_SUFFIX = NOT_SERVED.removeprefix("{path}")  # a taker's line for a 404: today's copy is missing
 
@@ -71,7 +70,7 @@ class FoMastersJob:
         failures = [failure for step in steps if (failure := self._run(step, day))]
         committed = self.recorder.commit(f"fo-masters {day}")
         self.out(committed)
-        if NOT_COMMITTED_MARK in committed:
+        if commit_failed(committed):
             failures.append(committed)
         if not failures:
             return 0

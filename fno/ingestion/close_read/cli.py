@@ -6,8 +6,7 @@ receipts itself, and exits 1 when they are NOT committed."""
 from __future__ import annotations
 
 from fno.ingestion.close_read.constants import READ, RECHECK
-
-NOT_COMMITTED_MARK = "NOT committed"  # fno/storage/manifest_commit.py's NOT_COMMITTED
+from fno.ingestion.storage.manifest_commit import commit_failed
 
 
 def add_closes_parser(subparsers) -> None:
@@ -26,4 +25,4 @@ def cmd_closes(args, out=print) -> int:
         return code
     line = build_receipts_committer().commit("A4h close read")
     out(line)
-    return 1 if NOT_COMMITTED_MARK in line else code
+    return 1 if commit_failed(line) else code
