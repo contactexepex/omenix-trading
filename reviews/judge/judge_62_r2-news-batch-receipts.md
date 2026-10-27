@@ -64,3 +64,55 @@
 No order path, no secret, no Groww call, no change to a recorded Drive file. The workflow changes are the `RECEIPTS` value only.
 
 ## Verdict: FAIL round 1 at e9b98b2. B1 and B2 required; M1 and M2 requested.
+
+## Addendum 1: round 2 at 498151a: PASS, with one doc sentence to correct before merge
+
+Reviewed `git diff e9b98b2 498151a`. That covers the round-1 fold f6d44cc (the orchestrator's sharding, the run-id check and `unreceipted`) and 6cba9da with 498151a (my findings and judge 61's).
+
+**Gates (strong evidence).**
+- ruff, format and check_imports are clean; 1151 passed; `tools/contract_plants.py` reports `ok` on every row.
+- `batch_receipts.py` is 195 lines.
+- `tests/ingestion/test_batch_receipts.py` is 363 lines. The size rule and `tests/test_code_size.py` cover `fno/` only, so this is not a violation. A split would still be welcome.
+
+**B1 fixed (strong evidence, my round-1 reproduction re-run).**
+- With a news batch damaged in four ways (torn, a size of NaN, `raw/../x`, a byte that is not UTF-8), `sync("data/flows/fii")` is complete and nothing crashes.
+- A news sync reports a torn or malformed line that names its file as a problem. A line that names no file is a warning.
+- The way out works: the next run's re-save of the same path settles it, and the news sync is complete again.
+
+**B2 fixed (strong evidence).**
+- I made `os.write` write 10 bytes and then raise ENOSPC. The run raised; the next append was refused with `BatchBroken` (not at a line end); the file kept its half line and nothing was glued onto it.
+- 3-byte partial writes finish the whole line.
+- In the news gate, `BatchBroken` is counted as `RECORD_FAILED`, and promote exits 1. The files left without a receipt are listed by `unreceipted`.
+
+**M1 fixed.** My round-1 plant (a batch line wins in `under`) now fails a test, and a conflict between a per-file receipt and a batch line is reported.
+
+**M2 fixed.** The constructor in the doc now matches the code.
+
+**My plants this round** (11, every one fails a test):
+- the line-end check before append removed;
+- path-less problems shown to every prefix;
+- path problems shown to every prefix;
+- a torn line never settled;
+- an unproved line dropped at once;
+- the digest shape not checked;
+- the size not checked;
+- a byte that is not UTF-8 crashing the reader;
+- the per-file conflict not reported;
+- every batch problem demoted to a warning;
+- a short write treated as whole.
+
+### Required before merge: correct one doc sentence (text only, orchestrator may check)
+- The story's "Fail closed" section says: "A torn last batch line names its file ... and the file is listed as unreceipted too."
+- This holds only when the cut falls after the path's tab. My short-write probe left `raw/news/a`: no tab, so no file is named, only a warning, and **the default `data-cache sync raw/news` reports complete** while `z.json` and `w.json` have no receipt.
+- Only `--unreceipted` finds them, and it did list both.
+- The sentence must say the cut-in-the-path case gives only a warning and needs `--unreceipted`.
+
+### Follow-ups (recommended; lane 1, the orchestrator's call)
+- **F-a (some evidence).** Nothing runs `--unreceipted`. `data-checks.yml` runs plain `data-cache sync` over `$MOVED`, and no news workflow calls it.
+  - Until a scheduled step runs `data-cache sync raw/news --unreceipted`, N9 is a tool, not a guarantee that runs.
+  - This is the same gap the per-file layout always had (a lost receipt is invisible to a verifier that walks receipts), so it is not a regression; R2 is what makes closing it possible.
+- **F-b (reasoning only).** One byte in a batch file that is not UTF-8 turns the whole file into a single warning, and every receipt in it drops out of verification. Decoding line by line would keep the damage to one line. F-a would catch it in any case.
+
+**Hard lines.** No order path, no secret, no Groww call, and no change to a recorded Drive file. The workflow changes are the `RECEIPTS` value only.
+
+**Verdict: PASS round 2 at 498151a, on condition of the one-sentence doc correction above. F-a and F-b are recommended follow-ups.**
