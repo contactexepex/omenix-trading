@@ -77,7 +77,7 @@ unmapped, and no site disagreed on file-first.
 Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): the one row-equivalent that is designed to be writable without its
 file. If the CSV save fails, the sidecar is still written with `RAW_FILE_SAVED=False` (`recorder.py:273-274`; absent means
 saved). The safety rests on the readers, and this repository has **two** (corrected after judge 1 found the second): the guarded
-`DriveOnlyQuoteStore.get` (`drive_only_store.py:49-62`), and `quotes/compare.py:40`, which reads the sidecar directly and
+`DriveOnlyQuoteStore.get` (`drive_only_store.py:49-63`), and `quotes/compare.py:40`, which reads the sidecar directly and
 the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
 `recorder.py:285-286` writes only for a `complete` attempt (`recorder.py:263`), and `complete` requires no failures, the
 raw-save error being one (`recorder.py:260-262`): canonical implies complete implies saved; if they ever disagreed the
@@ -117,7 +117,7 @@ that is a bug to fix in R1c.
    the owner's go-live list, and raising the cap is a tuning follow-up, not a redesign.
 3. Nothing else: no breaker, no spacing, no new exception, same texts.
 
-## Worst case per call, computed (code references: `drive_session.py:41-62`, `TIMEOUT_SECONDS = 60`)
+## Worst case per call, computed (code references: `drive_session.py:44-66`, `TIMEOUT_SECONDS = 60`)
 
 One failing call today: waits 2+8+30+60 = 100 s plus five requests that each time out at 60 s = **400 s**. With jitter
 0.25: 125 + 300 = **425 s** (+6%). With a `Retry-After` of 120 s or more on every retry: four waits of 120 s (the cap), so
@@ -201,7 +201,7 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   raised the same way. So at most one re-sign per call and no loop on a persistent 401. Pinned by
   `test_the_401_re_sign_happens_at_most_once_per_call_and_a_persistent_401_cannot_spin` and the existing characterization.
 - **The quote sidecar has two readers in this repository** (the story said one; judge 1 found the second): the guarded
-  `DriveOnlyQuoteStore.get` (`drive_only_store.py:49-62`) and `quotes/compare.py:40`, which reads the sidecar directly and then
+  `DriveOnlyQuoteStore.get` (`drive_only_store.py:49-63`) and `quotes/compare.py:40`, which reads the sidecar directly and then
   the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
   `recorder.py:285-286` writes only when the attempt is `complete`, and `complete` (`recorder.py:263`) requires no failures,
   the raw-save error being one (`recorder.py:260-262`): canonical implies complete implies saved. If they ever disagreed, the
@@ -243,6 +243,9 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
 
 ### Follow-ups (named, not R1c blockers)
 
+- **Test split (lane 2):** `tests/ingestion/test_drive_resilience.py` (576 lines) is split by mechanism (retry classes,
+  401 re-sign, Retry-After cap, write paths) in a later test-only change; it is not a `fno/` file, so the 350-line limit
+  does not bind it.
 - **Lane 2 cleanup:** `quotes/compare.py:40-43` should raise `RawQuoteMissing` (a designed refusal) when the guarded store
   returns `None` for a quote file whose sidecar says not saved, instead of failing with `AttributeError` from
   `None.decode()`. The safety property holds today and is test-locked (the comparison raises and never returns a snapshot);

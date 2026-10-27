@@ -1,7 +1,6 @@
 # R1d: Groww, the close read and the remaining waits on the shared layer (PLAN; not a frozen story)
 
-Lane 1 (outside services: Groww, NSE, NSDL; live capture windows). Plan only, for the orchestrator's review before any story is
-frozen or any code written. Rules and design: [R1-resilience.md](R1-resilience.md); precedent: R1b ([R1b-nse-source.md](R1b-nse-source.md),
+Lane 1 (outside services: Groww, NSE, NSDL; live capture windows). Plan, with the orchestrator's rulings below. Rules and design: [R1-resilience.md](R1-resilience.md); precedent: R1b ([R1b-nse-source.md](R1b-nse-source.md),
 [R1b2-persisted-pause.md](R1b2-persisted-pause.md)) and R1c ([R1c-drive.md](R1c-drive.md)). The floor is the characterization
 already on `main` (`tests/characterization/test_groww_and_close_read_behaviour.py`, `test_probe_backfill_and_index_loop_behaviour.py`,
 27 tests, `296f76e` and `49788eb`).
@@ -33,7 +32,7 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
   shared breaker for host `groww` (threshold 1, 60 s, no doubling: exactly today's pause), **in process only** (no log, no alert in
   this step). `RateGuardedGroww` keeps its class and its translation (`GrowwRateLimited`, `GrowwRateLimitPaused`, no Groww text
   carried); only the pause is the library's. The quiet-window check stays first, then the pause (pinned).
-- **R1d2, the day budgets:** the 150 sign-ins a day gets a real cross-process count (`FileDayLedger` on `groww_sign_in`, 150 a day),
+- **R1d2, the day budgets (PARKED, see Rulings; shown only so the split is whole):** the 150 sign-ins a day gets a real cross-process count (`FileDayLedger` on `groww_sign_in`, 150 a day),
   **committed and union-merged** (judge 1 and 2: otherwise overlapping runs each miss the others' rows and the count understates, which is
   unsafe). This needs a commit path for the callers (see "Unknowns"). Malformed ledger line: **fail closed** (count it), because
   an undercount could exceed a limit that locks the next morning out.
@@ -52,20 +51,17 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 3. Nothing may make fewer attempts at a live capture than today (R1c's lesson): the same never-weaker test for each moved wait.
 4. One shared instance per process for the Groww limiter and pause, like `SHARED_PACER` (a test: two providers share it).
 
-## Unknowns (to settle with the orchestrator before the story)
+## Rulings (orchestrator, 27 Oct 2026) and what stays parked
 
-- **Where do the Groww callers run and who commits for them?** None of the 13 workflows calls Groww (checked: `grep` over `.github/workflows/`; the NSE
-  recorder workflow says it runs "beside the Claude routine that records Groww's" quotes and installs no broker SDK). Groww runs in
-  Claude routine containers (A16 and friends). A routine does commit its own outputs: `docs/GROWW_CANDLE_ROUTINE.md` lists "the only
-  paths this routine `git add`s", so a sign-in ledger path would have to be added to each routine's list, a change to routine
-  instructions, not to a workflow. Whether a committed, union-merged sign-in ledger is
-  reachable from there, and by which committer, is not recorded in this repository. If it is not, R1d2 stays per-run and says so
-  honestly (the story must not claim a cross-process budget it cannot persist).
-- **What is the right number of sign-ins to refuse at?** Groww's limit is 150 a day; the code's own estimate is 38 normal and 114
-  worst. A ledger refusing at 150 would let a runaway reach the limit before it stops; refusing at, say, 120 leaves room. Reasoning
-  only; an owner/orchestrator call.
-- **Is a Groww alert wanted** (breaker open/close to #fno-desk)? R1b2 added alerts for NSE hosts; for Groww a 60 s pause is routine,
-  so alerting every 429 pause would be noise. Suggested: no alert in R1d1.
+- **R1d1 is in process only.** Groww's pause has no log and no committed file: today keeps none (no workflow calls Groww and no
+  step could commit one), so in-process is never-weaker. No new persistence.
+- **No Groww alert in R1d1** (a 60 s pause is routine backpressure). All Groww health alerting (sustained failure and the
+  sign-in budget approaching its limit) is one feature, designed once in R1d2.
+- **R1d2 is PARKED for the owner:** whether this repository owns Groww sign-in budgeting, whether the routine containers can persist
+  a committed ledger, and how many of the 150 daily sign-ins are reserved for hand-run reads after 15:35 IST (the refuse-at
+  number: not derivable here; it must clear the normal worst case of about 114 and the in-flight sign-ins before a ledger
+  reflects them). Nothing about R1d2 is designed or built in this story.
+- R1d1, R1d3 and R1d4 go ahead, behaviour-preserving, one story in judge-flight at a time.
 
 ## Gates
 
