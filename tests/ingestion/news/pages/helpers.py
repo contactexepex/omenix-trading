@@ -17,23 +17,29 @@ RULES = build_source_rules({"domains": {
 GLOBAL = {"pub.example": ["93.184.216.34"], "other.example": ["93.184.216.35"], "closed.example": ["93.184.216.36"]}
 
 
+class Raw:
+    """What `response.raw` offers: `read1` returns what has arrived, one chunk at a time (b"" at the end)."""
+
+    def __init__(self, chunks, on_read=None):
+        self.chunks, self.on_read = list(chunks), on_read
+
+    def read1(self, amount, decode_content=True):
+        if self.on_read:
+            self.on_read()
+        return self.chunks.pop(0) if self.chunks else b""
+
+
 class FakeResponse:
-    def __init__(self, status=200, headers=None, chunks=(b"<html>ok</html>",), url=""):
-        self.status_code, self.headers, self.chunks, self.url = (
-            status,
-            {"content-type": "text/html", **(headers or {})},
-            chunks,
-            url,
-        )
+    def __init__(self, status=200, headers=None, chunks=(b"<html>ok</html>",), url="", on_read=None):
+        self.status_code, self.url = status, url
+        self.headers = {"content-type": "text/html", **(headers or {})}
+        self.raw = Raw(chunks, on_read)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         return False
-
-    def iter_content(self, size):
-        yield from self.chunks
 
 
 class FakeSession(requests.Session):
@@ -66,7 +72,9 @@ class Clock:
 def fetcher(routes=None, resolver=None, **kwargs) -> tuple[HttpsPageFetcher, FakeSession, Clock]:
     clock, session = Clock(), FakeSession(routes)
     spacer = RequestSpacer(clock=clock.time, sleep=clock.sleep)
-    made = HttpsPageFetcher(RULES, spacer, session, resolver or (lambda host: GLOBAL.get(host, ["10.0.0.1"])), **kwargs)
+    made = HttpsPageFetcher(
+        RULES, spacer, session, resolver or (lambda host: GLOBAL.get(host, ["10.0.0.1"])), clock=clock.time, **kwargs
+    )
     return made, session, clock
 
 

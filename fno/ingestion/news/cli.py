@@ -12,6 +12,7 @@ from fno.ingestion.news.companies.cli import add_seed_parser
 from fno.ingestion.news.feeds import FeedListError
 from fno.ingestion.news.pages.cli import add_probe_parser
 from fno.ingestion.news.planning.cli import add_plan_parser
+from fno.ingestion.news.reads.cli import add_read_parser
 from fno.ingestion.news.resolve.cli import add_resolve_parser
 from fno.ingestion.storage.row_log import TableFileBroken
 from fno.shared.models import now_utc
@@ -69,6 +70,7 @@ def add_news_parser(subparsers) -> None:
     add_plan_parser(actions)
     add_probe_parser(actions)
     add_resolve_parser(actions)
+    add_read_parser(actions)
 
 
 def cmd_news_fetch(args, out=print) -> int:
