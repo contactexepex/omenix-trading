@@ -165,7 +165,8 @@
   "tests": [
    "tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record",
    "tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record",
-   "tests/shared/test_record_scan.py::test_broker_field_and_email_flagged"
+   "tests/shared/test_record_scan.py::test_broker_field_and_email_flagged",
+   "tests/shared/test_record_scan.py::test_finding_str_has_no_value"
   ],
   "file": "fno/shared/record_scan/scanner.py",
   "old": "    def scan_text(self, path: str, text: str, is_code: bool = False) -> list[Finding]:\n",

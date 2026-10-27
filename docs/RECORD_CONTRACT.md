@@ -12,8 +12,8 @@ reasons are in [PIPELINE_DESIGN.md](PIPELINE_DESIGN.md); the stories hold the ev
   are in the `revisions/` area. `staging/` holds every fetch before it is checked; `data/` holds derived tables; `config/` holds the private feed list.
 - **GitHub holds the proof, not the data:** one SHA-256 receipt per Drive file under `receipts/`, and manifest rows under
   `research/data/manifests/`. A file's text lives only in Drive.
-- **The gate** (`PromotionGate`) is the only code that writes the Record from staged files; the news writer and the cluster writer are the only
-  code that writes the news Record. "Only" is enforced in code (rows G7, G8 and the news writer rows), not by credentials (see "Not guaranteed").
+- **The gate** (`PromotionGate`) is the only code that writes the Record from staged files; the news writer and the cluster writer are, within their
+  packages, the only code that writes the news Record. "Only" is enforced in code (rows G7, G8 and the news writer rows), not by credentials (see "Not guaranteed").
 
 ## How to read a row
 
@@ -85,7 +85,7 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 
 | # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
 |---|---|---|---|---|---|
-| P1 | The public-record scan flags secrets, credential shapes, broker fields and e-mail addresses before a commit (it never prints the value). | `RecordScanner` and the commit hook | `tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_broker_field_and_email_flagged` | the scan returning no findings | **tested, plant run** |
+| P1 | The public-record scan flags secrets, credential shapes, broker fields and e-mail addresses before a commit (it never prints the value). | `RecordScanner` and the commit hook | `tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_broker_field_and_email_flagged`<br>`tests/shared/test_record_scan.py::test_finding_str_has_no_value` | the scan returning no findings | **tested, plant run** |
 
 ## What the two "stated only" rows mean
 
@@ -105,7 +105,9 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 - **Most live workflows still write the Record directly.** Only five NSE datasets (participant-oi, participant-volume, fii-stats, fo-bhavcopy,
   cm-bhavcopy) can go stage-then-promote, by hand through `pipeline-staging.yml`. The NSE index-close dataset is not promotable yet (its own date format
   was never confirmed against a real archived file), so a cross-check of closes can only be a report afterwards, not a gate.
-- **Recovery is limited** to Drive's trash and version history. Receipts detect a changed file; they do not restore it, and a change that also rewrites the
+- **Receipts are verified only through the Drive cache (`DriveCache`).** `data-checks.yml` syncs only `data/vix`. The promotion gate, the news writer,
+  the cluster run and the feed list read Drive directly, so a file changed behind its receipt is not detected there.
+- **Recovery is limited** to Drive's trash and version history. Receipts detect a changed file only where they are checked (next bullet); they do not restore it, and a change that also rewrites the
   receipt is not caught by the receipt alone.
 - **Two cases still end a run without a commit:** a crashed commit step (red from its traceback, no commit alert) and the intraday sync's
   FOREIGN_STAGED refusal (green but alerted once by the sync). See CF1.
