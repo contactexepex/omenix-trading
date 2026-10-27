@@ -47,3 +47,34 @@ In a venv installed from `requirements.lock`: 1506 passed. ruff and check_import
 No order path, no secret, no Groww call. No company list is in the repository or in any printed line.
 
 ## Verdict: FAIL round 1 at 6504962. B1 and B2 required; M1 requested.
+
+## Addendum 1: superseded by c5aeb93: PASS, on condition of one stated limit
+
+Reviewed `git diff 6504962 c5aeb93`, which folds in judge 78's F1 to F3; they overlap my B1 and B2.
+
+**Gates (locked venv).** 1514 passed; contract plants all `ok`, Q1 to Q10.
+
+**B1 is fixed for the realistic case.**
+- A cap of 2 open repeats (`*`, `+`, `{n,m}`) and 4 optionals now refuses both of my round-1 patterns: `.*.*.*.*.*.*x` and `\w*\w*\w*\w*\w*\w*!`.
+- `.*.*x` is accepted and runs in under 1 ms on 100 characters.
+
+**But the guard is still a heuristic (strong evidence, measured).** Ambiguous alternation needs no repeat at all.
+
+| Pattern | Length | Guard | Time on `"a" * 100` |
+|---|---|---|---|
+| `(a\|a)` × 16 + `x` | 81 | accepted | 0.16 s |
+| `(a\|a)` × 20 + `x` | 101 | accepted | 2.7 s |
+| `(a\|a)` × 23 + `x` | 116 | accepted | **20.3 s** |
+
+**Why I accept it anyway (reasoning only).**
+- This needs about 17 or more ambiguous alternatives in a row: not a plausible typo.
+- The file is written only by the owner, with no outside attacker.
+- The `.*`-chain mistake, which is plausible, is now stopped.
+
+**Condition (text only, the orchestrator can check):** the story and `parse.py`'s docstring must state the limit. "The guard stops chained open repeats; it is a heuristic, not proof against a deliberately ambiguous pattern (for example a long run of `(a|a)` groups); exclusions are owner-written." A per-headline time limit, or literal-only exclusions, is the follow-up if that is ever not acceptable.
+
+**B2 fixed.** `build_seed` skips and counts rows the list checks would refuse (odd symbol, empty or long name, a name taken twice). It then runs `parse_company_list` on its own bytes before returning, and `seed_companies` maps a refusal to `company_list_invalid`. So no unreadable v1 can be written.
+
+**M1 still open (requested, not a condition).** Swapping the EQUITY_L and Nifty 500 name order still passes all 60 tests.
+
+**Verdict: PASS at c5aeb93, on condition of the stated limit.**
