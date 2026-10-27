@@ -73,6 +73,25 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
 - **Google News fallback key** (no guid) depends on the title and summary being stable across polls; if Google edits a title the
   item gets a new key and clustering merges the two. Accepted by the design.
 
+## P2b1 as built (the pure functions)
+
+- **Code:** `fno/ingestion/news/article/` (`xml_safety.py`, `parse_feed.py`, `raw_item.py`, `item_checks.py`, `canonical.py`,
+  `times.py`, `normalise.py`, `keys.py`, `article_file.py`, `read_poll.py`), the gate codes in `news/codes.py`, and the optional
+  `kind` per feed in `news/feeds.py` (default `publisher`, `wrapper` for Google News; any other value is refused, a file without
+  the field still loads). No I/O, no clock, no network, no committed surface: it produces values and persists nothing.
+- **Hostile XML:** the raw bytes are searched (case-insensitive, and again with NUL bytes removed so UTF-16 and UTF-32 cannot hide
+  a declaration; a BOM or leading white space changes nothing) for a DOCTYPE or ENTITY declaration BEFORE the standard-library
+  parser is called; a billion-laughs and an external-entity sample are refused with `unsafe_xml` and a test proves the parser is
+  never reached. The size cap is pinned at 5 MB. Item fields over 20,000 characters are `item_too_long` (pinned).
+- **Key:** `keys.py` implements D2 (publisher: canonical URL, else guid; wrapper: guid, else full time + normalised title and
+  summary + source) with a separator that cannot occur in the parts. Tested: deterministic, 3,000 random distinct inputs give
+  3,000 keys, two same-title items a minute apart give two keys, tracking-only differences give one key and a real parameter two.
+  The writer-side collision test (two distinct items sharing a key must be surfaced, not hidden) is P2b2.
+- **Proof:** 55 offline tests on synthetic feeds; mutation plants on every check, the XML scan (declaration list, case, NUL view,
+  cap), the parser's refusal order, the link choice, the tracking list, the zone rule, the separator, the key inputs, the fixed
+  fields and the reconciliation count each fail a test. Two plants first survived because a test built its input from the constant
+  it protected; the numbers are now pinned.
+
 ## Deferred to the owner's go-live
 
 The first real promotion, the `news-promote` schedule, and the answer on receipt volume. Gates per step: full suite, ruff,

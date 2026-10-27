@@ -18,3 +18,8 @@ FEED_LIST_DAMAGED = "feed_list_damaged"  # a version already used has been edite
 
 OK_CODES = (FETCHED, UNCHANGED)
 HOST_STOPS = (BLOCK_PAGE, REFUSED, HOST_PAUSED)  # after one of these no other feed on the host is asked this run
+
+# the article gate (P2b): why a staged poll or one of its items stays in Staging
+POLL_TOO_LARGE, UNSAFE_XML = "poll_too_large", "unsafe_xml"
+NOT_A_FEED, NO_ITEMS = "not_a_feed", "no_items"
+ITEM_MISSING_TITLE, ITEM_MISSING_LINK, ITEM_TOO_LONG = "item_missing_title", "item_missing_link", "item_too_long"
