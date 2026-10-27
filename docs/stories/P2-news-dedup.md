@@ -1,6 +1,6 @@
 # P2: news into Staging, clustered into one record per story (Phase 2 of docs/PIPELINE_DESIGN.md) — DESIGN
 
-DRAFT for design round 3 (not frozen; the owner authorises a third round): the orchestrator's rulings (27 Oct 2026) and both judges' findings (judge 42 D1-D8 and its round 2, judge 43
+DESIGN, round 3 (the owner authorised it and chose the private feed list, variant A, 27 Oct 2026): the orchestrator's rulings (27 Oct 2026) and both judges' findings (judge 42 D1-D8 and its round 2, judge 43
 N1-N12 and R1-R6) are written in. Lane 1 (a new outside source, Drive writes, write-once data, the privacy rule). Context:
 [PIPELINE_DESIGN.md](../PIPELINE_DESIGN.md) ("News: dedup and credibility"), the gate in
 [P1-staging-record-split.md](P1-staging-record-split.md), waits in [R1-resilience.md](R1-resilience.md). This is **new
@@ -33,13 +33,13 @@ staging and Record path names, run logs (captured stdout and stderr), alert text
 builds. The master test captures logging at **DEBUG** (urllib3 logs the full request line, query included, R2-3) and also
 scans `fno/`, `config.yaml`, `.github/` and `docs/` for any feed URL, query or headline marker (R1). Rules that make it pass:
 
-- **The feed list lives outside the repository (R1; variant A, the safe default).** Each feed's URL or search query is in a
+- **The feed list lives outside the repository (R1; the owner chose this variant).** Each feed's URL or search query is in a
   private Drive file, read at run time through the Drive reader (no environment variable, which would show in logs, and no
-  list in code or `config.yaml`). The code knows only opaque ids (`gn-01`, `gn-02`, never `gn-nifty`). A missing or
+  list in code or `config.yaml`). The code knows only opaque ids (`feed-01`, `feed-02`, never a name that shows the topic). A missing or
   unreadable list stops the run with a fixed reason code; there is no fallback list in code. The snapshot-log row, the staging
   path (`staging/news/<feed id>/<YYYY>/<MM>/<DD>/<HHMMSS>.xml`) and the receipts carry the opaque id, never the URL, `form` or
-  `q=` parameter: a Google News query would show the owner's research intent. *Variant B (feeds in the repository) is
-  possible only if the owner says publishing the search queries is acceptable; it is listed under the owner decisions.* News gets its own snapshot-log row (feed id,
+  `q=` parameter: a Google News query would show the owner's research intent. *The owner chose this over keeping
+  the feeds in the repository, so queries are not published.* News gets its own snapshot-log row (feed id,
   path, sha256, size) and its own manifest, `date,article_id,status,sha256,size_bytes`, with no `url` column.
 - **Fixed reason codes, messages withheld.** The P1 gate prints rejection reasons (`runs.py`, `_problem_line`) and a requests
   error carries the full URL. For news, a reason is one of a fixed list (`not_a_feed`, `no_items`, `item_missing_title`,
@@ -150,8 +150,7 @@ repository's logs and Drive.
 ## OWNER decisions (flagged, not assumed by this plan)
 
 - **Which publisher feeds, and their terms.** None are named here; each must be fetched and its terms read first.
-- **R1: the feed list.** Variant A (feeds outside the repository, above) is the plan. Variant B (feeds in the repository) is
-  only acceptable if the owner says that publishing the search queries, which show the research interest, is fine.
+- **R1, decided:** the owner chose the private feed list (feeds outside the repository, opaque ids). Nothing is left open here.
 - **Residual risk, named (judge 43):** an article key is the SHA-256 of a public URL, so someone who guesses a URL could
   confirm it is archived. Very low risk; stated so the owner can accept it.
 - **N12: does owner rule 50a79a43 (source terms do not block private research; values stay in Drive) cover publishers'
