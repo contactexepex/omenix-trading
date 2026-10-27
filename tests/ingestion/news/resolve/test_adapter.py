@@ -153,6 +153,8 @@ def test_the_hook_lets_an_https_request_to_the_allowed_domain_through():
         "https://evil.example/a",
         "https://svc.example.evil.example/a",
         "https://user@evil.example/",
+        "https://news.svc.example:8443/a",  # a port on the allowed host
+        "https://person:secret@news.svc.example/a",  # credentials on the allowed host
     ],
 )
 def test_the_hook_refuses_everything_else_before_it_is_sent(url):

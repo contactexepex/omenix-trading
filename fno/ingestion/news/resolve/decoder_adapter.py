@@ -7,7 +7,7 @@ hand it. So the real controls are these hooks on its one HTTP client, which sees
 - egress: https only, a host on the allowed domains, no credentials, no explicit port;
 - the stop: after the first refusal (HTTP 429/503 or the "sorry" page) nothing more is requested this run
   (`PushbackStop`);
-- the pace: at least 1.5 s between ANY two requests, a failed one included (`RequestPacer`; the library's own wait is
+- the pace: at least 1.5 s between ANY two requests, a failed one included (`RequestSpacer`; the library's own wait is
   turned off); and, around the library: a link is handed over only when it is clean https on the allowed domain
   (`EgressGuard`), at most ten links go in a batch, a library message is never kept, each link gets one fixed code,
   and a result is kept only through `accept` (a clean https link that is not the service's own)."""
@@ -20,7 +20,7 @@ from fno.ingestion.news.article.source_facts import clean_https_link
 from fno.ingestion.news.resolve.accept import accept
 from fno.ingestion.news.resolve.guard import EgressGuard
 from fno.ingestion.news.resolve.model import DECODE_FAILED, ERROR, PAUSED, REFUSED_LINK, LinkResolver, Resolved
-from fno.ingestion.news.resolve.pacing import PushbackStop, RequestPacer
+from fno.ingestion.news.resolve.pacing import PushbackStop, RequestSpacer
 from fno.shared.constants import RESEARCH_USER_AGENT
 
 BATCH = 10
@@ -61,10 +61,10 @@ def library_decoder(timeout: float, user_agent: str):
 
 
 class GoogleNewsDecoderResolver(LinkResolver):
-    def __init__(self, guard: EgressGuard, pacer: RequestPacer | None = None, timeout: float = TIMEOUT_SECONDS,
+    def __init__(self, guard: EgressGuard, pacer: RequestSpacer | None = None, timeout: float = TIMEOUT_SECONDS,
                  user_agent: str = RESEARCH_USER_AGENT, decoder_factory=library_decoder):  # fmt: skip
         """One instance is one run: its pacer and its stop live as long as it does."""
-        self.guard, self.pacer, self.stop = guard, pacer or RequestPacer(), PushbackStop()
+        self.guard, self.pacer, self.stop = guard, pacer or RequestSpacer(), PushbackStop()
         self.timeout, self.user_agent, self.decoder_factory = timeout, user_agent, decoder_factory
 
     def resolve(self, links: Sequence[str]) -> list[Resolved]:

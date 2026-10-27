@@ -10,7 +10,7 @@ import pytest
 from fno.ingestion.news.resolve.decoder_adapter import GoogleNewsDecoderResolver
 from fno.ingestion.news.resolve.guard import EgressGuard
 from fno.ingestion.news.resolve.model import DECODE_FAILED, PAUSED, REFUSED_LINK
-from fno.ingestion.news.resolve.pacing import SPACING_SECONDS, PushbackStop, RequestPacer
+from fno.ingestion.news.resolve.pacing import SPACING_SECONDS, PushbackStop, RequestSpacer
 
 # the REAL library requests its own fixed service host, so these tests (and only tests: the code names no host) allow it
 GUARD = EgressGuard(["google.com"])
@@ -37,18 +37,22 @@ def resolver_on(handler, clock: Clock) -> tuple[GoogleNewsDecoderResolver, list]
     from googlenewsdecoder import GoogleDecoder
 
     seen: list = []
+    created: list = []
 
     def recording(request):
         seen.append(str(request.url))
         return handler(request)
 
     def factory(timeout, agent):
+        created.append(1)
         decoder = GoogleDecoder(timeout=timeout, user_agent=agent)
         decoder.client = httpx.Client(transport=httpx.MockTransport(recording), follow_redirects=True)
         return decoder
 
-    pacer = RequestPacer(clock=clock.time, sleep=clock.sleep)
-    return GoogleNewsDecoderResolver(GUARD, pacer=pacer, decoder_factory=factory), seen
+    pacer = RequestSpacer(clock=clock.time, sleep=clock.sleep)
+    resolver = GoogleNewsDecoderResolver(GUARD, pacer=pacer, decoder_factory=factory)
+    resolver.created = created  # how many decoders (and so batches) were even started
+    return resolver, seen
 
 
 def test_a_plain_failure_is_still_paced_every_request_waits_even_when_the_one_before_failed():
@@ -117,7 +121,7 @@ def test_links_off_the_domain_are_refused_without_any_request():
 
 def test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_floor():
     clock = Clock()
-    pacer = RequestPacer(spacing=0.1, clock=clock.time, sleep=clock.sleep)  # asked for less than the floor
+    pacer = RequestSpacer(spacing=0.1, clock=clock.time, sleep=clock.sleep)  # asked for less than the floor
     assert pacer.spacing == SPACING_SECONDS
     pacer.wait()
     assert clock.sleeps == []

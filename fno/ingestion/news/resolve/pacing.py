@@ -4,7 +4,7 @@ refusing us it would send about thirty requests a batch with no pause, batch aft
 the real library). So both live here, in the request and response hooks of its one HTTP client, where every request
 and every redirect hop passes:
 
-- `RequestPacer`: at least `spacing` seconds between ANY two requests, a failed one included;
+- `RequestSpacer`: at least `spacing` seconds between ANY two requests, a failed one included;
 - `PushbackStop`: the first refusal (HTTP 429 or 503, or a redirect to the service's "sorry" page) stops every later
   request of the run for good, so a service that is pushing back is never asked again until the next run."""
 
@@ -18,7 +18,7 @@ PUSHBACK_STATUSES = (429, 503)
 SORRY_MARKER = "/sorry/"
 
 
-class RequestPacer:
+class RequestSpacer:
     def __init__(self, spacing: float = SPACING_SECONDS, clock: Callable[[], float] = time.monotonic,
                  sleep: Callable[[float], None] = time.sleep):  # fmt: skip
         self.spacing, self.clock, self.sleep = max(spacing, SPACING_SECONDS), clock, sleep

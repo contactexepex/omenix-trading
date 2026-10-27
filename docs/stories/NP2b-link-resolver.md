@@ -30,7 +30,7 @@ pass are NP2c) and is called by nothing yet; it is dispatch-free code plus its t
 ## Round 2 (judges 75 and 76 FAIL of 3cc0c62; reproduced on the real library with a mock transport)
 - **B1: the library does not pace a failed request and never stops.** It `continue`s past its wait when a page request fails and has no
   stop on a refusal: against a service that refuses us, ten links gave ten requests and no wait, and each batch started at once. Now
-  `resolve/pacing.py` holds both, in the hooks of its one HTTP client where every request and redirect hop passes: **`RequestPacer`**
+  `resolve/pacing.py` holds both, in the hooks of its one HTTP client where every request and redirect hop passes: **`RequestSpacer`**
   (at least 1.5 s between any two requests, a failed one included; the library's own wait is switched off) and **`PushbackStop`**
   (the first HTTP 429 or 503, or a redirect to the "sorry" page, stops every later request of the run; the rest of the links come back
   `paused` and wait for the next run; a new resolver is a new run). Rows L8, L9, L11, L12; the tests run the REAL library on a mock
