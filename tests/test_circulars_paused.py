@@ -1,6 +1,6 @@
-"""The circulars cron is paused (owner, 27 Oct 2026) until the receipts of `data/circulars/list` are rebuilt from Drive. This
-pins the state, so a paused workflow is never mistaken for a scheduled one and a re-enable is a deliberate change: whoever
-restores the schedule updates this test in the same commit (see the comment in the workflow)."""
+"""The circulars cron is paused (owner, 27 Oct 2026) until the receipts of `data/circulars/list` are rebuilt from
+Drive. This pins the state, so a paused workflow is never mistaken for a scheduled one and a re-enable is a deliberate
+change: whoever restores the schedule updates this test in the same commit (see the comment in the workflow)."""
 
 from __future__ import annotations
 
