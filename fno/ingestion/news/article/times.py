@@ -10,7 +10,7 @@ from email.utils import parsedate_to_datetime
 
 PUBLISHED, ASSUMED_UTC, SEEN = "published", "assumed_utc", "seen"  # the item's `time_source`
 PLAUSIBLE_YEARS = range(1990, 2101)
-# RFC 822 reads "01 Jan 0001", a feed's minimum-date default, as 2001, so on that path (only) the year as written is checked.
+# RFC 822 reads "01 Jan 0001" (a feed's minimum-date default) as 2001: on that path only, the written year is checked.
 YEAR_WORDS = re.compile(r"(?<![+\-:\d])\d{4}(?![\d:])")  # a four-digit year, not a zone offset like +0530
 
 
