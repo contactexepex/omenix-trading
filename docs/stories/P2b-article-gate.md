@@ -33,7 +33,8 @@ would touch the hash-locked requirements).
 - **Same key, same fixed fields** (seen_at and feed id excluded): a no-op. **Same key, different fixed fields** (a live blog, a
   correction): the first file stays the record and the later version is written write-once to
   `news/revisions/<key[:2]>/<key>/<sha8 of the version>.json`. It reuses the revision *pattern* of P1 (`RevisionSink`) but
-  NOT its archive: the A11 revision index and the standard manifest carry NSE-style URL columns, which would break invariant 1.
+  NOT its archive: the A11 revision archive accepts only paths of an NSE dataset (`source_of` refuses any other) and records them
+  in the standard manifest, which has a URL column; both are wrong for news (invariant 1).
   A small news revision writer implements the same interface.
 - **Manifest** `research/data/manifests/news/articles.csv`: `date,article_id,status,sha256,size_bytes` (`status` = recorded or
   revision), a row only after Drive accepted the file (file first). Hash ids only. **Receipts**: one SHA-256 receipt per Drive
