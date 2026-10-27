@@ -57,8 +57,7 @@ change that includes a test proving the old files still parse. Until then nothin
 
 ## 6. Decisions still the owner's
 Cron times; whether to enable resolve and read-pages for every article or only some; the key-sentences question for page reads (default: no
-sentences are stored); whether outlets that refuse automated reads stay excluded (default: honoured); the keep-or-delete call on the
-code with no pipeline caller (`ArticleViewer`, `OriginReader`, `PromotionalFilter`, `corroborate`, listed in the 27 Oct log); the git-history
+sentences are stored); whether outlets that refuse automated reads stay excluded (default: honoured); the git-history
 note about a judge file that quoted real exclusion patterns (history is not rewritten here); agentic's own collection is not touched by this
 repository.
 

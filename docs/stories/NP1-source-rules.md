@@ -1,5 +1,7 @@
 # NP1: the news source rules (BUILT; round 2 after judges 71 and 72; MERGE HELD for owner decision H)
 
+> **DELETED in DEL1 (28 Oct 2026, owner: "get rid of these 400 unused lines."):** `tier_of`, `outlet_key`, `is_opinion`, `domain_of_label`, `may_upgrade_to_https`, `wire_of_*` and `is_promotional_*` were removed from `SourceRules` (no caller); the rules FILE and loader are unchanged. The text below is the record of what was built; `docs/stories/DEL1-delete-unused-derivation.md` says what stayed.
+
 Lane 1, **two judges** (it decides which outlets omenix will ever request: an outside-service rule). The plan is
 [NP0-news-port-plan.md](NP0-news-port-plan.md) (orchestrator-approved 27 Oct 2026). This story builds only its section 2(c) and the
 data of 2(f), 2(g): the allowlist and the pure lookups. Nothing here makes a request, reads a feed or writes to Drive.
