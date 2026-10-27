@@ -62,3 +62,13 @@ Reviewed `git diff fb94003 1002195`.
 - **Gates (locked venv):** all tests pass; ruff is clean; contract plants all `ok`.
 
 **Verdict: PASS at 1002195.**
+
+## Addendum 3: 1b7ff3d: PASS
+
+1b7ff3d is 1002195 plus `main` (NP5a merged) plus two tests and plants.
+
+- **Production code** is identical to 1002195: `git diff 1002195 1b7ff3d -- fno` is empty.
+- **Plants.** The 310-line `contract_plants.json` diff is the merge reordering entries. Compared by id, nothing is removed or changed against 1002195, nothing is missing or changed against `main`, and only T16 and T17 are added.
+- **Gates (locked venv).** 1921 passed; ruff is clean; contract plants all `ok`.
+
+**Verdict: PASS at 1b7ff3d.**
