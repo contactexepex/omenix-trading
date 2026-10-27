@@ -19,3 +19,4 @@ def test_the_same_version_with_the_same_bytes_and_any_newer_version_are_fine():
 
 def test_before_the_first_run_there_is_nothing_to_compare_with():
     assert pin_violation(1, "a", 0, "", OLD, NEW) == "" and pin_violation(0, "", 0, "", OLD, NEW) == ""
+    assert pin_violation(0, "abc", 0, "", OLD, NEW) == ""  # even a differing digest: there is no last run
