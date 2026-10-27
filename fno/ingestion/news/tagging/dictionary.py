@@ -41,10 +41,8 @@ class NameDictionary:
         found = []
         for match in _BRACKETS.finditer(text):
             parts = [part.strip() for part in match.group(1).split(":")]
-            if (
-                len(parts) <= 3
-            ):  # `SYM`, `SYM:EXCHANGE` or `EXCHANGE: SYM`: each part is a candidate; the tagger keeps those that are symbols, case-sensitively
-                found += [(p, match.start(), match.end()) for p in parts if p]
+            if len(parts) <= 3:  # `SYM`, `SYM:EXCHANGE`, `EXCHANGE: SYM`: each part is a candidate symbol
+                found += [(p, match.start(), match.end()) for p in parts if p]  # kept by the tagger only if a symbol
         return found
 
 
