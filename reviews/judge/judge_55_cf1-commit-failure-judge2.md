@@ -74,3 +74,35 @@ the commit raises, the exception propagates past `return exit_for_commit(...)`, 
 traceback, non-zero. Together with F2, that is the complete list of uncovered cases I found.
 
 **Verdict: FAIL** (round 1). F1 is a test-only tightening; F2 is a ruling plus story text, or a small intraday change.
+
+## Addendum 1: round 2, a34b886 (PASS)
+
+SHA `a34b886318c4f09d55081f2894637b7386d4daab`. The only changes since `d94db29` are in
+`tests/test_no_masked_pull_push.py` and the story. **Gates** (`__pycache__` cleared): 883 passed; ruff check and
+format clean; imports clean.
+
+**F1: my three shapes are caught.** Run through `problems()` (scratch script, not committed):
+
+| Shape | Result |
+|---|---|
+| A `\` continuation, then `exit "$broken"` | flagged |
+| A `\` continuation as the last command | accepted (safe) |
+| `\|\| true` / `\|\| :` / `; exit 0` / `; true` | each flagged |
+| `\|\| exit 1` last / the retry loop | accepted (safe) |
+
+The implementer reports that plants dropping the swallowed check or the continuation join fail the tests.
+
+**One shape still slips, same class (a non-blocking recommendation):** `git pull ... && git push ... || echo failed`
+as the last line is accepted. `echo` exits 0, so the step is green whatever happens, exactly like `|| true`. The
+guard lists endings that swallow a failure, and any always-succeeding command after `||` (`echo`, `printf`, `logger`)
+gets past it. Nothing of the kind is in the repository today. Recommended follow-up: invert the rule to an allow
+list. After a pair, the line may carry only nothing, or `|| exit <non-zero>`; anything else is flagged. That closes
+the whole class. I do not block on it: CF1's code is sound, every shape seen so far is caught, and the repository is
+clean today.
+
+**F2: resolved as option (a).** The story names the `FOREIGN_STAGED` refusal as uncovered: it ends green, and it is
+alerted once per run by the sync itself. The implementer's reason is sound: counting it would change a Groww
+routine's exit code for a case that is already alerted. The story's limits are now accurate. If the orchestrator rules
+(b) instead, that is a separate small change.
+
+**Verdict: PASS** (lane 1, CF1, judge #2).
