@@ -131,3 +131,16 @@ unchanged, because the code is identical.
 
 S1 and S3 are tests only and small. This is my second round on the R1c code, so under the rules the orchestrator
 decides the next step. I would PASS a SHA that adds these two tests and makes R4, R4b and W6b fail.
+
+## Addendum 3: correction, the 900 s total cap is weaker than today (judge #1's finding, which I confirm)
+
+My round-1 criterion "Same as today's Drive loop: MET (traced)" was wrong for long attempts. `retry.py:90`
+(`if self.clock() - started + wait > self.settings.max_total_seconds`) counts the time spent inside each attempt, not
+only the waits. Today's Drive loop (`main`'s `drive_session.py`) has no total limit and always makes 5 tries. On
+`1381a8e`, with `Retry-After` capped at 120 s, four waits of 120 s plus four attempts of 105 s or more reach 900 s, and
+the fifth try is never made. The tests use instant attempts, so they cannot show this. I traced the waits only and
+missed it. The ruled fix (no total cap for Drive only; NSE untouched) is right.
+
+Checks added for the next SHA: a long-attempt case (each attempt over 105 s on a fake clock) still makes 5 tries;
+putting a 900 s total back for Drive makes a test fail; NSE's `max_total_seconds` and `RetryPolicy` are unchanged vs
+`main`.
