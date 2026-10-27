@@ -1,6 +1,7 @@
 """docs/RECORD_CONTRACT.md and docs/NEWS_RECORD_CONTRACT.md stay honest (story P5): every test they name exists, every
 row names a test, the plant list (`tools/contract_plants.json`) and the two documents describe the same claims with the
-same tests, and each document stays under 500 lines. It does not re-run the plants (`python tools/contract_plants.py` does)."""
+same tests, and each document stays under 500 lines. It does not re-run the plants
+(`python tools/contract_plants.py` does)."""
 
 from __future__ import annotations
 
