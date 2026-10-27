@@ -22,6 +22,9 @@ grouping instead: the newest list is read as before and checked against the prev
 newer one is skipped. `VersionedFiles` and the other private files (feed list, discovery, materiality) are untouched.
 
 ## Said plainly
+- A run compares with the latest file BEFORE its own window. A hand re-run of an older window therefore compares with the files before that
+  window, not with the newest file, and can accept a list that the newest file's run would refuse; it writes at that window's own path.
+- Do not dispatch algorithm 2 before this merges: a version 2 file written without the SHA would stop every later run as damaged (judge 102 N3).
 - Only the version 2 cluster run is protected. The materiality file has no reader in any run today; the feed plan and the discovery file keep their
   own existing rules.
 - An owner who deliberately replaces `companies-vN.json` with a corrected copy under the same number is stopped by this; the way through is a new

@@ -2268,5 +2268,14 @@
   "file": "fno/ingestion/news/cluster_record/run.py",
   "old": "self.grouping.inputs(found.articles, as_of, earlier)",
   "new": "self.grouping.inputs(found.articles, as_of)"
+ },
+ {
+  "id": "Z24",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_run_compares_with_the_newest_earlier_file_not_the_first_one"
+  ],
+  "file": "fno/ingestion/news/cluster_record/run.py",
+  "old": "max(earlier)[1]",
+  "new": "min(earlier)[1]"
  }
 ]

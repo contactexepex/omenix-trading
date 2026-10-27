@@ -11,7 +11,7 @@ from datetime import datetime
 from fno.ingestion.news import codes
 from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.cluster import cluster as clustering_module
-from fno.ingestion.news.cluster.cluster import Cluster, Clustering, cluster_articles
+from fno.ingestion.news.cluster.cluster import Clustering, cluster_articles
 from fno.ingestion.news.cluster_record.article_source import ArticleSource
 from fno.ingestion.news.cluster_record.cluster_file import (
     ClusterFile,
@@ -84,10 +84,6 @@ class ClusterRun:
         if report.ok:
             self._write(clustering, report)
         return report
-
-    def _previous(self, as_of: datetime) -> tuple[Cluster, ...]:
-        earlier = self._previous_file(as_of)
-        return earlier.clusters if earlier else ()
 
     def _previous_file(self, as_of: datetime) -> ClusterFile | None:
         """The latest earlier file of this version (ValueError when that file is damaged)."""

@@ -229,7 +229,7 @@ def test_a_version_two_run_reads_its_previous_file_from_its_own_folder(tmp_path)
     other |= {"format": 1, "algorithm_version": "1", "window_end": "20261027T114500Z"}
     other["clusters"] = [dict(c, cluster_id="f" * 64) for c in other["clusters"]]
     world.drive.put("raw/news/clusters/1/20261027T114500Z.json", json.dumps(other).encode())
-    previous = world.run_object._previous(AS_OF)
+    previous = world.run_object._previous_file(AS_OF).clusters
     assert previous == parse_cluster_file(v2_bytes).clusters
     assert all(c.cluster_id != "f" * 64 for c in previous)
 
@@ -291,3 +291,17 @@ def test_the_parser_reads_the_list_a_file_used_and_zero_for_a_file_that_has_none
     document["format"] = 1
     none = parse_cluster_file(json.dumps(document).encode())
     assert (none.companies_version, none.companies_sha256) == (0, "")
+
+
+def test_a_run_compares_with_the_newest_earlier_file_not_the_first_one(tmp_path):
+    """Judge 102 B1: lists 5, then 7, then a rollback to 6. Against the first file (5) the 6 would pass."""
+    world = seeded(tmp_path, Scripted(CompanyList(5, COMPANIES, "5" * 64)))
+    assert world.cluster(AS_OF - timedelta(hours=2)).ok
+    world.companies = Scripted(CompanyList(7, COMPANIES, "7" * 64))
+    world.build()
+    assert world.cluster(AS_OF - timedelta(hours=1)).ok
+    world.companies = Scripted(CompanyList(6, COMPANIES, "6" * 64))
+    world.build()
+    report = world.cluster(AS_OF)
+    assert report.rejected == {codes.COMPANY_LIST_ROLLED_BACK: 1}
+    assert world.run_object._previous_file(AS_OF).companies_version == 7
