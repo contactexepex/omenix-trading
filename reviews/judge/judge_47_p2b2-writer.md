@@ -94,3 +94,39 @@ Add a test: a retired feed's old polls do not fail a run over a later range.
 
 No orders, no secrets, no live call. The workflow is dispatch-only, `--from` is required, and it commits only the news
 manifest and `receipts/raw/news`. Write-once holds in two layers.
+
+## Addendum 1: the orchestrator's two added items (same round)
+
+**A. Commit on rejection: holds (strong evidence: workflow read).** The promote step is `continue-on-error: true`, so the
+job stays successful and the next step's implicit `success()` passes. "Commit the news manifest and receipts" therefore
+runs whenever `!dry_run`: whatever the writer saved (receipts and rows of the good articles) is committed. Then the last
+step `exit 1`s on `steps.promote.outcome != 'success'`, and the command itself has already sent the alert.
+
+So with 1 rejected and 2 good items, the 2 good receipts and rows are committed, the run goes red, and the alert fires.
+I did not run Actions (that is the owner's go-live), but the step logic is unambiguous.
+
+**B. A torn trailing line: required, because the failure is *silent*, not loud.** I reproduced it. Write one good row,
+then append a torn row with no newline (`...,reco`), as a crash during the write would leave:
+- `NewsManifest` loads it **without error**: the torn row simply does not count as recorded;
+- the next `add` **glues** the new row onto the torn line, giving `...,reco2026-10-28,ccc…`;
+- after a reload, the new article id is **not** in `recorded`.
+
+The workflow would commit those garbage rows to the public, append-only manifest. They would heal one run later (the
+missing-row repair re-adds them), but the corrupt lines stay in history for ever.
+
+`NewsManifest` re-implements CSV appending instead of reusing `CsvRowLog`. The repository already guards exactly this:
+`CsvRowLog.check_appendable` raises `TableFileBroken` when the file does not end with a newline (`row_log.py:59-61`).
+
+Fix (DRY, small):
+- write the manifest through `CsvRowLog`, calling `check_appendable` before each append, so a torn file stops the run
+  loudly before anything is glued;
+- make the load skip, and count, a row whose fields are not all valid, rather than mis-reading it;
+- add a test with a torn trailing line: nothing is appended, and the run reports it.
+
+I prefer this loud refusal plus a hand-fix over silently adding a newline, because the hand-fix keeps a human looking at
+a crashed run.
+
+**The feed kind from the newest list:** confirmed as the documented, accepted limit (story: "Do not change a feed's
+kind; add a new feed id"). It is not a finding.
+
+**Verdict unchanged: FAIL.** Required: W1, W2 and B.
