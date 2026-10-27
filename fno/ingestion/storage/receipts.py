@@ -5,39 +5,32 @@ digest again keeps the first one (its time is the evidence); a different digest 
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
+from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, BatchIndex
 from fno.ingestion.storage.raw_store import RawFileConflict, path_parts
+from fno.ingestion.storage.receipt import FIELD_SEPARATOR, Receipt
 
 RECEIPT_SUFFIX = ".sha256"
-FIELD_SEPARATOR = "\t"
+__all__ = ["FIELD_SEPARATOR", "RECEIPT_SUFFIX", "Receipt", "ReceiptFolder"]  # Receipt: where callers import it from
 
 
-@dataclass(frozen=True)
-class Receipt:
-    path: str  # the Drive path, area included (e.g. `data/intraday/...`)
-    sha256: str
-    size: int
-    written_at: str  # UTC, ISO 8601 with offset
-    writer: str  # the job or command that wrote the file
-    run_id: str
+class ReceiptWriter(Protocol):
+    """How a store saves a receipt (story R2): one file per Drive file (`ReceiptFolder`) or one batch file per run
+    (`BatchReceiptWriter`). Both keep the first receipt of a path and refuse a different digest for it."""
 
-    def to_text(self) -> str:
-        fields = (self.sha256, str(self.size), self.written_at, self.writer, self.run_id)
-        return FIELD_SEPARATOR.join(fields) + "\n"
-
-    @classmethod
-    def from_text(cls, path: str, text: str) -> Receipt:
-        sha256, size, written_at, writer, run_id = text.rstrip("\n").split(FIELD_SEPARATOR)
-        return cls(path, sha256, int(size), written_at, writer, run_id)
+    def write(self, receipt: Receipt) -> Receipt: ...
 
 
 class ReceiptFolder:
-    """The `receipts/` tree of a checkout: `receipts/<drive path>.sha256`."""
+    """The `receipts/` tree of a checkout: `receipts/<drive path>.sha256`, and the batch files of runs that packed
+    their receipts (`receipts/_batches/`, story R2). Reading finds a file's receipt in either; writing here is the
+    one-file-per-receipt strategy."""
 
     def __init__(self, folder: Path):
         self.folder = Path(folder)
+        self.batches = BatchIndex(self.folder / BATCH_FOLDER)
 
     def file_for(self, path: str) -> Path:
         *folders, name = path_parts(path)
@@ -45,7 +38,14 @@ class ReceiptFolder:
 
     def read(self, path: str) -> Receipt | None:
         file = self.file_for(path)
-        return Receipt.from_text(path, file.read_text()) if file.is_file() else None
+        if file.is_file():
+            return Receipt.from_text(path, file.read_text())
+        return self.batches.receipts().get(path)
+
+    def batch_problems(self) -> list[str]:
+        """What is wrong with the batch files (a torn last line, a wrong shape, two digests for one path)."""
+        self.batches.receipts()
+        return list(self.batches.problems)
 
     def write(self, receipt: Receipt) -> Receipt:
         """The receipt kept for the path: the earlier one when the digest matches, else the new one."""
@@ -67,11 +67,17 @@ class ReceiptFolder:
         single = self.read(prefix)
         if single is not None:
             return [single]
-        root = self.folder.joinpath(*path_parts(prefix))
-        if not root.is_dir():
-            return []
-        files = sorted(f for f in root.rglob(f"*{RECEIPT_SUFFIX}") if not f.name.startswith("."))
-        return [self.read(self._drive_path(f)) for f in files]
+        parts = tuple(path_parts(prefix))
+        root = self.folder.joinpath(*parts)
+        files = (
+            sorted(f for f in root.rglob(f"*{RECEIPT_SUFFIX}") if not f.name.startswith(".")) if root.is_dir() else []
+        )
+        found = [self.read(self._drive_path(f)) for f in files]
+        batched = {p: r for p, r in self.batches.receipts().items() if tuple(path_parts(p))[: len(parts)] == parts}
+        if not batched:
+            return found
+        merged = {**batched, **{r.path: r for r in found}}  # a per-file receipt, if there is one, is the one read
+        return [merged[path] for path in sorted(merged)]
 
     def _drive_path(self, file: Path) -> str:
         return file.relative_to(self.folder).as_posix()[: -len(RECEIPT_SUFFIX)]

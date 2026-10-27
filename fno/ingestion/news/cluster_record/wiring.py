@@ -14,7 +14,7 @@ from fno.ingestion.news.cluster_record.writer import ClusterWriter
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.wiring import POLL_LOG_FOLDER
 from fno.ingestion.storage.data_store import DataStore, new_run_id
-from fno.ingestion.storage.data_wiring import receipt_folder
+from fno.ingestion.storage.data_wiring import batch_receipt_writer
 from fno.ingestion.storage.raw_store import AreaStore
 from fno.ingestion.storage.wiring import OWNER_UPLOAD_SETTINGS, RAW_AREA, build_owner_drive
 from fno.shared.models import now_utc
@@ -29,6 +29,6 @@ def build_news_cluster(env=os.environ) -> ClusterRun:
     if drive is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
     record = AreaStore(drive, RAW_AREA)
-    store = DataStore(drive, RAW_AREA, receipt_folder(), WRITER, new_run_id(now_utc()))
+    store = DataStore(drive, RAW_AREA, batch_receipt_writer(), WRITER, new_run_id(now_utc()))
     writer = ClusterWriter(record, store, NewsManifest(POLL_LOG_FOLDER, CLUSTERS_MANIFEST))
     return ClusterRun(ArticleSource(record, NewsManifest(POLL_LOG_FOLDER)), writer, record)

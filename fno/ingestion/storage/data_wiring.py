@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 
+from fno.ingestion.storage.batch_receipts import BatchReceiptWriter
 from fno.ingestion.storage.data_store import DataStore, new_run_id
 from fno.ingestion.storage.drive_cache import DriveCache
 from fno.ingestion.storage.manifest_commit import GitManifestRecorder
@@ -21,6 +22,11 @@ RECEIPTS_LABEL = "receipts"
 
 def receipt_folder() -> ReceiptFolder:
     return ReceiptFolder(REPOSITORY / RECEIPTS_FOLDER)
+
+
+def batch_receipt_writer() -> BatchReceiptWriter:
+    """Receipts packed one file per run (story R2): for the news writers."""
+    return BatchReceiptWriter(receipt_folder())
 
 
 def _owner_drive(env=os.environ) -> RawFileStore:

@@ -35,7 +35,7 @@ jobs:
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       MANIFEST: research/data/manifests/news/clusters.csv
-      RECEIPTS: receipts/raw/news/clusters
+      RECEIPTS: receipts/raw/news/clusters receipts/_batches
       COMMIT_MESSAGE: "P2d Actions: news clusters"
       AS_OF: ${{ inputs.as_of }}
     steps:

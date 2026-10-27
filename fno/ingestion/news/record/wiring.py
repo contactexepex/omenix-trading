@@ -14,7 +14,7 @@ from fno.ingestion.news.wiring import CONFIG_AREA, POLL_LOG_FOLDER
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.promotion.wiring import STAGING_AREA
 from fno.ingestion.storage.data_store import DataStore, new_run_id
-from fno.ingestion.storage.data_wiring import receipt_folder
+from fno.ingestion.storage.data_wiring import batch_receipt_writer
 from fno.ingestion.storage.raw_store import AreaStore
 from fno.ingestion.storage.wiring import OWNER_UPLOAD_SETTINGS, RAW_AREA, build_owner_drive
 from fno.shared.models import now_utc
@@ -28,6 +28,6 @@ def build_news_promotion(env=os.environ) -> NewsGate:
     if drive is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
     kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
-    store = DataStore(drive, RAW_AREA, receipt_folder(), WRITER, new_run_id(now_utc()))
+    store = DataStore(drive, RAW_AREA, batch_receipt_writer(), WRITER, new_run_id(now_utc()))
     writer = ArticleWriter(AreaStore(drive, RAW_AREA), store, NewsManifest(POLL_LOG_FOLDER))
     return NewsGate(StagingArea(AreaStore(drive, STAGING_AREA)), writer, kinds)

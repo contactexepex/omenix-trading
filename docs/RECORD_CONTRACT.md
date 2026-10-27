@@ -10,7 +10,7 @@ reasons are in [PIPELINE_DESIGN.md](PIPELINE_DESIGN.md); the stories hold the ev
 - **The Record** is the `raw/` area of the owner's Drive project folder: NSE and other source files at their archive paths, news articles under
   `raw/news/articles/` and `raw/news/revisions/`, and cluster files under `raw/news/clusters/<algorithm version>/`. Later NSE versions of a file
   are in the `revisions/` area. `staging/` holds every fetch before it is checked; `data/` holds derived tables; `config/` holds the private feed list.
-- **GitHub holds the proof, not the data:** one SHA-256 receipt per Drive file under `receipts/`, and manifest rows under
+- **GitHub holds the proof, not the data:** one SHA-256 receipt per Drive file under `receipts/` (the news writers pack theirs one batch file per run, a line per file, story R2), and manifest rows under
   `research/data/manifests/`. A file's text lives only in Drive.
 - **The gate** (`PromotionGate`) is the only code that writes the Record from staged files; the news writer and the cluster writer are, within their
   packages, the only code that writes the news Record. "Only" is enforced in code (rows G7, G8 and the news writer rows), not by credentials (see "Not guaranteed").
@@ -66,6 +66,9 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 | N3 | News: Drive file first, then the receipt, then the manifest row; a failed Drive write leaves no row. | `ArticleWriter._save` | `tests/ingestion/news/record/test_writer_and_gate.py::test_drive_failing_writes_no_manifest_row_and_is_counted_by_code` | the row written before the file | **tested, plant run** |
 | N4 | A manifest ending in a torn line stops the run before any write; the next row is never glued onto it. | `NewsManifest`, `NewsGate.promote` | `tests/ingestion/news/record/test_writer_and_gate.py::test_a_torn_manifest_line_is_never_glued_onto_and_stops_the_run_before_any_write` | the pre-write check removed | **tested, plant run** |
 | N5 | No headline, URL, query or host reaches a manifest, a receipt, a report line, a log or an alert, through the gate and the clusters (a marker value is searched for everywhere). | the data model: Drive holds the text, the repository holds hash ids and counts | `tests/ingestion/news/record/test_privacy_cli_workflow.py::test_no_title_url_or_query_reaches_the_manifest_receipts_or_the_report`<br>`tests/ingestion/news/cluster_record/test_reader_wiring_privacy_cli.py::test_nothing_of_a_story_reaches_the_cluster_file_manifest_receipts_report_logs_or_alert` | the title written to a DEBUG log | **tested, plant run** |
+| N6 | Each news Drive file (article, revision, cluster) has its own receipt line in its run's batch file `receipts/_batches/<run id>.tsv`, found by its path; nothing is receipted in bulk without its own hash. | `BatchReceiptWriter.write`, `ReceiptFolder.read/under` | `tests/ingestion/test_batch_receipts.py::test_every_file_of_a_run_is_proved_by_its_own_line_found_by_path`<br>`tests/ingestion/test_batch_receipts.py::test_two_runs_make_two_batch_files_and_never_touch_each_other` | the writer leaves out one file's line | **tested, plant run** |
+| N7 | A Drive file of the news Record that was changed or removed behind its batch receipt is found by the verified cache (`DriveCache.sync`), and a damaged batch file is reported. | `ReceiptFolder.under`, `DriveCache.sync` | `tests/ingestion/test_batch_receipts.py::test_a_drive_file_changed_behind_its_batch_receipt_is_found`<br>`tests/ingestion/test_batch_receipts.py::test_a_drive_file_missing_behind_its_batch_receipt_is_found`<br>`tests/ingestion/test_batch_receipts.py::test_a_torn_batch_shows_up_in_the_cache_report` | the reader ignores the batch files | **tested, plant run** |
+| N8 | A batch keeps the first receipt of a path and refuses a different digest for it (against another batch or a per-file receipt); a torn, malformed or conflicting line is never read as a receipt. | `BatchReceiptWriter.write`, `BatchIndex` | `tests/ingestion/test_batch_receipts.py::test_the_same_bytes_again_keep_the_first_line_and_different_bytes_are_refused`<br>`tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts` | the writer accepts a different digest | **tested, plant run** |
 
 ### E. The cluster record
 
@@ -111,8 +114,7 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 ## Open (not decided here)
 
 Where the forecasting engine lives and what it needs from the Record (owner decision 2); freshness windows and cross-source tolerances (decision 1);
-whether to add Indian indexes to the live Yahoo fetch (P4, paused) and whether BSE may be read at all (P3, blocked on the owner); the receipt volume of news
-(about 300 files a day, reasoning only) and the cluster-file cadence (hourly would be 8,760 files a year); making NSE index-close promotable.
+whether to add Indian indexes to the live Yahoo fetch (P4, paused) and whether BSE may be read at all (P3, blocked on the owner); the cluster-file cadence (hourly would be 8,760 files a year); making NSE index-close promotable.
 
 ## Keeping this document true
 

@@ -232,6 +232,37 @@
   "new": "        path, data = article_path(article.key), article.to_bytes()\n        import logging\n        logging.getLogger('x').debug(article.title)\n"
  },
  {
+  "id": "N6",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_every_file_of_a_run_is_proved_by_its_own_line_found_by_path",
+   "tests/ingestion/test_batch_receipts.py::test_two_runs_make_two_batch_files_and_never_touch_each_other"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "            os.write(descriptor, batch_line(receipt).encode(\"utf-8\"))  # the whole line in one write",
+  "new": "            if not receipt.path.endswith(\"/2.json\"):\n                os.write(descriptor, batch_line(receipt).encode(\"utf-8\"))"
+ },
+ {
+  "id": "N7",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_drive_file_changed_behind_its_batch_receipt_is_found",
+   "tests/ingestion/test_batch_receipts.py::test_a_drive_file_missing_behind_its_batch_receipt_is_found",
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_batch_shows_up_in_the_cache_report"
+  ],
+  "file": "fno/ingestion/storage/receipts.py",
+  "old": "        batched = {p: r for p, r in self.batches.receipts().items() if tuple(path_parts(p))[: len(parts)] == parts}",
+  "new": "        batched = {}"
+ },
+ {
+  "id": "N8",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_the_same_bytes_again_keep_the_first_line_and_different_bytes_are_refused",
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "                raise RawFileConflict(f\"{receipt.path} already has a receipt with a different SHA-256\")",
+  "new": "                return existing"
+ },
+ {
   "id": "C1",
   "tests": [
    "tests/ingestion/news/cluster_record/test_write_and_run.py::test_other_bytes_for_a_closed_window_are_a_conflict_and_nothing_is_overwritten",

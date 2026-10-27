@@ -43,6 +43,7 @@ class DriveCache:
         with no receipt at all is a problem, never an empty success. `strip` drops a leading part of the Drive
         path when writing under `into` (e.g. the area, to restore `data/research/x` as `research/x`)."""
         report, receipts = SyncReport(), self.receipts.under(prefix)
+        report.problems += self.receipts.batch_problems()
         if not receipts:  # a wrong path must never read as "nothing to sync, all verified"
             report.problems.append(NO_RECEIPTS.format(prefix=prefix))
         for receipt in receipts:
