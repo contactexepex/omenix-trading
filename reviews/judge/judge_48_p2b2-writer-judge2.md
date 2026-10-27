@@ -139,3 +139,24 @@ condition.
 
 **Verdict: FAIL** on `8d91634`, on S3 only (tests only). Everything else is MET. A SHA that adds the S3 test is a
 PASS from me if nothing else changes.
+
+## Addendum 4: round 2, 007ff9c (PASS)
+
+SHA `007ff9c2ede18f59c34d34fb527e201fb01f3c49`, the round-2 SHA. It replaces `2ad37d2`, `321faad` and `8d91634`.
+Compared with `8d91634` it adds the 64-hex article-id check to `_whole`, the S3 workflow test, and story text.
+**Gates** (`__pycache__` cleared): 764 passed; ruff, format, imports and size clean.
+
+| Item | Plant on 007ff9c | Failed |
+|---|---|---|
+| S3 commit on rejection | A16 commit only when promote succeeded / A17 `continue-on-error` removed | 1 / 1 |
+| S1 wiring | A11 writer store on `STAGING_AREA` | 1 |
+| S4 torn line | B1 the gate's `check_appendable` removed | 2 |
+| Write-once and repair, carried forward | A2 a changed article over its path / A4 repair with new bytes / A6 the Drive put removed | 5 / 2 / 13 |
+
+S2 and the other S4 plants are as verified in Addenda 2 and 3, on code unchanged except `_whole`.
+
+**The implementer's question on a malformed line elsewhere.** It is skipped, counted as `manifest_row_skipped`,
+alerted with exit 1, and the missing-row repair re-adds it. I do not require a stop: the case is loud and heals
+itself, and a stop would block every run for one bad row.
+
+**Verdict: PASS** (lane 1, code round 2, judge #2). Merging needs judge #1's PASS too.
