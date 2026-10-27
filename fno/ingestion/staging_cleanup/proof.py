@@ -24,8 +24,7 @@ class RevisionHolds(Protocol):
 
 
 class KeepForever(PromotedProof):
-    """No staged copy of this source is ever removed (news polls, until the owner decides how to treat them: the Record
-    keeps an article's fields, not the raw poll, so removing a poll is not lossless)."""
+    """No staged copy of this source is ever removed (a source with no cleanup rule yet)."""
 
     def promoted(self, copy: StagedCopy) -> bool:
         return False

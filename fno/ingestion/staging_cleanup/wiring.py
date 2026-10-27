@@ -15,10 +15,16 @@ from __future__ import annotations
 
 import os
 
+from fno.ingestion.news.feeds import PrivateFeedLists
+from fno.ingestion.news.fetcher import SOURCE as NEWS_TAG
+from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.planner import ArticlePlanner
+from fno.ingestion.news.wiring import CONFIG_AREA, POLL_LOG_FOLDER
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.promotion.wiring import NSE_TAG, STAGING_AREA
 from fno.ingestion.staging_cleanup.cleanup import StagingCleanup
-from fno.ingestion.staging_cleanup.proof import KeepForever, NseCopyProof, PromotedProof
+from fno.ingestion.staging_cleanup.news_proof import NewsPollProof
+from fno.ingestion.staging_cleanup.proof import NseCopyProof, PromotedProof
 from fno.ingestion.staging_cleanup.trash import DriveStagingTrash
 from fno.ingestion.storage.raw_store import AreaStore
 from fno.ingestion.storage.revisions import RevisionArchive
@@ -29,7 +35,6 @@ from fno.ingestion.storage.wiring import (
     build_revision_archive,
 )
 
-NEWS_TAG = "news"
 NEEDS_DRIVE = "set {settings} to clean the staging area"
 
 
@@ -43,8 +48,9 @@ class ArchiveRevisionHolds:
         return any(r.sha256 == sha256 for r in self.archive.index.for_path(path))
 
 
-def proofs(record: AreaStore, archive: RevisionArchive) -> dict[str, PromotedProof]:
-    return {NSE_TAG: NseCopyProof(record, ArchiveRevisionHolds(archive)), NEWS_TAG: KeepForever()}
+def proofs(record: AreaStore, archive: RevisionArchive, kinds: dict[str, str]) -> dict[str, PromotedProof]:
+    news = NewsPollProof(kinds, ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER))
+    return {NSE_TAG: NseCopyProof(record, ArchiveRevisionHolds(archive)), NEWS_TAG: news}
 
 
 def build_staging_cleanup(apply: bool, limit: int, env=os.environ) -> StagingCleanup:
@@ -54,4 +60,5 @@ def build_staging_cleanup(apply: bool, limit: int, env=os.environ) -> StagingCle
     staging = StagingArea(AreaStore(drive, STAGING_AREA))
     record = AreaStore(drive, RAW_AREA)
     trash = DriveStagingTrash(drive) if apply else None
-    return StagingCleanup(staging, proofs(record, build_revision_archive(env)), trash, limit=limit)
+    kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
+    return StagingCleanup(staging, proofs(record, build_revision_archive(env), kinds), trash, limit=limit)

@@ -364,7 +364,7 @@
   "tests": [
    "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_the_record_does_not_hold_is_never_trashed",
    "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_whose_bytes_differ_from_the_record_is_kept_unless_the_revisions_hold_it",
-   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_and_news_polls_are_never_trashed"
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_is_never_trashed"
   ],
   "file": "fno/ingestion/staging_cleanup/proof.py",
   "old": "            return (held is not None and held == copy.data) or self.revisions.holds(copy.path, digest)",
@@ -379,6 +379,19 @@
   "file": "fno/ingestion/staging_cleanup/cleanup.py",
   "old": "            if self.clock() - fetched_at <= self.max_age:",
   "new": "            if False:"
+ },
+ {
+  "id": "E4",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_poll_that_was_never_promoted_is_kept",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_one_missing_article_keeps_the_whole_poll",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_poll_with_a_rejected_item_is_kept_even_if_the_rest_is_recorded",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_an_article_in_the_record_with_no_manifest_row_keeps_the_poll",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_only_a_poll_folder_is_ever_judged"
+  ],
+  "file": "fno/ingestion/staging_cleanup/news_proof.py",
+  "old": "            return all(self._held(article) for article in reading.articles)",
+  "new": "            return True"
  },
  {
   "id": "K4",

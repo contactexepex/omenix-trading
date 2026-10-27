@@ -106,7 +106,7 @@ def test_a_copy_younger_than_seven_days_or_exactly_seven_is_kept(tmp_path):
     assert trash.calls == [] and report.counts["young"] == 2 and report.counts["scanned"] == 0
 
 
-def test_a_source_without_a_rule_and_news_polls_are_never_trashed(tmp_path):
+def test_a_source_without_a_rule_is_never_trashed(tmp_path):
     w = World(tmp_path)
     w.stage(b"poll", OLD, source="news", path="feed-01/2026/10/01/poll")
     w.stage(b"other", OLD, source="other", path="x/y")

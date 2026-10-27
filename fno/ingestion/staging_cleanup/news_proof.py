@@ -1,0 +1,57 @@
+"""When a staged news poll may be removed (story S1, owner's choice (b), 27 Oct 2026: trash after promote).
+
+**What removing a promoted poll loses, stated plainly.** The Record keeps an article's FIELDS (key, kind, source, title,
+summary, canonical link, times); it does not keep the raw poll. Removing the poll therefore permanently loses, once
+Drive's trash is emptied (about 30 days after the move), what the Record never took: the full item body, author,
+categories, media, and, for wrapper items such as Google News, the real link. That is the owner's accepted trade-off.
+
+A poll is "promoted" only when ALL of this holds (anything else keeps it, including every poll the promotion gate
+left staged on purpose, which are re-read on every run):
+- its feed has a kind in the feed list (otherwise the gate left it staged: `feed_unknown`);
+- it still parses as a whole poll (a refused poll stays);
+- NONE of its items was rejected (a rejected item stays staged with its code), and it has at least one article;
+- EVERY article is already held by the Record exactly as the writer would treat it (a NO_OP in the writer's own rule,
+  `ArticlePlanner`, in the article file or the revision file of that version) AND has its manifest row.
+An unreadable Record, a revision-name collision or any error answers False."""
+
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Mapping
+
+from fno.ingestion.news.article.article_file import Article
+from fno.ingestion.news.article.parse_feed import PollRejected
+from fno.ingestion.news.article.read_poll import read_poll
+from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.planner import ArticlePlanner, Outcome
+from fno.ingestion.promotion.staging import StagedCopy
+from fno.ingestion.staging_cleanup.proof import PromotedProof
+
+POLL_FOLDER = "poll"  # a staged poll lives at <feed>/<Y>/<m>/<d>/poll/<stamp>
+
+
+class NewsPollProof(PromotedProof):
+    def __init__(self, kinds: Mapping[str, str], planner: ArticlePlanner, manifest: NewsManifest):
+        """`kinds`: feed id -> kind; `planner`: the Record, read only; `manifest`: the checkout's articles manifest."""
+        self.kinds, self.planner, self.manifest = kinds, planner, manifest
+
+    def promoted(self, copy: StagedCopy) -> bool:
+        parts = copy.path.split("/")
+        kind = self.kinds.get(parts[0])
+        if kind is None or parts[-1] != POLL_FOLDER:
+            return False
+        try:
+            reading = read_poll(copy.data, kind, copy.fetched_at)
+            if reading.rejected or not reading.articles:
+                return False
+            return all(self._held(article) for article in reading.articles)
+        except PollRejected:
+            return False
+        except Exception:  # noqa: BLE001 - any doubt (Drive down, a collision, a damaged file) keeps the poll
+            return False
+
+    def _held(self, article: Article) -> bool:
+        plan = self.planner.plan(article)
+        return plan.outcome is Outcome.NO_OP and self.manifest.has(
+            article.key, plan.status, hashlib.sha256(plan.held).hexdigest()
+        )

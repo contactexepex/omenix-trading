@@ -2,7 +2,7 @@
 
 **Lane 1, two judges (a destructive Drive operation and the owner's no-data-loss line).** Owner decision, 27 Oct 2026 (relayed by the
 orchestrator): "we don't want to lose any data anymore"; staging copies older than 7 days that are PROVEN promoted are removed.
-**Status: NSE half built; news polls held back for the owner (see "Decided").** Ships dormant (`workflow_dispatch` only); the owner enables it at go-live.
+**Status: built; owner chose (b) for news polls (27 Oct 2026, "Owner decision" below).** Ships dormant (`workflow_dispatch` only); the owner enables it at go-live.
 
 ## What is true today (read from the code)
 - `RawFileStore` has no delete, by design (the Record is write-once). Staging is a Drive area `staging/`, laid out
@@ -61,6 +61,21 @@ a missing article; one that trashes a copy younger than 7 days (or exactly 7); a
 - **Not testable offline:** the real Drive trash call. The first live run is a report-only dispatch by the owner.
 - Existing tests edited: the subcommand list and count (`staging`), the pinned-installs count (18 workflows), and the pause-log test's
   "reaches Drive only" list (`staging-cleanup.yml`).
+
+## Owner decision on news polls (27 Oct 2026): (b) trash after promote
+**What this permanently loses, stated plainly for the judges and the owner.** The Record keeps an article's fields (key, kind, source, title,
+summary, canonical link, times). It does NOT keep the raw poll. Removing a promoted poll therefore loses, once Drive's trash is emptied (about 30 days
+after the move; the seven-day wait before the move is on top of that), what the Record never took: the full item body, author, categories, media and,
+for wrapper items such as Google News, the REAL link (their canonical link is empty in the Record). The owner accepted this; the 30-day trash softens it.
+- `news_proof.py::NewsPollProof` (all safety controls above unchanged): a poll is promoted only if its feed has a kind, it parses whole, NONE of its items
+  was rejected, it has at least one article, and EVERY article is already held by the Record exactly as the writer's own rule treats it (`ArticlePlanner`
+  says NO_OP, in the article file or the revision file of that version) AND has its manifest row. A poll the gate left staged on purpose (refused,
+  rejected item, unknown feed) is therefore kept, as are all polls when the Record cannot be read.
+- One definition of the rule: the writer's decision moved to `news/record/planner.py` (`ArticlePlanner.plan`, read only); `ArticleWriter.write` acts on its
+  plan. Behaviour unchanged (the existing 280 news tests pass); the contract plants N1, N2, N5 now point at the planner and the writer.
+- Workflow: a second job `news-staging` in the `news-record` concurrency group (the NSE job stays in `pipeline-staging`).
+- Contract row E4 with a plant; seven further breaks fail tests (two more are equivalent mutants: an unknown feed kind and a non-NO_OP outcome both end in an
+  exception that already answers "not promoted").
 
 ## Questions for the orchestrator (settled above)
 1. Trash (recoverable ~30 days) instead of permanent delete: OK? I recommend it; it is the only place this repository would remove a file.
