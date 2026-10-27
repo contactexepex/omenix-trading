@@ -96,7 +96,15 @@ SEEN = datetime(2026, 10, 27, 3, 20, tzinfo=UTC)  # 08:50 IST, 11:50 in Seoul (n
 
 
 @pytest.mark.parametrize(
-    ("minutes", "status"), [(19, LIVE), (20, LIVE), (21, STALE)], ids=["19-minutes", "20-minutes", "21-minutes"]
+    ("age", "status"),
+    [
+        (timedelta(minutes=19), LIVE),
+        (timedelta(minutes=19, seconds=59), LIVE),
+        (timedelta(minutes=20), LIVE),
+        (timedelta(minutes=20, seconds=1), STALE),
+        (timedelta(minutes=21), STALE),
+    ],
+    ids=["19m", "19m59s", "20m", "20m01s", "21m"],
 )
-def test_a_level_is_live_to_20_minutes_old_and_stale_from_just_over(minutes, status):
-    assert level_status(SEEN, SEEN - timedelta(minutes=minutes), SEOUL) == status
+def test_a_level_is_live_up_to_exactly_20_minutes_old_and_stale_from_one_second_over(age, status):
+    assert level_status(SEEN, SEEN - age, SEOUL) == status
