@@ -114,3 +114,31 @@ re-pointed plant (one occurrence). Merging main or NP4b's final version into thi
     change needed now.
 
 **Verdict: PASS** (round 2, `1002195`).
+
+## Addendum 2
+
+**Re-check of `story/NP5b-origins-and-materiality` at `1b7ff3d`.** This head is `1002195` plus main (NP5a merged) plus
+two tests.
+
+**What changed:**
+- **No production code changed.** `git diff 1002195 1b7ff3d -- fno` is empty.
+- **One test was added**
+  (`test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says`). It closes judge 92
+  Addendum 1's N1 gaps, my plants P2 and P7.
+- **Two contract plants were added**, T16 and T17.
+- **The plant file was only reordered.**
+  - Against `1002195`, no entry was lost or changed, and T16 and T17 are new.
+  - Against main, no entry was lost or changed.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1921 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 608 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught, T16 and T17 included.
+
+**Still open:** this addendum's N1 gap (plant Q6, the view passing `article.source` to the tagger) is not closed. It
+stays non-blocking.
+
+**Verdict: PASS** (`1b7ff3d`).
