@@ -18,6 +18,8 @@ from fno.ingestion.storage.raw_source import (
     RawSourceUnavailable,
 )
 from fno.shared.http_pacing import SourceCoolingOff
+from fno.shared.resilience.retry import RetryPolicy
+from fno.shared.resilience.settings import settings_for
 
 DAY = date(2026, 10, 12)
 PATH = NseDailyFoSource.path_for(DAY)
@@ -43,7 +45,8 @@ def run(http_fakes, script, now=None):
     waits: list[float] = []
     session = ScriptedSession(script)
     kwargs = {"clock": lambda: now} if now else {}
-    source = NseDailyFoSource(session, sleep=waits.append, **kwargs)
+    policy = RetryPolicy(settings_for("nse").retry, waits.append, uniform=lambda low, high: low)  # no jitter
+    source = NseDailyFoSource(session, sleep=waits.append, policy=policy, **kwargs)
     return source, session, waits
 
 

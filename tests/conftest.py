@@ -92,3 +92,14 @@ class FakeHttpSession:
 def http_fakes() -> SimpleNamespace:
     """The HTTP fakes, handed to tests as a fixture so no test imports ``conftest`` directly."""
     return SimpleNamespace(Response=FakeResponse, Session=FakeHttpSession)
+
+
+@pytest.fixture(autouse=True)
+def _forget_the_shared_pacer():
+    """`main` attaches the process-wide pacer to the pause log; no test may leave it pointing at the repository's files
+    or carrying a host's state to the next test (story R1b2)."""
+    from fno.shared.http_pacing import SHARED_PACER
+
+    yield
+    SHARED_PACER.attach(None, None, False)
+    SHARED_PACER._hosts.clear()

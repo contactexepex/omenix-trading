@@ -45,8 +45,22 @@ from fno.ingestion.close_read.source import CloseListSource
 from fno.ingestion.close_read.store import ClosesStore
 from fno.ingestion.research_data.calendar import SessionCalendar
 from fno.shared.constants import SESSION_REGULAR
+from fno.shared.resilience.outcomes import Outcome, Verdict
+from fno.shared.resilience.retry import RetryPolicy, RetrySettings
 
 WITHHELD = "{kind} (message withheld)"  # an error's message can carry a URL; the run log is public
+# a live window, so the wait is exactly the gap the 15:40 read budgets: no jitter, no total limit, every failure retried
+READ_RETRY = RetrySettings(
+    waits=(TRY_GAP_SECONDS,) * (TRIES - 1),
+    cap_seconds=TRY_GAP_SECONDS,
+    retry_after_ceiling_seconds=float("inf"),
+    max_total_seconds=float("inf"),
+    jitter=0.0,
+)
+
+
+def _retry_every_failure(result, error) -> Verdict:
+    return Verdict(Outcome.OK if error is None else Outcome.RETRY, answered=error is None)
 
 
 class CloseReader:
@@ -55,6 +69,7 @@ class CloseReader:
                  log: Callable[[str], None] = print):  # fmt: skip
         self.source, self.store, self.confirmer, self.calendar = source, store, confirmer, calendar
         self.now, self.sleep, self.log = now, sleep, log
+        self.retry = RetryPolicy(READ_RETRY, sleep=sleep)
 
     def run(self, which: str = READ) -> int:
         started = self.now()
@@ -94,18 +109,17 @@ class CloseReader:
         return self._done(line, 0)
 
     def _read(self, day) -> tuple[ListRead | None, bytes, str]:
-        reason = ""
-        for attempt in range(TRIES):
-            try:
-                payload, raw = self.source.answer()
-                return read_answer(payload, day), raw, ""
-            except Refused as refused:
-                reason = str(refused)
-            except Exception as error:  # noqa: BLE001 - a failed read is reported, never raised: O1 alerts on exit 1
-                reason = WITHHELD.format(kind=type(error).__name__)
-            if attempt < TRIES - 1:
-                self.sleep(TRY_GAP_SECONDS)
+        done = self.retry.run(lambda: self._answer(day), _retry_every_failure)
+        if done.error is None:
+            read, raw = done.result
+            return read, raw, ""
+        # a failed read is reported, never raised: O1 alerts on exit 1
+        reason = str(done.error) if isinstance(done.error, Refused) else WITHHELD.format(kind=type(done.error).__name__)
         return None, b"", reason
+
+    def _answer(self, day) -> tuple[ListRead, bytes]:
+        payload, raw = self.source.answer()
+        return read_answer(payload, day), raw
 
     def _recheck(self, day, read_at: str, got: ListRead, raw_file: tuple[str, str]) -> int:
         first = json.loads(self.store.get(record_path(day)))["indices"]

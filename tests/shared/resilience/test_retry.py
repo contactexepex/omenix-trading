@@ -47,14 +47,15 @@ def test_an_exception_is_given_to_the_classifier_and_retried_when_it_says_so():
 
 
 @pytest.mark.parametrize("source", sorted(TABLES))
-def test_the_least_jitter_waits_exactly_todays_table_and_the_most_waits_twice_it(source):
+def test_the_least_jitter_waits_exactly_todays_table_and_the_most_waits_floor_plus_its_jitter_fraction(source):
     table = TABLES[source]
     low, low_clock = policy(source, floor_jitter)
     low.run(lambda: 0, always(Outcome.RETRY))
     high, high_clock = policy(source, top_jitter)
     high.run(lambda: 0, always(Outcome.RETRY))
     assert low_clock.slept == list(table)
-    assert high_clock.slept == [2 * t for t in table]
+    top = 1 + settings_for(source).retry.jitter
+    assert high_clock.slept == pytest.approx([top * t for t in table])
 
 
 @pytest.mark.parametrize("source", sorted(TABLES))
@@ -121,3 +122,26 @@ def test_settings_refuse_a_cap_below_twice_the_largest_floor_and_empty_or_bad_wa
         RetrySettings(waits=(), cap_seconds=10.0, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0)
     with pytest.raises(ValueError):
         RetrySettings(waits=(0.0,), cap_seconds=10.0, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0)
+
+
+def test_nse_and_drive_jitter_is_a_quarter():
+    assert settings_for("nse").retry.jitter == 0.25 and settings_for("drive").retry.jitter == 0.25
+
+
+def test_jitter_scales_the_random_part_and_a_cap_below_the_longest_jittered_wait_is_refused():
+    seen = []
+
+    def spy(low, high):
+        seen.append((low, high))
+        return low
+
+    p, _ = policy("nse", spy)
+    p.run(lambda: 0, always(Outcome.RETRY))
+    assert seen == [(0.0, 5.0 * 0.25), (0.0, 15.0 * 0.25), (0.0, 45.0 * 0.25)]
+    with pytest.raises(ValueError, match="longest jittered"):
+        RetrySettings(waits=(10.0,), cap_seconds=12.0, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0,
+                      jitter=0.25)  # fmt: skip
+    RetrySettings(waits=(10.0,), cap_seconds=12.5, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0, jitter=0.25)
+    with pytest.raises(ValueError, match="jitter"):
+        RetrySettings(waits=(10.0,), cap_seconds=99.0, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0,
+                      jitter=-0.1)  # fmt: skip

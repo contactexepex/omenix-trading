@@ -31,5 +31,26 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 18 | R1 resilience layer (story text) | 1 | PASS (story, 163011b delta check after round 2) | `judge_18_r1-resilience.md` |
 | 19 | R1a resilience library | 1 | PASS (37bfa45, thread-safe) | `judge_19_r1a-library.md` |
 | 20 | R1a resilience library (judge #2) | 1 | PASS (round 2, 37bfa45) | `judge_20_r1a-library-judge2.md` |
-| 21 | R1b NSE source (story text) | 1 | PASS (story, round 2, 7a1ee0e) | `judge_21_r1b-story.md` |
-| 22 | R1b NSE source, story (judge #2) | 1 | PASS (story 95488d2, delta after round 2) | `judge_22_r1b-nse-source-judge2.md` |
+| 21 | R1b NSE source (story text) | 1 | PASS (story, final ab5bba8) | `judge_21_r1b-story.md` |
+| 22 | R1b NSE source, story (judge #2) | 1 | PASS (final story ab5bba8) | `judge_22_r1b-nse-source-judge2.md` |
+| 23 | R1b2 persisted pause (story text) | 1 | PASS (story, round 2, c705ef5) | `judge_23_r1b2-story.md` |
+| 24 | R1b1 NSE layer (code) | 1 | PASS (round 2, 0c0af47) | `judge_24_r1b1-code.md` |
+| 25 | R1b1 NSE layer, code (judge #2) | 1 | PASS (round 2, 0c0af47) | `judge_25_r1b1-nse-layer-judge2.md` |
+| 26 | R1b2 persisted pause, story (judge #2) | 1 | PASS (round 2, 3ff3358) | `judge_26_r1b2-persisted-pause-judge2.md` |
+| 27 | R1b2 persisted pause, code (judge #2) | 1 | PASS (round 2, 53c6478) | `judge_27_r1b2-code-judge2.md` |
+| 28 | R1b2 persisted pause (code) | 1 | PASS (round 2, 53c6478) | `judge_28_r1b2-code.md` |
+| 29 | R1c Drive session, story (judge #2) | 1 | PASS (round 1, ddbcf60) | `judge_29_r1c-drive-judge2.md` |
+| 30 | R1c Drive session (story text) | 1 | PASS b057f5a; FAIL ddbcf60 (text, Addendum 4) | `judge_30_r1c-story.md` |
+| 31 | R1c Drive session, code (judge #2) | 1 | PASS (round 2, 60ab2d8) | `judge_31_r1c-code-judge2.md` |
+| 32 | R1c Drive session (code) | 1 | PASS (round 2, 60ab2d8; code = c05a1d7) | `judge_32_r1c-code.md` |
+| 33 | R1d4 characterization, lane-2 check (judge #2) | 2 | PASS (e5ea34d) | `judge_33_r1d4-characterization-check.md` |
+| 34 | R1d plan (Groww and the rest) | 1 | PASS (round 3, 1508163; 2 conditions carried to R1d1 code) | `judge_34_r1d-plan.md` |
+| 35 | R1d plan, Groww pacing (judge #2) | 1 | PASS (round 2, 1508163) | `judge_35_r1d-plan-judge2.md` |
+| 36 | R1d1 Groww consolidation, code (judge #2) | 1 | PASS (round 2, b1bebc4) | `judge_36_r1d1-code-judge2.md` |
+| 37 | R1d1 Groww reads on the shared primitives (code) | 1 | PASS (round 2, b1bebc4) | `judge_37_r1d1-code.md` |
+| 38 | R1d3 close read and NSDL waits (code) | 1 | PASS (round 1, b4f1fc6) | `judge_38_r1d3-code.md` |
+| 39 | R1d3 close read and NSDL waits, code (judge #2) | 1 | PASS (round 1, b4f1fc6) | `judge_39_r1d3-code-judge2.md` |
+| 40 | R1d4 locking tests and no-refactor, lane-2 check (judge #2) | 2 | PASS (8d2968e) | `judge_40_r1d4-refactor-check.md` |
+| 41 | RUN_LOCATIONS map, lane-2 check | 2 | PASS (round 2, 5f4fd8e) | `judge_41_run-locations.md` |
+| 42 | P2 news and dedup plan (design) | 1 | FAIL (round 2, ca6a8c5: feed-URL storage, fallback-key collision) | `judge_42_p2-news-plan.md` |
+| 43 | P2 news and dedup, design (judge #2) | 1 | FAIL (round 2, ca6a8c5) | `judge_43_p2-news-plan-judge2.md` |

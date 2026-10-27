@@ -1,6 +1,6 @@
 """Story R1b, step 0: today's exact pacing and public-NSE JSON behaviour, pinned before the refactor.
 
-Pins `RequestPacer` (spacing per host, the pause after two refusals in a row, the 15-minute cool-off, which statuses
+Pins `NsePacer` (spacing per host, the pause after two refusals in a row, the 15-minute cool-off, which statuses
 count), `PacedSession` and `PublicData.nse_json` (3 tries, waits 1.5 s and 3.0 s, the 0.4 s pause after a success).
 Passes on `main` unchanged; the refactor keeps it green. No network, no real sleep."""
 
@@ -9,7 +9,10 @@ from __future__ import annotations
 import pytest
 
 from fno.ingestion.providers import public
-from fno.shared.http_pacing import COOL_OFF_SECONDS, PacedSession, RequestPacer, SourceCoolingOff
+from fno.shared.http_pacing import PacedSession, SourceCoolingOff
+from fno.shared.nse_pacer import NsePacer
+from fno.shared.resilience.retry import RetryPolicy
+from fno.shared.resilience.settings import settings_for
 
 HOST, OTHER = "nsearchives.nseindia.com", "www.nseindia.com"
 
@@ -28,13 +31,10 @@ class Time:
 
 def pacer():
     t = Time()
-    p = RequestPacer(clock=t.clock)
-    p.sleep = t.sleep
-    return p, t
+    return NsePacer(clock=t.clock, sleep=t.sleep), t
 
 
 def test_cool_off_is_fifteen_minutes_and_two_refusals_make_a_pause():
-    assert COOL_OFF_SECONDS == 900
     p, t = pacer()
     p.wait_turn(HOST)
     p.observe(HOST, 403)
@@ -103,7 +103,7 @@ def test_the_refusal_count_restarts_after_a_pause_begins():
 def test_paced_session_waits_its_turn_and_reports_the_status(monkeypatch):
     seen = []
 
-    class Recording(RequestPacer):
+    class Recording(NsePacer):
         def wait_turn(self, host):
             seen.append(("wait", host))
 
@@ -132,10 +132,14 @@ class Reply:
         raise RuntimeError(f"HTTP {self.status_code}")
 
 
+def no_jitter(sleeps):
+    return RetryPolicy(settings_for("nse_json").retry, sleeps.append, uniform=lambda low, high: low)
+
+
 def client(monkeypatch, replies):
     sleeps, calls = [], []
     monkeypatch.setattr(public.time, "sleep", sleeps.append)
-    data = public.PublicData()
+    data = public.PublicData(policy=no_jitter(sleeps))
     queue = list(replies)
 
     def get(url, **kw):
@@ -175,7 +179,7 @@ def test_every_paced_session_in_the_process_shares_one_pacer_and_so_one_pause():
 
     first, second = PacedSession(), PacedSession()
     assert first.pacer is second.pacer is http_pacing.SHARED_PACER
-    assert PacedSession(RequestPacer()).pacer is not http_pacing.SHARED_PACER  # an explicit pacer is its own
+    assert PacedSession(NsePacer()).pacer is not http_pacing.SHARED_PACER  # an explicit pacer is its own
 
 
 def test_the_pacers_default_spacing_table_is_one_second_for_both_nse_hosts():
@@ -189,7 +193,7 @@ def test_spacing_holds_across_threads():
     import threading
     import time
 
-    p = RequestPacer(spacing={HOST: 0.05})
+    p = NsePacer(spacing={HOST: 0.05})
     starts, lock = [], threading.Lock()
 
     def work():
@@ -223,7 +227,7 @@ def test_a_warm_up_failure_is_ignored_and_the_warm_up_happens_once(monkeypatch):
 
     sleeps, calls = [], []
     monkeypatch.setattr(public.time, "sleep", sleeps.append)
-    data = public.PublicData()
+    data = public.PublicData(policy=no_jitter(sleeps))
     queue = [Reply(403), Reply(403), Reply(200)]
 
     def get(url, **kw):
@@ -238,7 +242,7 @@ def test_a_warm_up_failure_is_ignored_and_the_warm_up_happens_once(monkeypatch):
 
 
 def test_the_pacer_sees_the_warm_up_so_a_403_then_a_warm_200_does_not_count_two_in_a_row():
-    p = RequestPacer()
+    p = NsePacer()
     p.observe(HOST, 403)  # the refused first call
     p.observe(HOST, 200)  # the warm-up page answers
     p.observe(HOST, 403)

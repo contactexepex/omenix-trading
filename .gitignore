@@ -51,3 +51,6 @@ research/school/counts/**/.*.part
 
 # Story MS-SIM: the practice simulator's records (practice only; never the paper record)
 /work/school_practice/
+
+# Story R1b2: this run's pause transitions, merged into the committed log by the last workflow step
+research/data/resilience/.run/

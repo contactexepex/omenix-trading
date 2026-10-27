@@ -107,3 +107,37 @@ alone and the others wait". Claim 6 requires both concurrency tests (3 threads w
 
 For the R1b1 build, I will plant at least: the refuse-instead-of-wait path; a wait with no timeout bound; a timed-out
 probe doubling the cool-down; and a breaker per session instead of per process.
+
+## Addendum 3: final story, `68b5e15` (supersedes `95488d2`)
+
+**PASS**, lane 1, judge #2. The delta is story text only:
+- **R2-1 fix unchanged:** other callers wait for the probe and are not refused.
+- **Where the waiting lives:** in `NsePacer` (a condition per host under its lock), so the library change stays at
+  `record_unanswered()` and the jitter fraction. That is sound: the library's `check()` keeps its simple contract.
+- **Data cost, now stated:** an unanswered probe keeps the host closed for 15 more minutes. That is the rule I asked
+  for in round 1 (S2), and it is now disclosed honestly.
+- **Stop rule:** it compares tries and waits per fetch against the table plus 25%, not the run's duration. That is a
+  better test.
+
+## Addendum 4: `ab5bba8` (supersedes `68b5e15`), and a correction of my own earlier rule
+
+**PASS**, lane 1, judge #2.
+
+**Correction:** my round-1 S2 rule "an unanswered probe keeps the same cool-down", endorsed in Addendum 3, was **wrong**.
+Today a transport failure has no status, so it never reaches `RequestPacer.observe()` and never pauses. After the 15
+minutes the door is open, whatever the next request does. Re-pausing on a timed-out probe adds a pause today's code
+never takes, and in the 14:55-15:10 window it would lose quotes. Judge 1 (round 2, item 1) is right. I accept the
+reversal.
+
+Checked in `ab5bba8` (story text):
+1. A timed-out or unanswered probe **closes** the host and releases the waiters. `record_unanswered` is withdrawn, so
+   the only library edit is the `jitter` fraction.
+2. A 403/429 probe still reopens with a doubled cool-down; the waiters are refused.
+3. The "data cost" paragraph drops the re-pause item and states the only remaining deferral (after a 403/429, which is
+   the pause's purpose).
+4. Added, and right: a waiter whose bounded wait expires proceeds as a normal call; the waiters are released in a
+   `finally` if the probe thread raises; the released waiters go through `RateLimit`, 1 s apart (claim 6 asserts the
+   gaps).
+
+For the R1b1 build I will plant the reverse ("timeout reopens"), "no `finally`" (a waiter left blocked) and "the released
+waiters skip the rate limit", alongside the plants listed in Addendum 3.

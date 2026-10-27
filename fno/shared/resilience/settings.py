@@ -25,7 +25,7 @@ class SourceSettings:
 
 
 NSE_RETRY = RetrySettings(waits=(5.0, 15.0, 45.0), cap_seconds=90.0, retry_after_ceiling_seconds=120.0,
-                          max_total_seconds=900.0)  # fmt: skip
+                          max_total_seconds=900.0, jitter=0.25)  # fmt: skip
 DEFAULTS: dict[str, SourceSettings] = {
     "nse": SourceSettings(
         retry=NSE_RETRY,
@@ -35,11 +35,27 @@ DEFAULTS: dict[str, SourceSettings] = {
         ),  # fmt: skip
         rate=RateSettings(min_spacing_seconds=1.0),
     ),
-    "drive": SourceSettings(
+    "nse_json": SourceSettings(
+        # the public website's JSON: 3 tries, waits 1.5/3.0/4.5 s after each failure (the last one too); a 403 is
+        # retried after a cookie warm-up, so the loop has no classifier of its own beyond "not a 200"
         retry=RetrySettings(
-            waits=(2.0, 8.0, 30.0, 60.0), cap_seconds=120.0, retry_after_ceiling_seconds=120.0, max_total_seconds=900.0
+            waits=(1.5, 3.0, 4.5),
+            cap_seconds=6.0,
+            retry_after_ceiling_seconds=120.0,
+            max_total_seconds=60.0,
+            jitter=0.25,
         ),  # fmt: skip
-        breaker=BreakerSettings(threshold=5, cool_down_seconds=900.0, cool_down_cap_seconds=DAY_SECONDS),
+    ),
+    "drive": SourceSettings(
+        # Drive is the write target: retry with Retry-After as a capped floor (the cap is applied by the Drive
+        # classifier, so the ceiling here, which STOPS a call, is set above it and never fires); no breaker (R1c)
+        retry=RetrySettings(
+            waits=(2.0, 8.0, 30.0, 60.0),
+            cap_seconds=120.0,
+            retry_after_ceiling_seconds=600.0,
+            max_total_seconds=float("inf"),  # as today: no total bound, a call always makes its five tries
+            jitter=0.25,
+        ),  # fmt: skip
         rate=RateSettings(min_spacing_seconds=0.0),
     ),
     "groww": SourceSettings(

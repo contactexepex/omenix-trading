@@ -135,3 +135,25 @@ def test_the_report_lines_show_notes_and_revisions(staging_store, record_store, 
     area.stage("nse", path, b"<html>", moment(THURSDAY).replace(hour=15))
     lines = run_for(staging_store, record_store, calendar, validate).promote(THURSDAY, THURSDAY).lines()
     assert any(line.startswith("note ") for line in lines) and "later versions kept as revisions" in lines[0]
+
+
+def test_a_paused_host_defers_the_whole_pass_and_writes_nothing(staging_store, record_store, calendar, monkeypatch):
+    """Story R1b, claim 8: the real source over a paused pacer raises the exception callers know; nothing is staged or
+    recorded, and no request reached NSE."""
+    import pytest
+
+    from fno.ingestion.storage.raw_source import RawSourceCoolingOff
+    from fno.shared.http_pacing import PacedSession
+    from fno.shared.nse_pacer import NsePacer
+
+    host = "nsearchives.nseindia.com"
+    pacer = NsePacer(spacing={host: 0.0}, clock=lambda: 0.0)
+    for _ in range(2):
+        pacer.wait_turn(host)
+        pacer.observe(host, 403)
+    sent = []
+    monkeypatch.setattr("requests.Session.request", lambda self, *a, **k: sent.append(a))
+    source = SOURCE(PacedSession(pacer), sleep=lambda s: None)
+    with pytest.raises(RawSourceCoolingOff):
+        stager(source, staging_store, calendar).stage(WEDNESDAY, FRIDAY)
+    assert sent == [] and staging_store.saved == [] and record_store.saved == []

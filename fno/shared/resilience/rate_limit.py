@@ -98,7 +98,8 @@ class RateLimit:
             if start - now > s.max_wait_seconds:
                 raise Deferred(self.source, f"rate limit: would have to wait {start - now:.0f} s")
             self._last = start
-            self._slots.append(start)
+            if s.per_minute is not None:  # only a per-minute budget reads the window; otherwise it would grow for ever
+                self._slots.append(start)
             self.ledger.record()
         if start > now:
             self.sleep(start - now)

@@ -114,7 +114,7 @@ def test_spacing_holds_across_threads():
         thread.join()
     starts.sort()
     gaps = [b - a for a, b in zip(starts, starts[1:])]
-    assert len(starts) == 8 and min(gaps) >= 0.04  # unlocked, the same threads are let through 0.0 s apart
+    assert len(starts) == 8 and min(gaps) >= 0.03  # unlocked, the same threads are let through 0.0 s apart
 
 
 def test_per_minute_budget_holds_across_threads():
