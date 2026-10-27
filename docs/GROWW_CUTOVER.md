@@ -33,7 +33,9 @@ write this document** (the rule below), and `pytest` never calls Groww.
 
 | Routine | Command in this repository | Writes | Notes |
 |---|---|---|---|
-| 3 pm quote recorders: NIFTY (A4, A4b) and the index slots BANKNIFTY, FINNIFTY, MIDCPNIFTY (A4c) | `python -m fno quotes record` (`--window NAME` for a named window of `config.yaml` `quotes.windows`; `--source nse` is the NSE recorder, the workflow) | raw quote files to Drive; markers in the repository | `DATA_USE_MAP.md`: NIFTY on Groww is **deferred** until the NSE recorder has run and been compared; A4c is recorded from 19 Oct 2026. The recorders run in the 15:01-15:13 window, inside market hours: scheduled only. |
+| NIFTY 3 pm quote recorder (A4, A4b) | `python -m fno quotes record` (window 14:55-15:10 IST; `--source nse` is the NSE recorder, the workflow) | raw quote files to Drive; markers in the repository | `DATA_USE_MAP.md`: NIFTY on Groww is **deferred** until the NSE recorder has run and been compared. Inside market hours: scheduled only. |
+| Index quote recorders (A4c): BANKNIFTY, FINNIFTY, MIDCPNIFTY | `python -m fno quotes record-indices` (window 15:01-15:13 IST, after NIFTY's push; **a different command from the NIFTY one**) | raw quote files to Drive; markers in the repository | Recorded from 19 Oct 2026. Running `quotes record` for these records NIFTY only: the three index chains would be missed. |
+| Named-window recorder (A4e, "v4") | `python -m fno quotes record --window v4` (window 14:32-14:40 IST, `config.yaml` `quotes.windows`) | its own dataset `quote-snapshots-v4` | Inferred to be the "v4" of the daily run's children. |
 | Candle backfill (A16b) | `python -m fno intraday backfill` | raw candles to Drive; `research/data/intraday/rv-candle/` and `research/data/manifests/groww-candles/` | `GROWW_CANDLE_ROUTINE.md` owns it: daily about 21:40 IST, after the `index-closes` workflow; the one-time 2020-onward backfill is run once by hand after 15:35 IST. |
 | Intraday marks (A16) | `python -m fno intraday run --until HH:MM` (and `intraday rv`, `intraday heartbeat-check`) | 78 slot files a session to Drive; its own manifests | `DATA_USE_MAP.md`: **deferred**, the live in-session recorder is not scheduled. It runs inside market hours: scheduled only. |
 | The daily run's Groww children | the commands above, one process each (the docstring of `groww_sign_in.py` names NIFTY, A4c, v4, E3, A16b) | as above | Inferred: this repository does not define the daily run; each child is one process and so one sign-in. |
@@ -52,12 +54,14 @@ write this document** (the rule below), and `pytest` never calls Groww.
 
 ## 5. Sign-in measurement (offline: read from the code and docs only; no Groww call)
 
-Groww allows **150 sign-ins per 24 hours** (`groww_sign_in.py`, citing the 22 Oct probe note).
+Groww allows **150 sign-ins per 24 hours**: the owner's figure (CLAUDE.md) and the one `groww_sign_in.py` uses. That docstring cites a probe note, `research/school/probes/2026-10-22-p0-1-groww-chain.md`, which is **not in this repository or its history**, so the figure is not re-checkable here.
 
-**What the code does (verified for the first two sentences, strong evidence).** `GrowwSignIn` signs in **once per process and token day** (the token day runs 06:00 to 06:00
-IST); a failed sign-in is remembered, waits 5 then 10 minutes, and a process makes **at most 3 tries a day**. By the list in `docs/stories/R1d-groww-and-the-rest.md` (a named test for it is planned, not built), every composition root builds exactly
-one provider (`intraday/wiring.py`, `intraday/backfill_wiring.py`, `quotes/index_wiring.py`, `quotes/window_wiring.py`, `preopen/wiring.py`,
-`providers/__init__.py`, `groww_check.py`), so the number of sign-ins a day is the number of **processes** that touch Groww, times at most 3 when
+**What the code does (the first two sentences verified, strong evidence; the rest of the paragraph graded where it is stated).** `GrowwSignIn` signs in **once per process and token day** (the token day runs 06:00 to 06:00
+IST); a failed sign-in is remembered, waits 5 then 10 minutes, and a process makes **at most 3 tries a day**. The R1d story (`docs/stories/R1d-groww-and-the-rest.md`, item 4) lists nine composition roots that each build one provider: `cli.py:87`,
+`providers/groww_check.py:15`, `intraday/wiring.py:63`, `intraday/feed_wiring.py:51`, `intraday/backfill_wiring.py:46`,
+`quotes/index_wiring.py:20`, `quotes/window_wiring.py:28`, `composition.py:53`, `preopen/wiring.py:80`. The claim that each builds exactly one is that
+story's, and a test for it is planned, not built: *some evidence* (a grep of `GrowwProvider(` finds four direct sites, `providers/__init__.py:47` is
+the factory the others call, and the rest I did not trace), so the number of sign-ins a day is the number of **processes** that touch Groww, times at most 3 when
 everything fails. There is **no count across processes**.
 
 **The tally** (the docstring of `groww_sign_in.py`, judge 637 m1; the process counts come from the routines' schedules, which this repository cannot
@@ -78,13 +82,16 @@ see: *some evidence*, reasoning from the docstring):
 
 **Result.** A normal day is **19 to 38 of 150 (13 to 25%)**: the docstring itself says "a normal day: about 38", counting the reruns; my no-rerun column
 is an extra reading of the same numbers. The worst case, every sign-in failing all 3 tries, is **114 (76%)**, still under the cap with a margin of 36. **The owner is right that no sign-in ledger is needed for the planned routines.** What would break it is not the planned load but a
-**restart storm** outside the plan: about 110 extra processes in one token day (a loop that restarts `intraday run` or the candle routine, or a person
-re-running commands by hand in a cycle). Each such process signs in on its own and nothing counts across processes. That is a reasoning-only risk (no
+**restart storm** outside the plan (a loop that restarts `intraday run` or the candle routine, or a person re-running commands by hand in a cycle). Each such
+process signs in on its own and nothing counts across processes. **The margin is thin when sign-ins are failing, which is when a storm is likeliest:** a
+failing process uses up to 3 tries. Extra processes that break 150: about **12** on the all-fail worst day (114 used, 36 left, 3 tries each), about **37** on a
+normal day of 38 with failing restarts ((150 - 38) / 3), about 43 on my no-rerun reading of 19; and about **110** only if every extra process succeeds on its
+first try. That is a reasoning-only risk (no
 measurement exists). If the owner wants a guard anyway, the smallest mechanism is the parked R1d2: a day ledger that records each sign-in (committed and
 union-merged, a malformed line counted as a sign-in so it fails closed) and refuses at a number below 150, with room left for the hand-run reads after
 15:35 IST. It needs a commit path from the routine containers, which is not known here, so it is not recommended before the first week of real
 counts. A cheaper first step, not built: have `groww-check` print how many sign-ins this token day's runs show in the run logs.
 
-**Evidence strength.** The one-per-process rule, the 3-try cap and the single-provider roots: **strong** (code read and tested). The process counts per
-source: **some** (a docstring written for a worst-case argument, not a measurement). The 150 a day cap itself: from the 22 Oct probe note named in
-the docstring, not re-measured. Whether a failed sign-in counts against Groww's 150: assumed yes (the conservative reading).
+**Evidence strength.** The one-per-process rule and the 3-try cap: **strong** (code read and tested). That every composition root builds exactly one provider: **some** (the R1d story's claim; its test is not built). The process counts per
+source: **some** (a docstring written for a worst-case argument, not a measurement). The 150 a day cap itself: the owner's figure, not re-measured here (the probe note
+named in the docstring is not in this repository). Whether a failed sign-in counts against Groww's 150: assumed yes (the conservative reading).
