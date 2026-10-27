@@ -71,3 +71,28 @@ included) and then checks them would see a failure. A test that the alert text d
 wording ("were not committed"), would remove the trap.
 
 **Verdict: FAIL** (round 1). S1 is tests only; the code change is behaviour-preserving.
+
+## Addendum 1: the orchestrator's added checks (37ab00d; still FAIL, round 1)
+
+The orchestrator's brief arrived after the verdict above. Its extra checks:
+
+1. **"No module keeps its own copy" is weak (note, folds into S1).** The test looks for module names that start with
+   `NOT_COMMITTED`. Plant: a literal `' NOT committed' in committed` put back in `fo_masters/job.py` under no name. It
+   passes all 892 tests. A source scan (no `NOT committed` literal in `fno/` outside `manifest_commit.py`, docstrings
+   aside) would catch it. Together with S1's behaviour tests, that pins both how a caller detects a failure and what it
+   does about it.
+2. **S2 (should fix, text or test): the W2 row says more than is tested.** The row's "Where" column lists both
+   `LocalFolderStore.put` and `_write` in `drive_cache.py`, and its status is "tested, plant run". The plant column
+   honestly says the plant is on `LocalFolderStore.put` only. Plant: `_write` in `drive_cache.py` writing straight to
+   the real name passes all 892 tests. So the `_write` half is still stated only. Either split the row (W2a tested,
+   W2b stated only, with W2b in `EXPECT_SURVIVE`), or add a direct test for `drive_cache._write` with its plant.
+3. **S3 (should fix, test): the invariant forbids any future "stated only" row.** `test_record_contract.py:64` asserts
+   `stated_only_rows() == set()`. The correct invariant, `set(tool.EXPECT_SURVIVE) == stated_only_rows()`, is at line
+   77 and is enough on its own. Plant: one row's status set to "stated only" fails 2 tests, the hardcoded empty-set
+   check among them. So even with `EXPECT_SURVIVE` updated honestly, the hardcoded check still refuses it, which
+   makes it too strict. Drop the `== set()` line and keep the 500-line check. Without that, S2's split cannot even be
+   expressed.
+4. The guard (another suppressor) and the W4 bite are covered above: MET.
+
+**Verdict: FAIL** (round 1): S1 (the seven callers' tests), S2 (W2's scope) and S3 (the hardcoded invariant). All
+three are tests or text.
