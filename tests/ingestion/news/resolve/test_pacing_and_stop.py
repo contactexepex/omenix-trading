@@ -70,9 +70,9 @@ def test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_req
     results = resolver.resolve([link(n) for n in range(25)])
     assert len(seen) == 1 and resolver.stop.stopped and resolver.stop.seen == "http_503"
     assert results[0].code == PAUSED and [r.code for r in results].count(PAUSED) == 25  # nothing was resolved, all wait
-    assert (
-        resolver.resolve([link(99)])[0].code == PAUSED and len(seen) == 1
-    )  # and a later call in the same run asks nothing
+    started = len(resolver.created)
+    assert resolver.resolve([link(99)])[0].code == PAUSED and len(seen) == 1
+    assert len(resolver.created) == started  # a later call in the same run does not even start a decoder
 
 
 def test_a_429_stops_the_run():
