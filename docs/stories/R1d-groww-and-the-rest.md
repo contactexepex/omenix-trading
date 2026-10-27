@@ -28,18 +28,22 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 
 ## Proposed split (each step small, judged, behaviour-preserving first)
 
-- **R1d1, Groww reads:** each caller keeps **today's spacing as its own limiter**: the intraday source 4 a second
-  (`PER_SECOND = 4`), the index recorders 2.5 a second (`quotes/indices.py:25`, 3 workers), any other recorder slot its own
-  `per_second` or none, the candle source 0.5 s. `RatePacer` becomes the shared `RateLimit` configured with that caller's
-  spacing; no caller is slowed or sped up. **No new host-wide ceiling is added in this step:** the 10 a second and 300 a
-  minute of `settings_for("groww")` stay unused here, because two callers in one process would sum to 6.5 a second (390 a
-  minute) and a 300 a minute ceiling would slow them, which is new behaviour. (A real host ceiling, if wanted, is a
-  separate decision with the owner.) What **is** shared, one instance per process like `SHARED_PACER`: the 429 pause as the
-  breaker for host `groww` (threshold 1, 60 s, no doubling: exactly today's pause), **in process only** (no log, no alert in
-  this step). Today each provider builds its own `RateLimitPause()` (`groww.py:142`), so a pause in one provider does not
-  stop another in the same process; sharing it is the one deliberate change and only makes the process stop sooner after a
-  429, never later. `RateGuardedGroww` keeps its class and translation (`GrowwRateLimited`, `GrowwRateLimitPaused`, no Groww
-  text carried). The quiet-window check stays first, then the pause (pinned).
+- **R1d1, Groww reads (design ruled by the orchestrator, 27 Oct 2026):**
+  1. **Each caller keeps its own limiter at today's exact spacing**, as the shared `RateLimit`: intraday 4 a second
+     (`PER_SECOND = 4`), index recorders 2.5 a second across 3 workers (`quotes/indices.py:25`), any other recorder slot its
+     `per_second` or none (`quotes/recorder.py:127`), candle source 0.5 s. No caller is replaced by a single host limiter, so
+     concurrent callers stay as fast as today and each caller's politeness is unchanged.
+  2. **A host-wide Groww limiter is a ceiling only:** one instance per process, set above the highest aggregate of today's callers,
+     so it never bites for today's caller set and only bounds a spike below Groww's failure point (about 10 a second). It
+     has a per-second spacing only: **no per-minute count**, because intraday 4/s plus the index recorders 2.5/s would be 6.5/s =
+     390/min in one process, which a 300/min ceiling would slow (new behaviour). The ceiling's number is fixed in the code
+     story with the proof that it never bites (see condition 5); whether those callers ever overlap in one process is not
+     recorded here, so the proof assumes they can.
+  3. **Independent 429 pauses, as today:** each provider keeps its own 60 s `RateLimitPause` (`groww.py:142`), in process only, no
+     half-open, no log, no alert. A pause shared across callers would stop the callers that were not refused (less data than
+     today) and is a data-versus-blacklist call for the owner; it is deferred to the Groww health feature with R1d2.
+  4. `RateGuardedGroww` keeps its class and translation (`GrowwRateLimited`, `GrowwRateLimitPaused`, no Groww text carried); the
+     quiet-window check stays first, then the pause (pinned).
 - **R1d2, the day budgets (PARKED, see Rulings; shown only so the split is whole):** the 150 sign-ins a day gets a real cross-process count (`FileDayLedger` on `groww_sign_in`, 150 a day),
   **committed and union-merged** (judge 1 and 2: otherwise overlapping runs each miss the others' rows and the count understates, which is
   unsafe). This needs a commit path for the callers (see "Unknowns"). Malformed ledger line: **fail closed** (count it), because
@@ -57,10 +61,11 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
    behaviour change and needs no wait/probe machinery. This must be stated and tested.
 2. The market-hours rule above.
 3. Nothing may make fewer attempts at a live capture than today (R1c's lesson): the same never-weaker test for each moved wait.
-4. One shared Groww **pause** per process, like `SHARED_PACER` (a test: two providers share it). The limiters are per caller.
-5. Never-weaker tests: each caller's request starts stay spaced exactly as today (intraday 4/s, index recorders 2.5/s across
-   3 workers, candle 0.5 s), and two callers in one process are not slowed by each other (their combined rate equals the sum
-   of their own rates, with no host ceiling).
+4. One shared Groww **ceiling** per process, like `SHARED_PACER` (a test: two providers share it). It does not share the pause or
+   replace the per-caller limiters.
+5. Never-weaker tests: each caller's request starts stay spaced exactly as today (intraday 4/s, index recorders 2.5/s across 3
+   workers, candle 0.5 s, unpaced slots unpaced); the combined rate of the index recorders is unchanged; the ceiling never
+   bites for today's caller set (all callers at full rate together stay un-delayed); a 429 in one provider does not pause another.
 
 ## Rulings (orchestrator, 27 Oct 2026) and what stays parked
 
