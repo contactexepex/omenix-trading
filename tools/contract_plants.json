@@ -232,6 +232,75 @@
   "new": "        path, data = article_path(article.key), article.to_bytes()\n        import logging\n        logging.getLogger('x').debug(article.title)\n"
  },
  {
+  "id": "N6",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_every_file_of_a_run_is_proved_by_its_own_line_found_by_path",
+   "tests/ingestion/test_batch_receipts.py::test_two_runs_make_two_batch_files_and_never_touch_each_other"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "        self._append(self.receipts.folder / BATCH_FOLDER / self.file_name, batch_line(receipt).encode(\"utf-8\"))",
+  "new": "        if not receipt.path.endswith(\"/2.json\"):\n            self._append(self.receipts.folder / BATCH_FOLDER / self.file_name, batch_line(receipt).encode(\"utf-8\"))"
+ },
+ {
+  "id": "N7",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_drive_file_changed_behind_its_batch_receipt_is_found",
+   "tests/ingestion/test_batch_receipts.py::test_a_drive_file_missing_behind_its_batch_receipt_is_found",
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_batch_shows_up_in_the_cache_report"
+  ],
+  "file": "fno/ingestion/storage/receipts.py",
+  "old": "        batched = {p: r for p, r in self.batches.receipts().items() if tuple(path_parts(p))[: len(parts)] == parts}",
+  "new": "        batched = {}"
+ },
+ {
+  "id": "N8",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_the_same_bytes_again_keep_the_first_line_and_different_bytes_are_refused",
+   "tests/ingestion/test_batch_receipts.py::test_a_different_digest_is_also_refused_against_a_per_file_receipt_and_the_other_way_round",
+   "tests/ingestion/test_batch_receipts.py::test_a_per_file_receipt_wins_and_a_different_batch_digest_for_the_same_path_is_reported"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "                raise RawFileConflict(f\"{receipt.path} already has a receipt with a different SHA-256\")",
+  "new": "                return existing"
+ },
+ {
+  "id": "N9",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_file_whose_batch_line_was_dropped_is_listed_as_unreceipted",
+   "tests/ingestion/test_batch_receipts.py::test_a_file_whose_last_batch_line_is_torn_is_reported_as_unproved_and_as_unreceipted",
+   "tests/ingestion/test_batch_receipts.py::test_the_cache_command_lists_unreceipted_files_only_when_asked"
+  ],
+  "file": "fno/ingestion/storage/drive_cache.py",
+  "old": "        walk(prefix)\n        return sorted(found)",
+  "new": "        return sorted(found)"
+ },
+ {
+  "id": "N10",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_damaged_line_is_a_reported_problem_never_a_crash_and_never_a_receipt",
+   "tests/ingestion/test_batch_receipts.py::test_damage_in_a_news_batch_does_not_touch_the_sync_of_an_unrelated_table",
+   "tests/ingestion/test_batch_receipts.py::test_news_damage_that_names_a_file_fails_a_news_sync_until_the_file_has_a_valid_receipt",
+   "tests/ingestion/test_batch_receipts.py::test_damage_that_names_no_file_is_a_warning_and_the_news_sync_still_completes",
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts",
+   "tests/ingestion/test_batch_receipts.py::test_a_cut_off_line_is_settled_by_a_per_file_receipt_as_written_by_the_repair_command"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "    wanted = path_parts(prefix)\n    if path is not None:",
+  "new": "    return True\n    wanted = path_parts(prefix)\n    if path is not None:"
+ },
+ {
+  "id": "N11",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_returns_short_is_finished_not_left_half_written",
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_fails_halfway_makes_the_next_append_refuse_instead_of_gluing_onto_it",
+   "tests/ingestion/test_batch_receipts.py::test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines",
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_makes_no_progress_is_an_error_not_an_endless_loop"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "        if file.exists() and file.stat().st_size and file.read_bytes()[-1:] != b\"\\n\":",
+  "new": "        if False:"
+ },
+ {
   "id": "C1",
   "tests": [
    "tests/ingestion/news/cluster_record/test_write_and_run.py::test_other_bytes_for_a_closed_window_are_a_conflict_and_nothing_is_overwritten",
@@ -279,5 +348,17 @@
   "file": ".github/workflows/news-fetch.yml",
   "old": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n",
   "new": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n          echo masked\n"
+ },
+ {
+  "id": "K4",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_batch_file_with_a_half_line_last_is_cut_back_to_its_whole_lines_and_the_run_is_red",
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_whole_batch_file_is_committed_unchanged_and_the_run_is_green",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_repair_cuts_only_a_fragment_and_never_a_whole_line",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_repair_command_is_loud_with_a_fixed_text_and_quiet_when_every_batch_is_whole"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "python -m fno news repair-batches receipts/_batches || broken=1",
+  "new": ":"
  }
 ]

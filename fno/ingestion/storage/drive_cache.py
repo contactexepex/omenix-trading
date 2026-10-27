@@ -15,6 +15,7 @@ from fno.ingestion.storage.receipts import ReceiptFolder
 
 MISSING = "{path}: in the receipts, not returned by Drive"
 DAMAGED = "{path}: Drive's bytes do not match the receipt's SHA-256"
+UNRECEIPTED = "{path}: in Drive with no receipt (per file or in a batch): nothing proves it"
 NO_RECEIPTS = "{prefix}: no receipts under it (neither a receipted file nor a folder holding one)"
 
 
@@ -23,6 +24,7 @@ class SyncReport:
     present: int = 0
     downloaded: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)  # shown, but they prove nothing about a file: not a failure
 
     @property
     def complete(self) -> bool:
@@ -43,6 +45,8 @@ class DriveCache:
         with no receipt at all is a problem, never an empty success. `strip` drops a leading part of the Drive
         path when writing under `into` (e.g. the area, to restore `data/research/x` as `research/x`)."""
         report, receipts = SyncReport(), self.receipts.under(prefix)
+        for problem in self.receipts.batch_problems(prefix):
+            (report.problems if problem.path else report.warnings).append(problem.message)
         if not receipts:  # a wrong path must never read as "nothing to sync, all verified"
             report.problems.append(NO_RECEIPTS.format(prefix=prefix))
         for receipt in receipts:
@@ -59,6 +63,22 @@ class DriveCache:
                 _write(target, data)
                 report.downloaded.append(receipt.path)
         return report
+
+    def unreceipted(self, prefix: str) -> list[str]:
+        """The Drive files under a folder that have no receipt at all (a verifier that walks receipts never sees them:
+        a dropped or torn batch line, a write cut short before its receipt). Dot-files are not data and are skipped."""
+        found: list[str] = []
+
+        def walk(folder: str) -> None:
+            for name in self.drive.checksums(folder):
+                path = f"{folder}/{name}"
+                if not name.startswith(".") and self.receipts.read(path) is None:
+                    found.append(path)
+            for child in self.drive.folders(folder):
+                walk(f"{folder}/{child}")
+
+        walk(prefix)
+        return sorted(found)
 
 
 def _sha256(data: bytes) -> str:

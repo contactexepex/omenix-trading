@@ -34,6 +34,9 @@ RECORD_CONFLICT = (
     "record_conflict"  # the manifest or the Record holds other bytes for this id, or a revision name collides
 )
 NOT_RECONCILED = "not_reconciled"  # items != recorded + revisions + no-ops + rejected: an item went missing
+BATCH_TORN = (
+    "batch_torn"  # a receipt batch file ended in a half line (a write cut short): the half line is not committed
+)
 MANIFEST_BROKEN = "manifest_broken"  # the news manifest ends in a torn line: nothing is written until it is trimmed
 MANIFEST_ROW_SKIPPED = "manifest_row_skipped"  # rows of the news manifest that are not whole (counted, never ignored)
 # the cluster record (P2d)

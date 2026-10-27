@@ -11,7 +11,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from fno.ingestion.storage.raw_store import RawFileStore, path_parts
-from fno.ingestion.storage.receipts import Receipt, ReceiptFolder
+from fno.ingestion.storage.receipts import Receipt, ReceiptWriter
 from fno.shared.models import now_utc
 
 RUN_ID_TIME = "%Y%m%dT%H%M%SZ"
@@ -27,7 +27,7 @@ def new_run_id(now: datetime | None = None) -> str:
 
 
 class DataStore:
-    def __init__(self, drive: RawFileStore, area: str, receipts: ReceiptFolder, writer: str, run_id: str,
+    def __init__(self, drive: RawFileStore, area: str, receipts: ReceiptWriter, writer: str, run_id: str,
                  clock: Callable[[], datetime] = lambda: now_utc()):  # fmt: skip
         """`drive`: the whole project folder; `area`: the Drive area every path of this store lives under."""
         path_parts(area)

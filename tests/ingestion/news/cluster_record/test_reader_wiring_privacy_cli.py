@@ -16,6 +16,7 @@ from fno.ingestion.news.cluster_record.article_source import ArticleSource
 from fno.ingestion.news.cluster_record.cluster_file import cluster_path
 from fno.ingestion.news.cluster_record.reader import ClusterReader
 from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.storage.batch_receipts import BatchReceiptWriter
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
 from fno.ingestion.storage.receipts import ReceiptFolder
 from tests.ingestion.news.cluster_record.helpers import AS_OF, HEADLINE, OTHER, World, item
@@ -76,7 +77,11 @@ def test_the_wired_run_writes_only_the_cluster_area_and_reads_only_the_record(tm
     world.add(item(HEADLINE, "https://pub.example/a/1"), item(OTHER, "https://pub.example/b/1"))
     drive = RecordingDrive(world.drive.folder)
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
-    monkeypatch.setattr(wiring, "receipt_folder", lambda: ReceiptFolder(tmp_path / "repo" / "receipts"))
+    monkeypatch.setattr(
+        wiring,
+        "batch_receipt_writer",
+        lambda run_id: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"), run_id),
+    )
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", world.record.manifest_folder)
     report = wiring.build_news_cluster().run(AS_OF)
     assert report.ok and report.counts["clusters"] == 2
@@ -84,6 +89,10 @@ def test_the_wired_run_writes_only_the_cluster_area_and_reads_only_the_record(tm
     assert all(p.startswith(("raw/news/articles/", "raw/news/clusters/")) for p in drive.reads)
     again = wiring.build_news_cluster().run(AS_OF)
     assert again.outcome == "no_op" and len(drive.writes) == 1  # a second process reads the file back
+    receipts = tmp_path / "repo" / "receipts"  # the cluster file is receipted by a line of the run's batch file
+    assert len(list((receipts / "_batches").rglob("*.tsv"))) == 1  # the articles of the test world have per-file ones
+    assert not list((receipts / "raw" / "news" / "clusters").rglob("*.sha256"))
+    assert [r.path for r in ReceiptFolder(receipts).under("raw/news/clusters")] == drive.writes
 
 
 # ---- privacy: the master test, through P2b1, P2b2, P2c and P2d ------------------------------------------------------
@@ -198,7 +207,7 @@ def test_the_cluster_workflow_is_dispatch_only_serial_with_promote_and_uses_the_
     assert set(flow[True]) == {"workflow_dispatch"} and "cron" not in text
     assert flow["concurrency"] == promote["concurrency"] and flow["concurrency"]["cancel-in-progress"] is False
     assert job["env"]["MANIFEST"] == "research/data/manifests/news/clusters.csv"
-    assert job["env"]["RECEIPTS"] == "receipts/raw/news/clusters"
+    assert job["env"]["RECEIPTS"] == "receipts/raw/news/clusters receipts/_batches"
     commit = next(s for s in job["steps"] if s.get("name", "").startswith("Commit the cluster manifest"))
     assert commit["run"] == "bash ops/commit_news_record.sh" and commit["if"] == "${{ !inputs.dry_run }}"
     cluster = next(s for s in job["steps"] if s.get("id") == "cluster")
