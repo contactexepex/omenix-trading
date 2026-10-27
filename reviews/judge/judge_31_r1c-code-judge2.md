@@ -184,3 +184,23 @@ receipt repair) would keep each part readable. If the orchestrator reads `docs/J
 becomes a should-fix.
 
 **Verdict: PASS** (lane 1, code round 2, judge #2).
+
+## Addendum 5: the routed round-2 SHA is 60ab2d8 (PASS carries over)
+
+The orchestrator routed `60ab2d8b989763d2c6a86c067299fd2d29de1126` in place of `c05a1d7`. `git diff --stat c05a1d7
+60ab2d8` changes only `docs/stories/R1c-drive.md` and `tests/ingestion/test_drive_resilience.py`, so `fno/` is byte-identical.
+The message said the change was doc only; it also adds one test assert, that `nse_json` keeps `max_total_seconds == 60.0`,
+which matches `main`'s `settings.py:45`.
+
+- Corrected citations checked against the code: `recorder.py:260-262` (save, then the failure appended), `:263`
+  (`complete`), `:273-274` (the flag), `:285-286` (the canonical marker), `drive_only_store.py:49-62`,
+  `compare.py:40-43`. All correct.
+- The new follow-ups are accurate. `compare.py:42` calls `.decode()` on what the guarded store returns, so a not-saved
+  file fails with `AttributeError` rather than a named refusal. Safe (no snapshot is built), and fine as a lane-2
+  follow-up. The dashboard contract is correctly left to the owner.
+- Story is 253 lines (under 500).
+- Gates on `60ab2d8` (`__pycache__` cleared): 522 passed; ruff check and format clean; imports clean. Plants re-run:
+  T1 (the 900 s Drive total) 3 failed, W6b 1 failed, R4 1 failed. All other Addendum 4 plants carry over unchanged
+  on identical code.
+
+**Verdict: PASS** on `60ab2d8` (lane 1, code round 2, judge #2).

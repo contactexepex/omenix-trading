@@ -41,5 +41,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 28 | R1b2 persisted pause (code) | 1 | PASS (round 2, 53c6478) | `judge_28_r1b2-code.md` |
 | 29 | R1c Drive session, story (judge #2) | 1 | PASS (round 1, ddbcf60) | `judge_29_r1c-drive-judge2.md` |
 | 30 | R1c Drive session (story text) | 1 | PASS b057f5a; FAIL ddbcf60 (text, Addendum 4) | `judge_30_r1c-story.md` |
-| 31 | R1c Drive session, code (judge #2) | 1 | PASS (round 2, c05a1d7) | `judge_31_r1c-code-judge2.md` |
+| 31 | R1c Drive session, code (judge #2) | 1 | PASS (round 2, 60ab2d8) | `judge_31_r1c-code-judge2.md` |
 | 32 | R1c Drive session (code) | 1 | PASS (round 2, c05a1d7; 60ab2d8 delta ok) | `judge_32_r1c-code.md` |
