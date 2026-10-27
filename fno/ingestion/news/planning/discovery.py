@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse, urlsplit
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FEED_ID
@@ -71,7 +71,10 @@ def _search(value: object) -> tuple[str, str, tuple[tuple[str, str], ...]]:
     name = value["query_param"]
     if not isinstance(name, str) or not name or name in params:
         raise _invalid()
-    return _https(value["url"]), name, tuple(sorted(params.items()))
+    url = _https(value["url"])
+    if name in parse_qs(urlsplit(url).query):  # the query would be there twice
+        raise _invalid()
+    return url, name, tuple(sorted(params.items()))
 
 
 def _publisher_feeds(value: object) -> tuple[tuple[str, str], ...]:

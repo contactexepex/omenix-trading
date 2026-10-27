@@ -27,6 +27,11 @@ a company, a URL or an id.
   carries its (private) salt, hidden from `repr`. `fno/shared/nse_pacer.py` is not touched and a test pins the NSE table.
 
 ## Said plainly
+- **A feed list's salt must be random, never hand-written:** it now keys every planned id (D1), so a guessable salt would make
+  the ids guessable. The first list `plan-feeds` writes gets 128 random bits; a hand-made list needs one of its own.
+- **A dropped query's id** is not reused for another query except by a 48-bit collision, which the plan refuses only against the
+  ids of the list being planned and the kinds ever listed (D4); a same-kind reuse of a dropped id would only point a new query at
+  old staged polls. Reasoning only; the odds are about 6 in 10 billion per new query.
 - **A collision of two queries on 12 hex characters** (48 bits; about 6 in 10,000,000,000 per plan at 600 feeds; orchestrator's tweak from 8 hex, whose 4 in 100,000 per plan would have failed a whole plan) stops the plan with
   `feed_plan_collision`; the owner rewords one query. With the salt frozen it cannot be worked around by re-hashing.
 - **Load:** one request per planned feed per run at 1.5 s: 200 feeds take about 5 minutes. Staging volume against the cleanup limit

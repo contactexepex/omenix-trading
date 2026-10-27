@@ -38,7 +38,8 @@ def mutated(path, value):
 BAD = [
     b"not json", b"[]", json.dumps({"format": 2}).encode(),
     mutated(["format"], 2), mutated(["surprise"], 1), mutated(["search", "url"], "http://search.svc.example/x"),
-    mutated(["search", "url"], "https://"), mutated(["search", "query_param"], "hl"), mutated(["search", "extra"], 1),
+    mutated(["search", "url"], "https://"), mutated(["search", "query_param"], "hl"),
+    mutated(["search", "url"], "https://search.svc.example/rss/search?q=x"), mutated(["search", "extra"], 1),
     mutated(["search", "params"], {"a": 1}), mutated(["broad"], "text"), mutated(["broad"], [""]),
     mutated(["broad"], ["x" * 201]), mutated(["broad"], ["q"] * 301), mutated(["targeted_template"], "no slot"),
     mutated(["targeted_template"], "{name} and {name}"), mutated(["targeted_template"], "{name} {other}"),

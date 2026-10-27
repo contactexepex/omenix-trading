@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -43,6 +44,8 @@ def test_a_query_is_url_encoded_so_a_name_cannot_add_or_change_a_parameter():
     (url,) = [u for i, u in ids_of(plan).items() if i.startswith("q-")]
     assert url.startswith("https://search.svc.example/rss/search?") and "&hl=evil" not in url and "#" not in url
     assert url.count("hl=") == 1
+    sent = parse_qs(urlsplit(url).query)  # the service receives exactly the query, not a changed one
+    assert sent["q"] == ["Zz & Co&hl=evil#frag zzstock"] and sent["hl"] == ["en"]
 
 
 def test_the_same_query_has_the_same_id_however_the_list_is_ordered_or_extended():
