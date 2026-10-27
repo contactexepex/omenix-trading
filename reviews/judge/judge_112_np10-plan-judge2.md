@@ -60,3 +60,43 @@ against main).
 **Verdict: FAIL** (round 1, `cb7cae9`). Both blockers are plan edits:
 - B1 is the log entry;
 - B2 is two sentences of rule and a restated S3.
+
+## Addendum 1
+
+**Round 2 re-review at `97b6df6`.** Against main, only `docs/stories/NP10-page-snippet.md` changed.
+
+**Gates (text only):**
+- The doc-reading tests: 79 passed.
+- `check_numbers`: clean.
+
+**The blockers:**
+- **B1: fixed on main.** `conversations/2026-10-28.md` (commit `742f9c9`) quotes the owner, as relayed by the
+  orchestrator: "For point number three, per article snippet, yes, please do that. We need that extract, because that
+  will help us to have more enriched and segregated summary and data." and "switch to yes on the article snippet."
+  It records the decision E1 = YES.
+  - I checked the log on main, and it has no conflict markers.
+  - The plan cites these words in its "Judge 112 conditions".
+- **B2: fixed.** There is no split before a digit or a lower-case letter, and none after a listed abbreviation. S3
+  states the "Rs." case.
+  - A side effect, *reasoning only*: a true sentence end on "Ltd." ("... bought Zzbeta Ltd. The deal ...") is not
+    split. That is the safe direction: one longer sentence, still under the 600-character cap.
+- **(d): fixed.** It is a merge-procedure hold if any read manifest or read receipt exists on main.
+- **(e): fixed.** S11 covers partial, paywalled and meta-only pages.
+
+**Condition C1 (text, before merge):**
+- The plan's opening line still quotes the owner as "enriched, segregated summary" and "never the whole news, just a
+  small summary". Neither string is in the log: the first is a paraphrase in quotation marks, and the second does not
+  appear at all.
+- Replace the opening with the logged words, or with a plain paraphrase without quotation marks and a link to the log.
+- This is the same rule as B1: no quoted owner words that are not on record.
+
+**Verdict: PASS** (round 2, `97b6df6`), with condition C1 before merge.
+
+## Addendum 2
+
+**C1 check at `b3e676a`.** The opening line now quotes only the words logged in `conversations/2026-10-28.md` (commit
+`742f9c9`). "Small" is marked as the plan's own bound, not as the owner's word.
+
+**Gates (text only):** the doc-reading tests, 79 passed.
+
+**C1: met. Verdict: PASS** (`b3e676a`).
