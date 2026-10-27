@@ -82,3 +82,31 @@ re-ran it myself rather than taking it on trust. The verdict below rests on my r
   a log or the run line, so no private content is exposed.
 
 **Verdict: FAIL** (round 1, `aee8a96`). B1 (one test, one row) and B2 (remove the dead method) are both small.
+
+## Addendum 1
+
+**Round 2 re-review of `story/NP7b-company-list-pin` at `7d496ae`.**
+
+**What changed since `aee8a96`:**
+- Production: `run.py` only (one line in, five out). The dead `_previous` method and its now-unused `Cluster` import
+  are removed.
+- Tests: `test_write_and_run.py` and `test_version_two_run.py` now call `_previous_file`.
+- A new test,
+  `test_a_run_compares_with_the_newest_earlier_file_not_the_first_one`: lists 5, then 7, then a rollback to 6. The run
+  must stop with `company_list_rolled_back`.
+- Contract plant Z24 (`max` becomes `min`).
+- Two lines in the story's "Said plainly", covering my N1 and N2.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1977 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 621 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught, including Z24.
+
+**The two blockers:**
+- **B1: fixed.** My K10 plant (`max(earlier)` becomes `min(earlier)`) now fails 2 tests.
+- **B2: fixed.** No `_previous(` call is left in `fno/ingestion/news` or its tests.
+
+**Verdict: PASS** (round 2, `7d496ae`).

@@ -1,9 +1,10 @@
-"""One article as the dashboard and the later steps see it (NP5b; the read contract NP7 builds on): the recorded article
-file joined with its resolution file (NP2c) and its read file (NP4b), and judged by the rules of the day: tier and
-opinion (NP1), agency origin, promotional, the companies it is about (the tagger), and whether it is material. Pure and
-computed on every read: nothing here is stored, so editing a rule or the company list re-judges old articles by design
-and never changes a recorded byte. The source URL is spoof-resistant: it comes only from the resolution file or from a
-publisher item's own link, never from the feed text, a label or a page."""
+"""One article judged by the rules of the day (NP5b): the recorded article file joined with its resolution file (NP2c)
+and its read file (NP4b), and judged: tier and opinion (NP1), agency origin, promotional, the
+companies it is about (the tagger), and whether it is material. Pure and computed on every use: nothing here is
+stored, so editing a rule or the company list re-judges old articles by design and never changes a recorded byte. The
+source URL is spoof-resistant: it comes only from the resolution file or from a publisher item's own link, never from
+the feed text, a label or a page. No run uses this module yet (parked, owner's call);
+it defines no consumer contract."""
 
 from __future__ import annotations
 
