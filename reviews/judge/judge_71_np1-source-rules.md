@@ -75,3 +75,23 @@ Reviewed `git diff 1d1bfed aa00a5c`.
 **Privacy.** The story now states the point and that the merge is held for owner decision H. That is consistent with judge 70's addendum.
 
 **Verdict: PASS round 2 at aa00a5c, on condition of `fullmatch` plus its test. The merge stays held for decision H.**
+
+## Addendum 2: superseded by df3fe62: PASS, the condition still open and widened to two places
+
+Reviewed `git diff aa00a5c df3fe62`, which folds in judge 72's F1 to F5.
+
+**Gates (strong evidence).** 1311 passed; contract plants O1 to O14 all `ok`.
+
+**The new rules read correctly:**
+- a public suffix is refused as an outlet domain: the 2-label `co.in`-style rule plus a curated hosting list, honestly stated as not the full Public Suffix List;
+- `may_fetch` follows `same_as` to the main domain's `fetch: false`;
+- empty labels are refused, and lookups return None for an empty label;
+- two wires claiming one name or domain are refused;
+- `opinion_unless_path` must be `/…/`.
+
+**Condition from Addendum 1: NOT done, and it applies in two places (strong evidence, reproduced at df3fe62).**
+- `rules.py:28` still uses `PLAIN_HOST.match`, so `plain_host("marketwatch.com\n")` returns `'marketwatch.com\n'`.
+- `loader.py:77` uses `DOMAIN.match` in the same way: `build_source_rules({'domains': {'evil.com\n': {'tier': 'tier1'}}})` is **accepted**, so an outlet domain can carry a line break. A quoted YAML key can produce one.
+- **Fix:** `fullmatch` in both places, plus two tests: a host with a trailing newline gives `""`, and a domain key with a trailing newline is refused.
+
+**Verdict: PASS at df3fe62, on condition of `fullmatch` in `rules.py` and `loader.py` with their tests. The merge stays held for decision H.**
