@@ -90,6 +90,8 @@ def test_a_same_format_title_difference_is_not_hidden_by_a_missing_title():
 def test_a_format_must_be_an_integer_we_know_so_true_and_one_point_zero_and_three_are_refused():
     for bad in (True, 1.0, 3, "2", None):
         assert not same_version(json.dumps({**json.loads(v2()), "format": bad}).encode(), v2())
+    for bad in (True, 1.0):  # equal to 1 in Python, with exactly format 1's keys: still not an integer format
+        assert not same_version(json.dumps({"format": bad, **BASE}).encode(), v1_bytes())
 
 
 def test_a_format_1_file_with_format_2_keys_and_a_format_2_file_without_them_are_not_ours():
