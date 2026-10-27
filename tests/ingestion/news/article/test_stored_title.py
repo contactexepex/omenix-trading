@@ -67,3 +67,12 @@ def test_a_no_break_space_folds_to_a_plain_space_so_it_cannot_hide_the_outlet():
     assert without_outlet("Rates rise - Daily Ledger", "Daily Ledger") == "Rates rise"
     article = build_article(WRAPPER, wrapper("Rates rise - Daily Ledger"), SEEN_AT)
     assert article.title == "Rates rise"
+
+
+def test_a_no_break_space_beside_the_separator_is_cut_with_it_and_the_headline_keeps_its_own_text():
+    """Judge 116: the cut ran on the original text, so only a plain space beside the separator was removed."""
+    assert without_outlet("Rates rise - Daily Ledger", "Daily Ledger") == "Rates rise"
+    assert without_outlet("Rates rise - Daily Ledger", "Daily Ledger") == "Rates rise"
+    assert without_outlet("Acme’s rates rise  | Daily Ledger", "Daily Ledger") == "Acme’s rates rise"
+    article = build_article(WRAPPER, wrapper("Rates rise - Daily Ledger"), SEEN_AT)
+    assert article.title == "Rates rise"

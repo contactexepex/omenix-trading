@@ -1,4 +1,7 @@
-"""The data of the news source rules (NP1): plain frozen values, no behaviour. `SourceRules` answers the questions."""
+"""The data of the news source rules (NP1): plain frozen values, no behaviour. `SourceRules` answers the questions.
+Fields no code here reads (the tier, `same_as`, `https_links`, `opinion_unless_path`, wires, promotional) are the
+schema of the public rules file, which the downstream consumer reads: kept on purpose, not dead code (DEL1, judges
+117 and 118)."""
 
 from __future__ import annotations
 

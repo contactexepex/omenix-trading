@@ -100,3 +100,11 @@ def test_the_similarity_measure_is_swappable_behind_its_interface():
     unlike = [art("a", words(1, 8), at(5)), art("b", words(40, 48), at(4))]
     assert len(cluster_articles(unlike, AS_OF).clusters) == 2
     assert len(cluster_articles(unlike, AS_OF, similarity=Always()).clusters) == 1
+
+
+def test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used():
+    """Judge 115: the callers must hand the source to the title form, or each outlet name stays in the form."""
+    first = art("p1", "Nifty ends higher today - Alpha Daily", at(3), source="Alpha Daily")
+    second = art("p2", "Nifty ends higher today - Beta Post", at(2.9), source="Beta Post")
+    assert keys_of(cluster_articles([first, second], AS_OF)) == [("p1", "p2")]
+    assert Prepared.of(first).shingles == Prepared.of(second).shingles

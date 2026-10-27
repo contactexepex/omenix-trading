@@ -2476,5 +2476,32 @@
   "file": "fno/ingestion/news/text_rules.py",
   "old": "\"\\u00a0\": \" \"})",
   "new": "\"\\u00a0\": \"\\u00a0\"})"
+ },
+ {
+  "id": "F21",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_no_break_space_beside_the_separator_is_cut_with_it_and_the_headline_keeps_its_own_text"
+  ],
+  "file": "fno/ingestion/news/text_rules.py",
+  "old": "head = fold(title[: -len(name)])",
+  "new": "head = title[: -len(name)]"
+ },
+ {
+  "id": "F22",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used"
+  ],
+  "file": "fno/ingestion/news/cluster/matcher.py",
+  "old": "form = title_form(article.title, article.source)",
+  "new": "form = title_form(article.title)"
+ },
+ {
+  "id": "F22b",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "shingles(title_form(article.title, article.source))",
+  "new": "shingles(title_form(article.title))"
  }
 ]
