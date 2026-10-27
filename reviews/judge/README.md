@@ -105,3 +105,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 92 | NP5a tagger, code (judge #2) | 1 | FAIL (round 1, 29d19cf) | `judge_92_np5a-tagger-judge2.md` |
 | 93 | NP5a tagger (code, judge #1) | 1 | FAIL (round 1, 29d19cf); PASS (round 2, ab4acd2) | `judge_93_np5a-tagger.md` |
 | 94 | NP5b origins, promotional, materiality (code, judge #1) | 1 | FAIL (round 1, 691f315) | `judge_94_np5b-origins-materiality.md` |
+| 95 | NP5b origins, materiality and view, code (judge #2) | 1 | FAIL (round 1, 691f315) | `judge_95_np5b-origins-materiality-judge2.md` |
