@@ -91,3 +91,28 @@ removed from the newest list.** The documented rule never says not to retire a f
 staged polls unpromotable and makes every later run exit 1 with an alert (reproduced above). S2 stands.
 
 **Verdict: FAIL** (round 1): S1 and S3 are tests only; S2 and S4 are code plus test.
+
+## Addendum 2: 321faad (S1 and S2 fixed; S3 and S4 not yet addressed; FAIL)
+
+Branch `story/P2b2-writer`, SHA `321faad7fed9bb6f7564c29628811a07e9b930a1`. **Gates** (`__pycache__` cleared): 752
+passed; ruff, format, imports and size clean.
+
+| Item | Fix | Plant | Failed |
+|---|---|---|---|
+| S1 the wiring | `test_wiring.py` runs `build_news_promotion` on a recording fake Drive | writer store on `STAGING_AREA` / gate reading `RAW_AREA` / reader on `STAGING_AREA` | 1 / 2 / 1 |
+| S2 a retired feed | `kinds_ever_listed`, the union over every valid version; a changed kind gives `feed_kind_changed`; `feed_unknown` only for feeds with polls in the range | back to `latest()` only / the kind-change check removed / the unknown check unscoped | 2 / 1 / 1 |
+| Judge #1's revision-name collision | a held revision with other fixed fields is a conflict | the check removed | 1 |
+
+On `used` / `lowest_version` for promote: not needed now that promote does not call `latest()`. One residual
+(reasoning only): `kinds_ever_listed` does not check versions against the fetcher's `feed_lists.csv` hashes. So a
+feed whose only listing is in a version edited in place takes its edited kind silently; a conflicting kind still
+stops the run. This is low risk and not blocking.
+
+**Still open, both raised in Addendum 1. The SHA seems to have been frozen before they reached the implementer:**
+- **S3:** plant A16 (commit only when promote succeeded) still leaves all 752 green.
+- **S4:** reproduced again on `321faad`. A line torn inside the article id gets the repair row glued onto it
+  (`2026-10-27,1aff2f3f02026-10-27,1aff2f3f0963...`) and the run reads clean.
+
+**Verdict: FAIL** on `321faad`, on S3 (tests only) and S4 (code plus test). These are round-1 findings that crossed
+the freeze, so whether `321faad` counts as round 2 is the orchestrator's call. A SHA that adds S3 and S4 alone gets a
+quick review from me.
