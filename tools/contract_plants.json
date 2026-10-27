@@ -1092,7 +1092,8 @@
  {
   "id": "V3",
   "tests": [
-   "tests/ingestion/news/resolve/test_pass.py::test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution_file"
+   "tests/ingestion/news/resolve/test_pass.py::test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution_file",
+   "tests/ingestion/news/resolve/test_pass.py::test_a_pass_given_the_whole_articles_manifest_still_asks_only_wrapper_articles"
   ],
   "file": "fno/ingestion/news/resolve/run.py",
   "old": "        if article.kind != WRAPPER or not article.wrapper_link:",

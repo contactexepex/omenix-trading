@@ -55,12 +55,12 @@ class World:
         self.record.promote(at.date())
         self.record.build()
 
-    def pass_(self) -> ResolvePass:
+    def pass_(self, index_file: str = WRAPPERS_FILE) -> ResolvePass:
         record = AreaStore(self.drive, "raw")
         store = DataStore(self.drive, "raw", self.record.receipts, "news-resolve", "run-1")
         manifest = NewsManifest(self.record.manifest_folder, "resolved.csv")
         writer = WriteOnceWriter(record, store, manifest, key_of_path)
-        return ResolvePass(record, NewsManifest(self.record.manifest_folder, WRAPPERS_FILE), self.resolver, writer)
+        return ResolvePass(record, NewsManifest(self.record.manifest_folder, index_file), self.resolver, writer)
 
     def run(self, apply: bool = True, cap: int = 80):
         return self.pass_().run(TODAY, apply, cap)

@@ -123,9 +123,9 @@ def test_the_wiring_builds_one_resolver_for_the_whole_run_from_the_private_feed_
         return FakeResolver()
 
     monkeypatch.setattr(wiring, "build_link_resolver", build)
-    pass_ = wiring.build_resolve_pass()
     world.add(wrapper_item(1))
     world.add(publisher_item(2), feed="feed-02")
+    pass_ = wiring.build_resolve_pass()  # the manifests are read when it is built, as in a real run
     first = pass_.run(__import__("datetime").date(2026, 10, 27), True)
     pass_.run(__import__("datetime").date(2026, 10, 27), True)
     assert first.counts["examined"] == 1  # the wiring reads the wrapper index: the publisher article is never read

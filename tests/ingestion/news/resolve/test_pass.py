@@ -8,7 +8,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.resolve import run as run_module
 from fno.ingestion.news.resolve.model import DECODE_FAILED, PAUSED, RESOLVED, Resolved
 from fno.ingestion.news.resolve.resolution_file import parse_resolution
-from tests.ingestion.news.resolve.pass_helpers import FakeResolver, World, publisher_item, wrapper_item
+from tests.ingestion.news.resolve.pass_helpers import TODAY, FakeResolver, World, publisher_item, wrapper_item
 
 
 def test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution_file(tmp_path):
@@ -21,6 +21,15 @@ def test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution
     )  # the publisher article is never read
     assert report.results["written"] == 2 and len(world.resolver.calls) == 1 and len(world.resolver.calls[0]) == 2
     assert len(world.resolution_files()) == 2 and all("/resolved/" in f for f in world.resolution_files())
+
+
+def test_a_pass_given_the_whole_articles_manifest_still_asks_only_wrapper_articles(tmp_path):
+    """Defence in depth under the index (NP2d): the pass itself checks each article it reads."""
+    world = World(tmp_path)
+    world.add(wrapper_item(1))
+    world.add(publisher_item(2), publisher_item(3), feed="feed-02")
+    report = world.pass_("articles.csv").run(TODAY, True, 80)
+    assert report.counts["examined"] == 3 and report.counts["not_wrapper"] == 2 and report.counts["pending"] == 1
 
 
 def test_a_resolution_file_has_the_url_its_host_and_whether_the_host_is_the_feeds_outlet(tmp_path):
