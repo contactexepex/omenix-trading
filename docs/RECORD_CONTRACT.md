@@ -187,6 +187,22 @@ The resolver turns redirect links into publishers' URLs behind the `LinkResolver
 | L11 | The pacer never goes below its 1.5 s floor, whatever it is asked for. | `RequestSpacer` | `tests/ingestion/news/resolve/test_pacing_and_stop.py::test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_floor` | floor removable | **tested, plant run** |
 | L12 | A link is not even attempted once the run is stopped: it is `paused` with no request. | `GoogleNewsDecoderResolver._batch` | `tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested` | stopped run keeps asking | **tested, plant run** |
 
+## The feed plan (NP3b)
+
+The private feed list is planned from the owner's company list and a private discovery file (`news plan-feeds`); the fetcher, Staging and the gate read the result as any feed list.
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| D1 | A planned feed's id is `q-` plus 8 hex of an HMAC-SHA-256 keyed with the feed list's private salt over the kind and the normalised query, so a guessed company name cannot be confirmed from the public poll log. | `planned_feed_id` | `tests/ingestion/news/planning/test_planner.py::test_a_planned_id_is_keyed_with_the_private_salt_so_a_guessed_name_cannot_be_confirmed_from_the_poll_log` | unsalted hash | **tested, plant run** |
+| D2 | The same query has the same id however the list is ordered or extended, and case or spacing do not make a different query; a repeated query is planned once. | `normalise_query`, `plan_feeds` | `tests/ingestion/news/planning/test_planner.py::test_the_same_query_has_the_same_id_however_the_list_is_ordered_or_extended`<br>`tests/ingestion/news/planning/test_planner.py::test_case_and_spacing_do_not_make_a_different_query_and_a_repeated_query_is_planned_once` | ids depend on spelling | **tested, plant run** |
+| D3 | Two different queries that hash to one id are refused and nothing is planned. | `plan_feeds` | `tests/ingestion/news/planning/test_planner.py::test_two_different_queries_that_share_an_id_are_refused_and_nothing_is_planned` | collision accepted | **tested, plant run** |
+| D4 | An id an earlier feed list gave another kind is refused (changing a kind would give existing items new keys). | `plan_feeds` | `tests/ingestion/news/planning/test_planner.py::test_an_id_used_before_with_another_kind_is_refused` | kind change accepted | **tested, plant run** |
+| D5 | The plan's own bytes are parsed with the feed list's checks before they are returned, so a list every reader would refuse is never written. | `plan_feeds` | `tests/ingestion/news/planning/test_planner.py::test_a_plan_the_feed_list_checks_would_refuse_is_never_returned` | own check missing | **tested, plant run** |
+| D6 | A query is URL-encoded into the search address, so a company name cannot add or change a parameter. | `_search_url` | `tests/ingestion/news/planning/test_planner.py::test_a_query_is_url_encoded_so_a_name_cannot_add_or_change_a_parameter` | raw query in the address | **tested, plant run** |
+| D7 | Search hosts (feeds of kind wrapper) are paced 1.5 s apart by a per-run pacer built from the feed list; no host name is written in code and the NSE spacing table is unchanged. | `pacer_for` | `tests/ingestion/news/planning/test_cli_and_pacing.py::test_search_hosts_are_paced_1_5_seconds_apart_and_every_other_host_keeps_the_default`<br>`tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_nse_spacing_table_is_not_changed_by_the_news_pacer` | search hosts paced 1.0 s | **tested, plant run** |
+| D8 | The run's pacer is set after the feed list is read and before the first request. | `NewsFetchJob.run` | `tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_session_takes_the_pacer_of_the_run_and_the_job_sets_it_before_the_first_request` | pacer never set | **tested, plant run** |
+| D9 | A feed list accepts the id forms `feed-NN` and `q-` plus 8 lower-case hex and nothing else (a trailing line break included). | `FEED_ID` | `tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_a_feed_list_accepts`<br>`tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_it_refuses_a_trailing_line_break_included` | planned ids refused | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the

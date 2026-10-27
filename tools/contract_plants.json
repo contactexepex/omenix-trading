@@ -914,5 +914,89 @@
   "file": "fno/ingestion/news/companies/parse.py",
   "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
   "new": ""
+ },
+ {
+  "id": "D1",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_planned_id_is_keyed_with_the_private_salt_so_a_guessed_name_cannot_be_confirmed_from_the_poll_log"
+  ],
+  "file": "fno/ingestion/news/planning/query_id.py",
+  "old": "    digest = hmac.new(salt.encode(), message, hashlib.sha256).hexdigest()",
+  "new": "    digest = hashlib.sha256(message).hexdigest()"
+ },
+ {
+  "id": "D2",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_the_same_query_has_the_same_id_however_the_list_is_ordered_or_extended",
+   "tests/ingestion/news/planning/test_planner.py::test_case_and_spacing_do_not_make_a_different_query_and_a_repeated_query_is_planned_once"
+  ],
+  "file": "fno/ingestion/news/planning/query_id.py",
+  "old": "    return \" \".join(query.split()).casefold()",
+  "new": "    return query"
+ },
+ {
+  "id": "D3",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_two_different_queries_that_share_an_id_are_refused_and_nothing_is_planned"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        if by_id.setdefault(feed_id, normalise_query(query)) != normalise_query(query):",
+  "new": "        if False:"
+ },
+ {
+  "id": "D4",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_an_id_used_before_with_another_kind_is_refused"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        if kinds_ever.get(entry[\"id\"], entry[\"kind\"]) != entry[\"kind\"]:",
+  "new": "        if False:"
+ },
+ {
+  "id": "D5",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_plan_the_feed_list_checks_would_refuse_is_never_returned"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        parse_feed_list(data, 1)",
+  "new": "        (lambda *a: None)(data, 1)"
+ },
+ {
+  "id": "D6",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_query_is_url_encoded_so_a_name_cannot_add_or_change_a_parameter"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "    return discovery.search_url + separator + urlencode(params)",
+  "new": "    return discovery.search_url + separator + f\"{discovery.query_param}={query}\""
+ },
+ {
+  "id": "D7",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_search_hosts_are_paced_1_5_seconds_apart_and_every_other_host_keeps_the_default",
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_nse_spacing_table_is_not_changed_by_the_news_pacer"
+  ],
+  "file": "fno/ingestion/news/pacing.py",
+  "old": "WRAPPER_SPACING_SECONDS = 1.5",
+  "new": "WRAPPER_SPACING_SECONDS = 0.5"
+ },
+ {
+  "id": "D8",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_session_takes_the_pacer_of_the_run_and_the_job_sets_it_before_the_first_request"
+  ],
+  "file": "fno/ingestion/news/job.py",
+  "old": "            self.session.pace_for(feeds)",
+  "new": "            pass"
+ },
+ {
+  "id": "D9",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_a_feed_list_accepts",
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_it_refuses_a_trailing_line_break_included"
+  ],
+  "file": "fno/ingestion/news/feeds.py",
+  "old": "|q-[0-9a-f]{8})",
+  "new": "|)"
  }
 ]

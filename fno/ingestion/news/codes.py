@@ -61,3 +61,13 @@ COMPANY_LIST_ROLLED_BACK = "company_list_rolled_back"
 COMPANY_LIST_DAMAGED = "company_list_damaged"
 COMPANY_LIST_EXISTS = "company_list_exists"  # a seed is never written over an existing list
 SEED_SOURCE_MISSING = "seed_source_missing"  # the archived NSE list the seed is built from could not be read
+# the feed plan (NP3b): fixed codes; the discovery file and the plan are the owner's private content
+DISCOVERY_MISSING = "discovery_missing"
+DISCOVERY_INVALID = "discovery_invalid"
+DISCOVERY_ROLLED_BACK = "discovery_rolled_back"
+DISCOVERY_DAMAGED = "discovery_damaged"
+FEED_PLAN_COLLISION = "feed_plan_collision"  # two different queries hash to one feed id: nothing is written
+FEED_PLAN_KIND_CONFLICT = (
+    "feed_plan_kind_conflict"  # a planned id was used before with another kind: nothing is written
+)
+FEED_PLAN_INVALID = "feed_plan_invalid"  # the plan's own bytes fail the feed list checks (too many feeds, a bad URL)
