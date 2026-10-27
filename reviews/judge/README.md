@@ -57,3 +57,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 44 | P2a news fetch into Staging (code) | 1 | PASS (round 2, f5a656b) | `judge_44_p2a-code.md` |
 | 45 | P2a news fetch into Staging, code (judge #2) | 1 | PASS (round 2, f5a656b) | `judge_45_p2a-code-judge2.md` |
 | 46 | P2b1 pure article functions (code) | 1 | PASS (bounded re-verify, ff08a7a; code = be857dc) | `judge_46_p2b1-pure.md` |
+| 47 | P2b2 news Record writer (code) | 1 | FAIL (round 1, 2ad37d2) | `judge_47_p2b2-writer.md` |
