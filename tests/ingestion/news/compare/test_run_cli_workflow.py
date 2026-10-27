@@ -53,6 +53,7 @@ def test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_n
     text = comparison(world, Scripted(CompanyList(7, COMPANIES))).run(AS_OF).line()
     assert files(world) == before and manifests(world) == before_manifests
     assert "Nifty" not in text and "https://" not in text and "pub.example" not in text
+    assert "ZZ" not in text and "Zz" not in text  # no symbol or company name of the list
 
 
 def test_a_company_list_that_exists_but_cannot_be_read_stops_the_comparison_with_its_code(tmp_path):

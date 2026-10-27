@@ -2269,5 +2269,23 @@
   "file": ".github/workflows/news-compare-clusterings.yml",
   "old": "  contents: read",
   "new": "  contents: write"
+ },
+ {
+  "id": "J8",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.lines += [_shape_line(\"v1\", first), _shape_line(\"v2\", second), _crossing_line(first, second)]",
+  "new": "report.lines += [_shape_line(\"v1\", first), _shape_line(\"v2\", second), _crossing_line(first, second), found.articles[0].title]"
+ },
+ {
+  "id": "J9",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))",
+  "new": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))\n        report.lines.append(\",\".join(sorted(inputs.preparer.tagger.dictionary.symbols)))"
  }
 ]

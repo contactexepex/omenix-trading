@@ -392,6 +392,8 @@ The plan called these rows W1 to W12; `W0` to `W6` already belong to the write-o
 | J5 | A company list that exists but cannot be read stops the comparison with its code; no list at all compares with version 0. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_a_company_list_that_exists_but_cannot_be_read_stops_the_comparison_with_its_code`<br>`tests/ingestion/news/compare/test_run_cli_workflow.py::test_no_list_at_all_still_compares_with_version_zero` | unusable list ignored | **tested, plant run** |
 | J6 | The command exits 0 only for a clean comparison and prints only the class of an unexpected error. | `cmd_news_compare` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_command_prints_the_lines_and_exits_zero_or_one_and_never_a_traceback` | failure exits 0 | **tested, plant run** |
 | J7 | The workflow is manual, read only, commits nothing and sends no alert. | `news-compare-clusterings.yml` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing` | can commit | **tested, plant run** |
+| J8 | The report carries counts and distributions only: never a title or a URL of an article. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story` | a title is printed | **tested, plant run** |
+| J9 | The report names no company symbol or name of the owner's list. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story` | the symbols are printed | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 
