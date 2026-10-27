@@ -1,4 +1,4 @@
-"""CF1: the one definition of "this commit failed"; the seven callers that read the line ask it, not their own string."""
+"""CF1: the one definition of "this commit failed"; the seven callers that read the line ask it."""
 
 from __future__ import annotations
 
