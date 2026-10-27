@@ -63,3 +63,23 @@ code size passed; contract plants all ok.
    so the code is correct; it is the docstring's step order that is wrong. Align the text.
 
 **Verdict: PASS** (`3f56dbc`), with the two should-fixes above.
+
+## Addendum 1: `40faf61` (both should-fixes folded in)
+
+`git diff 3f56dbc 40faf61`:
+- `probe_outlets(..., on_result)` prints each `domain: code` line as it completes, and the counts line last;
+- the job timeout is 90 minutes, pinned by a test;
+- the fetcher docstring lists the address check before robots.txt;
+- the NP4 plan's wording on `--include-refusing` is aligned;
+- row H12.
+
+**Gates** (in the locked venv): 1723 passed; ruff clean; imports clean; contract plants all ok. My plant that drops the
+per-line output fails 2 tests.
+
+**Should fix (not blocking): set `PYTHONUNBUFFERED: "1"` in the probe job.** On a runner, stdout is a pipe, so `print` is
+block-buffered. I showed that a child killed with SIGKILL, with `PYTHONUNBUFFERED` unset, leaves an **empty** pipe.
+On a job timeout GitHub sends SIGINT first, and the interpreter's normal exit would flush, so the main case probably
+survives; reasoning only on the runner's signal sequence. A hard kill would lose the lines this change exists to keep.
+One environment line, or `flush=True`, makes the guarantee hold in every case.
+
+**Verdict: PASS** (`40faf61`).
