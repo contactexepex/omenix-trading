@@ -120,3 +120,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 107 | NP3c compare clusterings (code, judge #1) | 2 | PASS (round 2, 9d16261; round 1 FAIL eb0ac05) | `judge_107_np3c-compare-clusterings.md` |
 | 108 | NP8 material-first reads (code, judge #1) | 2 | PASS (round 2, 18f9111; round 1 FAIL e6aac2a) | `judge_108_np8-material-first-reads.md` |
 | 109 | NP8 material-first reads, code (judge #2) | 1 | FAIL (round 1, e6aac2a; same at 18f9111: Y4 gate red) | `judge_109_np8-material-first-judge2.md` |
+| 110 | NP7c news go-live checklist, doc (judge #2) | 1 | FAIL (round 1, 8eeeab8) | `judge_110_np7c-go-live-judge2.md` |
