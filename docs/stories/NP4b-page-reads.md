@@ -21,7 +21,7 @@ workflow; it has no schedule.**
 ## The read file: facts and hashes, no text
 `format`, `key`, `host`, `access` (`full` for a measured body of 300 or more characters, `partial`, `paywalled`), `extractor`,
 `body_chars`, `body_sha256`, `published_at`, `modified_at`, up to 5 `authors`, `provider`. **No article body, no HTML and no key
-sentences** (the owner's default for decision E1, still pending with the owner): `to_bytes` refuses a file over 2,000 bytes (Y10). The
+sentences** (the owner's default for decision E1, still pending with the owner): `to_bytes` refuses a file over 4,000 bytes (Y10). The
 body is measured and dropped; the strings kept are single-line and capped. The cost, said plainly (reasoning only): NP5's
 wire-agency detection can use only the byline, the JSON-LD provider and the outlet, not a dateline in the first sentences.
 
@@ -33,6 +33,18 @@ wire-agency detection can use only the byline, the JSON-LD provider and the outl
   more, is red and alerted (Y8). Pages an outlet asks us not to read (`robots_disallowed`, `host_stopped`, `host_not_allowed`) are not
   faults. One or two failures are not a failing reader.
 - A page with no facts, or a refused one, writes nothing and is tried again on the next pass until it leaves the look-back.
+
+## Round 2 (judge 89)
+- **One hostile page cannot stop the run (F1, Y14):** a JSON-LD nested 200,000 deep raised `RecursionError`, which escaped and made
+  the same page come first again for three days. Each block is skipped on any parse failure and any extractor failure is counted
+  (`extract_error`) while the run goes on.
+- **A total deadline per fetch (F2, Y15, Y16):** the library's timeout is per read, so a server that drips 12 bytes every 0.5 s held a
+  1-second timeout for 6 s and could hold a fetch until the job was killed. The fetcher now owns a deadline for hops, robots.txt and the body
+  together (`fetch(url, seconds)`, at most 60 s, and the pass hands each fetch what the run has left); the body is read with `read1`, which
+  returns what has arrived, so the deadline is checked between drips; a fetch that runs out stops its host. Not covered: the
+  name lookup itself, which the system bounds.
+- Names in a three-byte script now fit (the file is UTF-8, 4,000 bytes, Y18); `news` command start-up no longer imports the HTML parser
+  (`reads/limits.py`); the list-depth limit is tested (Y17).
 
 ## Said plainly
 - Whether a GitHub runner can read these outlets is unmeasured; run `news-probe-outlets` first (NP4a). Until it is dispatched, no

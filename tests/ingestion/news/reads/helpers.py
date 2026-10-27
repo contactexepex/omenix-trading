@@ -26,10 +26,11 @@ HTML = b"""<html><head>
 
 class FakeFetcher(PageFetcher):
     def __init__(self, answers=None, on_fetch=None):
-        self.answers, self.asked, self.on_fetch = answers or {}, [], on_fetch
+        self.answers, self.asked, self.seconds, self.on_fetch = answers or {}, [], [], on_fetch
 
-    def fetch(self, url):
+    def fetch(self, url, seconds=None):
         self.asked.append(url)
+        self.seconds.append(seconds)
         if self.on_fetch:
             self.on_fetch()
         return self.answers.get(url) or Page(model.OK, url, "text/html", body=HTML)

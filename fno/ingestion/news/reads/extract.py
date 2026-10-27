@@ -87,7 +87,7 @@ def from_json_ld(tree: HTMLParser) -> PageFacts | None:
             continue
         try:
             nodes = article_nodes(json.loads(text))
-        except ValueError:
+        except (ValueError, RecursionError):  # not JSON, or nested past what the parser accepts: this block is skipped
             continue
         if nodes:
             return facts_of(nodes[0])

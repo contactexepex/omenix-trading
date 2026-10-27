@@ -22,6 +22,7 @@ from fno.ingestion.news.article.article_file import article_from_bytes
 from fno.ingestion.news.pages import model
 from fno.ingestion.news.pages.model import PageFetcher
 from fno.ingestion.news.reads.extract import extract
+from fno.ingestion.news.reads.limits import BUDGET_SECONDS, LOOKBACK_DAYS, MAX_RECORD_READS, PAGES
 from fno.ingestion.news.reads.read_file import build_read, read_path
 from fno.ingestion.news.reads.report import ReadReport
 from fno.ingestion.news.record.manifest import NewsManifest
@@ -32,10 +33,6 @@ from fno.ingestion.news.write_once import WriteOnceWriter, Written
 from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
 from fno.ingestion.storage.row_log import TableFileBroken
 
-LOOKBACK_DAYS = 3
-PAGES = 80
-MAX_RECORD_READS = 400
-BUDGET_SECONDS = 900.0
 FAILING_MIN_ASKED, FAILING_BELOW_SHARE, NOTHING_OK_MIN_ASKED = 10, 0.5, 3
 NOT_A_FAULT = (model.ROBOTS_DISALLOWED, model.HOST_STOPPED, model.HOST_NOT_ALLOWED)  # expected, not a failing reader
 
@@ -59,7 +56,7 @@ class ReadPass:
             if self.clock() - started >= budget:
                 report.counts["budget_stopped"] = len(todo) - number
                 break
-            self._read(key, url, today, apply, report)
+            self._read(key, url, today, apply, report, budget - (self.clock() - started))
         self._check_reader(report)
         return report
 
@@ -113,13 +110,17 @@ class ReadPass:
             return ""
         return url
 
-    def _read(self, key: str, url: str, today: date, apply: bool, report: ReadReport) -> None:
+    def _read(self, key: str, url: str, today: date, apply: bool, report: ReadReport, budget_left: float) -> None:
         report.counts["asked"] += 1
-        page = self.fetcher.fetch(url)
+        page = self.fetcher.fetch(url, max(1.0, budget_left))
         report.pages[page.code] += 1
         if page.code != model.OK:
             return
-        facts = extract(page.body)
+        try:
+            facts = extract(page.body)
+        except Exception:  # noqa: BLE001 - one hostile page must never stop the run (judge 89): counted, then on
+            report.pages["extract_error"] += 1
+            return
         if facts is None:
             report.pages["no_facts"] += 1
             return

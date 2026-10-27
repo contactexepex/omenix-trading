@@ -18,10 +18,12 @@ built."""
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from urllib.parse import urljoin, urlsplit
 
 import requests
+import urllib3
 
 from fno.ingestion.news.pages import model
 from fno.ingestion.news.pages.address import Resolver, all_global, system_resolver
@@ -38,6 +40,10 @@ MAX_HOPS = 5
 STOP_STATUSES = (401, 403, 429, 503)
 HTML_TYPES = ("text/html", "application/xhtml+xml")
 CHUNK = 65_536
+FETCH_SECONDS = (
+    60.0  # the most ONE fetch (hops, robots.txt and body together) may take; the pass lowers it to its budget
+)
+CONNECT_SECONDS = 10.0
 
 
 class HttpsPageFetcher(PageFetcher):
@@ -49,6 +55,7 @@ class HttpsPageFetcher(PageFetcher):
         resolver: Resolver = system_resolver,
         host_allowed: Callable[[str], bool] | None = None,
         max_bytes: int = MAX_BYTES,
+        clock: Callable[[], float] = time.monotonic,
     ):
         """`host_allowed`: the allowlist test, `rules.may_fetch` unless the outlet probe looks at refusing outlets."""
         self.rules, self.spacer, self.resolver, self.max_bytes = rules, spacer or RequestSpacer(), resolver, max_bytes
@@ -57,16 +64,27 @@ class HttpsPageFetcher(PageFetcher):
         self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop
         self.session.headers["User-Agent"] = RESEARCH_USER_AGENT
         self.session.cookies.set_policy(RejectAllCookies())
+        self.clock, self.until = clock, 0.0
         self.stopped: set[str] = set()
         self.robots = RobotsCache(self._robots_status)
 
-    def fetch(self, url: str) -> Page:
+    def fetch(self, url: str, seconds: float | None = None) -> Page:
+        """One page within a TOTAL deadline of `seconds` (at most `FETCH_SECONDS`) for everything it takes: hops,
+        robots.txt and the body. The library's timeout is per read, so a server that drips a few bytes could otherwise
+        hold one fetch for ever (judge 89 F2). A fetch that runs out of time stops its host and is `timeout`. Not
+        covered: the name lookup itself, which the system bounds."""
+        self.until = self.clock() + min(seconds if seconds is not None else FETCH_SECONDS, FETCH_SECONDS)
         return self._follow(url, check_robots=True, limit=self.max_bytes, accept=HTML_TYPES)
+
+    def _left(self) -> float:
+        return self.until - self.clock()
 
     # ---- one URL, with hops by hand ------------------------------------------------------------------------------
     def _follow(self, url: str, check_robots: bool, limit: int, accept: tuple[str, ...]) -> Page:
         first_host = ""
         for hop in range(MAX_HOPS + 1):
+            if self._left() <= 0:
+                return Page(model.TIMEOUT, url)
             host, refusal = self._admit(url, check_robots)
             if refusal:
                 moved = hop > 0 and refusal in (model.URL_REFUSED, model.HOST_NOT_ALLOWED, model.BLOCKED_ADDRESS)
@@ -79,6 +97,8 @@ class HttpsPageFetcher(PageFetcher):
                 return Page(model.REDIRECT_REFUSED, url)  # robots.txt may not hop to another host
             response = self._get(url)
             if isinstance(response, str):
+                if response == model.TIMEOUT:
+                    self.stopped.add(host)
                 return Page(response, url)
             with response:
                 if response.status_code in STOP_STATUSES:
@@ -91,7 +111,10 @@ class HttpsPageFetcher(PageFetcher):
                     continue
                 if response.status_code >= 400:
                     return Page(model.HTTP_ERROR, url, status=response.status_code)
-                return self._body(response, url, limit, accept)
+                page = self._body(response, url, limit, accept)
+                if page.code == model.TIMEOUT:
+                    self.stopped.add(host)  # a host that cannot finish in time is not asked again this run
+                return page
         return Page(model.REDIRECT_REFUSED, url)
 
     def _admit(self, url: str, check_robots: bool) -> tuple[str, str]:
@@ -121,7 +144,10 @@ class HttpsPageFetcher(PageFetcher):
     def _get(self, url: str):
         self.spacer.wait()
         try:
-            return self.session.get(url, timeout=TIMEOUT_SECONDS, allow_redirects=False, stream=True)
+            wait = (min(CONNECT_SECONDS, self._left()), min(TIMEOUT_SECONDS, self._left()))
+            return self.session.get(url, timeout=wait, allow_redirects=False, stream=True)
+        except requests.Timeout:
+            return model.TIMEOUT
         except requests.RequestException:
             return model.ERROR
 
@@ -135,12 +161,18 @@ class HttpsPageFetcher(PageFetcher):
             return Page(model.NOT_HTML, url)
         chunks, size = [], 0
         try:
-            for chunk in response.iter_content(CHUNK):  # decoded bytes: a gzip bomb stops at the cap
-                size += len(chunk)
+            while chunk := response.raw.read1(
+                CHUNK, decode_content=True
+            ):  # decoded bytes: a gzip bomb stops at the cap
+                size += len(chunk)  # read1 returns what has arrived, so the deadline is checked between drips
                 if size > limit:
                     return Page(model.TOO_LARGE, url)
+                if self._left() <= 0:
+                    return Page(model.TIMEOUT, url)
                 chunks.append(chunk)
-        except requests.RequestException:
+        except requests.Timeout:
+            return Page(model.TIMEOUT, url)
+        except (requests.RequestException, OSError, urllib3.exceptions.HTTPError):
             return Page(model.ERROR, url)
         return Page(model.OK, url, kind, body=b"".join(chunks))
 

@@ -6,7 +6,7 @@ reader that gets nothing; a run cut short by its budget or its read cap is alert
 from __future__ import annotations
 
 from fno.ingestion.news import codes
-from fno.ingestion.news.reads.run import PAGES
+from fno.ingestion.news.reads.limits import PAGES
 from fno.ingestion.storage.row_log import TableFileBroken
 
 ALERT = "Omenix F&O news read-pages: {line}"

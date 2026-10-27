@@ -122,3 +122,28 @@ def test_a_file_that_is_not_a_read_file_is_refused():
     for bad in (b"{}", b"[]", json.dumps({"format": 2}).encode()):
         with pytest.raises(ValueError):
             parse_read(bad)
+
+
+def test_a_page_whose_json_ld_nests_past_what_the_parser_accepts_gives_no_facts_and_raises_nothing():
+    """judge 89 F1: 200,000 nested brackets are under the 1 MB cap but raise RecursionError in json.loads."""
+    html = ('<script type="application/ld+json">' + "[" * 200_000 + "]" * 200_000 + "</script>").encode()
+    assert extract(html) is None
+    ok = page(ARTICLE).replace(b"</head>", html + b"</head>")  # a broken block before a good one is skipped
+    assert extract(ok).provider == "Zz Outlet"
+
+
+def test_the_depth_limit_holds_for_lists_as_well_as_graphs():
+    """judge 89 (3): the limit on nested lists had no test."""
+    deep: object = ARTICLE
+    for _ in range(50):
+        deep = [deep]
+    assert extract(page(deep)) is None
+    assert extract(page([[[ARTICLE]]])) is not None  # a few levels are fine
+
+
+def test_five_long_names_in_a_three_byte_script_still_fit_the_read_file():
+    """judge 89 (1): ASCII-escaped, five 80-character Devanagari names overflowed the old 2,000-byte cap."""
+    names = ["\u0928" * 80 + str(i) for i in range(5)]
+    facts = extract(page({**ARTICLE, "author": names, "publisher": {"name": "\u0928" * 80}}))
+    data = build_read("k" * 64, "pub.example", facts).to_bytes()
+    assert len(data) < MAX_BYTES and parse_read(data).authors[0].startswith("\u0928")

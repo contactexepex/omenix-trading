@@ -21,9 +21,10 @@ ROBOTS_UNREADABLE = "robots_unreadable"  # robots.txt could not be read this run
 HOST_STOPPED = "host_stopped"  # the host refused or pushed back earlier in this run
 REFUSED = "refused"  # 401, 403, 429 or 503: the host is stopped for the run and not retried
 HTTP_ERROR = "http_error"
+TIMEOUT = "timeout"  # the fetch ran out of its total time (a server that drips, a silent host): the host is stopped
 ERROR = "error"  # a network error or timeout (no message is kept)
 CODES = (OK, URL_REFUSED, HOST_NOT_ALLOWED, BLOCKED_ADDRESS, REDIRECT_REFUSED, TOO_LARGE, NOT_HTML, ROBOTS_DISALLOWED,
-         ROBOTS_UNREADABLE, HOST_STOPPED, REFUSED, HTTP_ERROR, ERROR)  # fmt: skip
+         ROBOTS_UNREADABLE, HOST_STOPPED, REFUSED, HTTP_ERROR, TIMEOUT, ERROR)  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -37,5 +38,5 @@ class Page:
 
 class PageFetcher(ABC):
     @abstractmethod
-    def fetch(self, url: str) -> Page:
-        """One page, or a code saying why not. Never raises for a network or protocol problem."""
+    def fetch(self, url: str, seconds: float | None = None) -> Page:
+        """One page within a total time of `seconds`, or a code saying why not. Never raises for a network problem."""

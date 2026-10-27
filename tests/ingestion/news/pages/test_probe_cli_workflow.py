@@ -22,7 +22,7 @@ class Recording(PageFetcher):
     def __init__(self, answers=None):
         self.answers, self.asked = answers or {}, []
 
-    def fetch(self, url):
+    def fetch(self, url, seconds=None):
         self.asked.append(url)
         return Page(self.answers.get(url, model.OK), url)
 
@@ -95,7 +95,7 @@ def test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_
     seen: list[str] = []
 
     class Dies(PageFetcher):
-        def fetch(self, url):
+        def fetch(self, url, seconds=None):
             if url.startswith("https://pub.example"):
                 raise KeyboardInterrupt  # the runner is killed here
             return Page(model.OK, url)

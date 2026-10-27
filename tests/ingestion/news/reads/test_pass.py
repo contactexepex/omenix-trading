@@ -184,3 +184,28 @@ def test_the_read_file_holds_no_body_and_the_line_holds_no_link_key_or_host(tmp_
     line = report.line()
     assert line.startswith("news read-pages (applied): ") and "pub.example" not in line and "Zzpub" not in line
     assert json.loads((world.drive.folder / path).read_bytes())["host"] == "pub.example"
+
+
+def test_a_page_that_makes_the_extractor_fail_is_counted_and_the_run_goes_on(tmp_path, monkeypatch):
+    """judge 89 F1: one hostile page must not stop the run, and must not come first again for three days."""
+    world = World(tmp_path)
+    world.add_publisher(1, 2)
+    real = run_module.extract
+
+    def broken(body):
+        if b"BOOM" in body:
+            raise RecursionError("deep")
+        return real(body)
+
+    monkeypatch.setattr(run_module, "extract", broken)
+    world.fetcher.answers["https://pub.example/p/2"] = Page(model.OK, "https://pub.example/p/2", body=b"BOOM")
+    report = world.read()
+    assert report.ok and report.pages["extract_error"] == 1 and report.pages["written"] == 1
+
+
+def test_each_fetch_is_given_the_time_the_run_has_left(tmp_path):
+    world = World(tmp_path)
+    world.add_publisher(1, 2)
+    world.fetcher.on_fetch = lambda: setattr(world.clock, "now", world.clock.now + 300.0)
+    world.read(budget=900.0)
+    assert world.fetcher.seconds == [900.0, 600.0]  # the second page gets what is left, never more

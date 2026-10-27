@@ -13,7 +13,7 @@ from fno.ingestion.news.reads.extract import PageFacts
 
 FORMAT = 1
 READS_FOLDER = "news/reads"
-MAX_BYTES = 2_000
+MAX_BYTES = 4_000  # of UTF-8: five 80-character names in a three-byte script are about 1,200
 FULL, PARTIAL, PAYWALLED = "full", "partial", "paywalled"
 MIN_FULL_CHARS = 300  # a body this long (as measured, not stored) is a full read
 KEYS = frozenset({"format", "key", "host", "access", "extractor", "body_chars", "body_sha256", "published_at",
@@ -49,7 +49,7 @@ class ReadFile:
 
     def to_bytes(self) -> bytes:
         document = {"format": FORMAT, **asdict(self), "authors": list(self.authors)}
-        data = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+        data = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         if len(data) > MAX_BYTES:
             raise ValueError("a read file holds facts only")
         return data
