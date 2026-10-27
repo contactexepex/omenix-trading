@@ -5,8 +5,8 @@ the real library). So both live here, in the request and response hooks of its o
 and every redirect hop passes:
 
 - `RequestSpacer`: at least `spacing` seconds between ANY two requests, a failed one included;
-- `PushbackStop`: the first refusal (HTTP 429 or 503, or a redirect to the service's "sorry" page) stops every later
-  request of the run for good, so a service that is pushing back is never asked again until the next run."""
+- `PushbackStop`: the first refusal (HTTP 429, 503 or 403, or a redirect to the service's "sorry" page) stops every
+  later request of the run for good, so a service that is pushing back is never asked again until the next run."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable
 
 SPACING_SECONDS = 1.5
-PUSHBACK_STATUSES = (429, 503)
+PUSHBACK_STATUSES = (429, 503, 403)
 SORRY_MARKER = "/sorry/"
 
 

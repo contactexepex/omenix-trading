@@ -5,7 +5,7 @@ link and requests its own fixed service URLs (a page per link, then one POST per
 hand it. So the real controls are these hooks on its one HTTP client, which sees every request and every redirect hop:
 
 - egress: https only, a host on the allowed domains, no credentials, no explicit port;
-- the stop: after the first refusal (HTTP 429/503 or the "sorry" page) nothing more is requested this run
+- the stop: after the first refusal (HTTP 429/503/403 or the "sorry" page) nothing more is requested this run
   (`PushbackStop`);
 - the pace: at least 1.5 s between ANY two requests, a failed one included (`RequestSpacer`; the library's own wait is
   turned off); and, around the library: a link is handed over only when it is clean https on the allowed domain

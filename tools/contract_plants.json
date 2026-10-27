@@ -806,5 +806,14 @@
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
   "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
   "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
+ },
+ {
+  "id": "L13",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_403_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "PUSHBACK_STATUSES = (429, 503, 403)",
+  "new": "PUSHBACK_STATUSES = (429, 503)"
  }
 ]

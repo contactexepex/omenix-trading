@@ -82,6 +82,13 @@ def test_a_429_stops_the_run():
     assert len(seen) == 1 and resolver.stop.seen == "http_429"
 
 
+def test_a_403_stops_the_run():
+    clock = Clock()
+    resolver, seen = resolver_on(lambda request: httpx.Response(403, text="blocked"), clock)
+    results = resolver.resolve([link(n) for n in range(15)])
+    assert len(seen) == 1 and resolver.stop.seen == "http_403" and {r.code for r in results} == {PAUSED}
+
+
 def sorry_redirect(request):
     return httpx.Response(302, headers={"location": "https://news.google.com/sorry/index?continue=x"})
 
@@ -133,7 +140,7 @@ def test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_fl
 
 
 PUSHBACKS = [
-    (429, "", "/a", True), (503, "", "/a", True), (200, "", "/a", False), (404, "", "/a", False),
+    (429, "", "/a", True), (403, "", "/a", True), (503, "", "/a", True), (200, "", "/a", False), (404, "", "/a", False),
     (500, "", "/a", False), (302, "https://news.google.com/sorry/x", "/a", True), (200, "", "/sorry/index", True),
     (302, "https://pub.example/a", "/a", False),
 ]  # fmt: skip
