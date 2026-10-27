@@ -73,7 +73,7 @@ def test_librarian_a_good_commit_keeps_the_fill_exit_code(lines, line):
 def test_librarian_a_failed_commit_is_red_with_one_alert_in_the_finished_and_the_stopped_run(lines):
     for kwargs in ({}, {"stopped": True}, {"complete": False}):
         code, sent = librarian(lines.failed, **kwargs)
-        assert code == 1 and len(sent) == 1 and "NOT committed" in sent[0] and "data-librarian ds" in sent[0]
+        assert code == 1 and len(sent) == 1 and "uncommitted and unpushed" in sent[0] and "data-librarian ds" in sent[0]
 
 
 # ---- data-snapshot ------------------------------------------------------------------------------------------------
