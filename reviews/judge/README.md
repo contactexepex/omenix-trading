@@ -117,3 +117,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 104 | SCOPE ingestion-only rule, rule doc (judge #2) | 1 | FAIL (round 1, 3142c92; owner quote not on record) | `judge_104_scope-ingestion-only-judge2.md` |
 | 105 | NP8 material-first reads plan (plan doc, judge #1) | 1 | FAIL (round 1, d9f227b) | `judge_105_np8-plan.md` |
 | 106 | NP3c compare clusterings, code (judge #2) | 1 | FAIL (round 1, d001816) | `judge_106_np3c-compare-clusterings-judge2.md` |
+| 107 | NP3c compare clusterings (code, judge #1) | 1 | FAIL (round 1, eb0ac05) | `judge_107_np3c-compare-clusterings.md` |
