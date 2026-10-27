@@ -117,14 +117,13 @@ def test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too():
     assert rules.may_fetch("open.example") and rules.may_fetch("open-alias.example")
 
 
-def test_an_empty_or_dots_only_label_or_name_names_nothing_even_if_the_rules_were_built_with_one():
+def test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one():
     from fno.ingestion.news.sources.model import Outlet, Promotional, Wire
     from fno.ingestion.news.sources.rules import SourceRules
 
-    # the loader refuses such a name (see test_loader); the lookups must still never match it if one got in some other way
-    sloppy = SourceRules(
-        {"a.example": Outlet("a.example", "tier1", names=(".",))}, (Wire("W", names=(".",)),), Promotional(providers=(".",))
-    )  # fmt: skip
+    # the loader refuses such a name (see test_loader); the lookups must still never match it
+    outlets = {"a.example": Outlet("a.example", "tier1", names=(".",))}
+    sloppy = SourceRules(outlets, (Wire("W", names=(".",)),), Promotional(providers=(".",)))
     for rules in (RULES, sloppy):
         for value in (None, "", " ", ".", "..."):
             assert rules.domain_of_label(value) is None

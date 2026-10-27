@@ -545,7 +545,7 @@
  {
   "id": "O14",
   "tests": [
-   "tests/ingestion/news/sources/test_rules.py::test_an_empty_or_dots_only_label_or_name_names_nothing_even_if_the_rules_were_built_with_one"
+   "tests/ingestion/news/sources/test_rules.py::test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
   "old": "        domain = self._label_domain.get(key) if key else None  # an empty label names nothing",
