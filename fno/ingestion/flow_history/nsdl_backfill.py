@@ -20,6 +20,7 @@ from fno.ingestion.flow_history.nsdl import TOTAL, BadAnswer, FpiMonth, read_fpi
 from fno.ingestion.storage.data_store import DataStore
 from fno.ingestion.storage.part_table import PartTable
 from fno.ingestion.storage.receipts import ReceiptFolder
+from fno.shared.resilience.rate_limit import RateLimit, RateSettings
 
 URL = "https://www.fpi.nsdl.co.in/web/Reports/Archive.aspx"
 FORM_FIELDS = ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION")
@@ -83,7 +84,8 @@ class NsdlBackfill:
                  next_session: Callable[[date], date], sleep=time.sleep, monotonic=time.monotonic):  # fmt: skip
         self.form, self.store, self.receipts, self.table = form, store, receipts, table
         self.next_session, self.sleep, self.monotonic = next_session, sleep, monotonic
-        self._last: float | None = None
+        gap = RateSettings(min_spacing_seconds=GAP_SECONDS, max_wait_seconds=float("inf"))
+        self._gap = RateLimit("nsdl", gap, sleep=sleep, clock=monotonic)  # one form post at a time, polite
 
     def run(self, month_ends: Sequence[date]) -> BackfillResult:
         result = BackfillResult()
@@ -112,7 +114,7 @@ class NsdlBackfill:
 
     def _fetch(self, month_end: date) -> tuple[str, FpiMonth]:
         for attempt in range(1, TRIES_PER_MONTH + 1):
-            self._pace()
+            self._gap.acquire()
             try:
                 page = self.form.month(month_end)
                 return page, read_fpi_month(page, month_end)
@@ -121,12 +123,6 @@ class NsdlBackfill:
                 if attempt == TRIES_PER_MONTH:
                     raise
         raise AssertionError("TRIES_PER_MONTH is at least 1")
-
-    def _pace(self) -> None:
-        now = self.monotonic()
-        if self._last is not None and now - self._last < GAP_SECONDS:
-            self.sleep(GAP_SECONDS - (now - self._last))
-        self._last = self.monotonic()
 
     def _rows(self, month: FpiMonth) -> list[dict]:
         rows = [self._row(r.reporting_date, f"{r.category}:{r.route}" if r.route else TOTAL, measure, value)
