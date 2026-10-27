@@ -80,3 +80,8 @@ jobs:
       - name: Fail the run when the promotion was not clean (the alert was sent by the command)
         if: ${{ steps.promote.outcome != 'success' && !inputs.dry_run }}
         run: exit 1
+      - name: Alert the desk channel when the job failed (a killed promote cannot alert by itself)
+        if: ${{ failure() && !inputs.dry_run }} # O10's watcher sees an alert step on every failure
+        run: |
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O news promote: the job failed (promote ${{ steps.promote.outcome }}); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

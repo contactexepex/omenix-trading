@@ -175,3 +175,19 @@ def test_the_broken_branch_of_the_step_never_adds_the_manifest():
     assert 'git add "$RECEIPTS"' in broken and '"$MANIFEST"' not in broken.replace(
         'git checkout -- "$MANIFEST"', ""
     ).replace('rm -f "$MANIFEST"', "")
+
+
+def test_a_failed_job_always_alerts_the_desk_channel_even_when_promote_was_killed():
+    """judge 50 G2: the repo-standard failure step; a killed promote cannot alert by itself, this step can."""
+    flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
+    (job,) = flow["jobs"].values()
+    last = job["steps"][-1]
+    assert last["if"] == "${{ failure() && !inputs.dry_run }}" and "continue-on-error" not in last
+    assert "build_alert_sender" in last["run"] and "actions/runs/${{ github.run_id }}" in last["run"]
+    assert "${{ secrets." not in last["run"]  # the token reaches the command through the job's env only
+
+
+def test_a_row_torn_inside_the_size_field_with_no_new_line_is_caught_by_the_newline_check_alone(tmp_path):
+    """judge 50 G1: `…,recorded,<64 hex>,12` is a whole row to the row check; only the missing new line shows it."""
+    manifest = NewsManifest(_manifest_file(tmp_path, HEADER + WHOLE_ROW.rsplit(",", 1)[0] + ",12"))
+    assert manifest.skipped == 0 and manifest.problem() == "manifest_broken"

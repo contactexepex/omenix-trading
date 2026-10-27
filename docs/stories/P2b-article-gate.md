@@ -136,6 +136,8 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   discarded from the working tree, the manifest is NOT committed and the step exits 1 (the run is red). **Receipts are still
   committed**: they keep the real evidence time of each Drive file (a receipt rewritten by a later repair would carry the later
   time), and a receipt without its row is harmless. Tested with real git against a bare origin.
+- **The workflow also ends with the repo-standard failure alert** (`failure()`, fixed text and the run link), because a killed
+  promote cannot alert by itself; a test pins it.
 - **Healing is range-bound (runbook):** the rows of a killed run are re-added only by a later promote whose `--from`..`--to`
   covers those days (the idempotent re-promote); a plain daily run does not heal an older gap. The alert says so: "re-run the
   same --from..--to range" for a torn file (`manifest_broken`), and "fix by hand" for a not-whole row in a complete file
