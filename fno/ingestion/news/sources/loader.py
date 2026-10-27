@@ -74,7 +74,7 @@ def _only(section: dict, allowed: frozenset[str], where: str) -> None:
 
 
 def _domain(value: object, where: str) -> str:
-    if not isinstance(value, str) or not DOMAIN.match(value):
+    if not isinstance(value, str) or not DOMAIN.fullmatch(value):
         raise SourceRulesError(f"{where}: {value!r} is not a lower-case host name")
     if is_public_suffix(value):
         raise SourceRulesError(f"{where}: {value!r} is a public suffix, not one organisation's domain")

@@ -134,3 +134,10 @@ def test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins():
 @pytest.mark.parametrize("prefix", ["/news", "news/", "news", "/news/x"])
 def test_an_opinion_prefix_must_start_and_end_with_a_slash(prefix):
     refused({"domains": {"a.com": {"tier": "tier1", "opinion_unless_path": prefix}}}, "start and end with /")
+
+
+@pytest.mark.parametrize("name", ["evil.com\n", "evil.com\r\n", "\nevil.com"])
+def test_a_domain_with_a_line_break_is_refused_wherever_a_domain_is_named(name):
+    refused({"domains": {name: {"tier": "tier1"}}}, "not a lower-case host name")
+    refused(doc(wires={"W": {"domains": [name]}}), "not a lower-case host name")
+    refused(doc(promotional={"domains": [name]}), "not a lower-case host name")

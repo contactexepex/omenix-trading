@@ -440,7 +440,7 @@
    "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "    return cleaned if PLAIN_HOST.match(cleaned) else \"\"",
+  "old": "    return cleaned if PLAIN_HOST.fullmatch(cleaned) else \"\"",
   "new": "    return cleaned"
  },
  {
@@ -627,5 +627,23 @@
   "file": "fno/ingestion/news/article/keys.py",
   "old": "            return _digest(\"google-news\", \"guid\", item.guid.strip())",
   "new": "            return _digest(\"google-news\", \"guid\", item.guid.strip(), item.link)"
+ },
+ {
+  "id": "O15",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_host_with_a_trailing_line_break_is_not_passed_on_by_plain_host_or_outlet_key"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "PLAIN_HOST.fullmatch(cleaned)",
+  "new": "PLAIN_HOST.match(cleaned)"
+ },
+ {
+  "id": "O16",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_domain_with_a_line_break_is_refused_wherever_a_domain_is_named"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "DOMAIN.fullmatch(value)",
+  "new": "DOMAIN.match(value)"
  }
 ]
