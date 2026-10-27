@@ -1685,6 +1685,15 @@
   "new": "[.!?।]+(?="
  },
  {
+  "id": "A9",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_an_entity_encoded_tag_is_stripped_and_does_not_hide_a_sentence_end"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "text = _TAGS.sub(\" \", html.unescape(body[:MAX_SCAN]))",
+  "new": "text = html.unescape(_TAGS.sub(\" \", body[:MAX_SCAN]))"
+ },
+ {
   "id": "T1",
   "tests": [
    "tests/ingestion/news/tagging/test_tagger.py::test_the_summary_is_used_only_when_the_title_names_nobody_and_then_only_as_mentioned",

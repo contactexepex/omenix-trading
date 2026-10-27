@@ -8,7 +8,7 @@ import pytest
 
 from fno.ingestion.news.reads.extract import extract
 from fno.ingestion.news.reads.read_file import build_read, parse_read
-from fno.ingestion.news.reads.snippet import sentences, summary_extract
+from fno.ingestion.news.reads.snippet import clean, sentences, summary_extract
 
 LONG = "Zzalpha Holdings reported a net profit of Rs. 500 crore for the quarter. Mr. Zz Kumar said it was strong! " + (
     "Another full sentence follows here. " * 40
@@ -112,3 +112,12 @@ def test_a_hostile_run_of_full_stops_is_read_in_linear_time():
         started = time.perf_counter()
         summary_extract(body)
         assert time.perf_counter() - started < 0.5
+
+
+def test_an_entity_encoded_tag_is_stripped_and_does_not_hide_a_sentence_end():
+    """Judge 119 B1: tags were stripped before entities were decoded, so an encoded tag came out as literal markup."""
+    body = "&lt;p&gt;Zzalpha Ltd. reported a profit of Rs. 500 crore.&lt;/p&gt;&lt;p&gt;Shares rose 4%.&lt;/p&gt;"
+    snippet = summary_extract(body)
+    assert snippet == "Zzalpha Ltd. reported a profit of Rs. 500 crore. Shares rose 4%."
+    assert "&lt;" not in snippet and "<" not in snippet and sentences(clean(body))[-1] == "Shares rose 4%."
+    assert summary_extract("Tom &amp; Jerry &rsquo;s plan.") == "Tom & Jerry ’s plan."

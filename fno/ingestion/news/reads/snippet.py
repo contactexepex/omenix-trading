@@ -22,8 +22,9 @@ _STOP = re.compile(r"(?<![.!?।])[.!?।]++(?=\s+\S)")  # a run of stops, then 
 
 
 def clean(body: str) -> str:
-    """Plain single-line text: tags removed, entities unescaped, control characters and runs of space collapsed."""
-    text = html.unescape(_TAGS.sub(" ", body[:MAX_SCAN]))
+    """Plain single-line text: entities unescaped, then tags removed (so an entity-encoded tag goes too), control
+    characters and runs of space collapsed."""
+    text = _TAGS.sub(" ", html.unescape(body[:MAX_SCAN]))  # unescape first: an encoded tag is a tag (judge 119 B1)
     return " ".join(_CONTROL.sub(" ", text).split())
 
 
