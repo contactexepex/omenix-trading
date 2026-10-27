@@ -20,8 +20,8 @@ no file written, no Record change, no workflow, no dependency.** The count is co
 
 ## Said plainly
 - No copy test across outlets (agentic's MinHash is not ported): two outlets that copy a non-agency story count as two origins, so
-  `independent_origins` can be too high. Reasoning only; the dashboard should show `origins_unverified` and the read counts with the number.
+  `independent_origins` can be too high. Reasoning only; a number is only as good as its `origins_unverified` flag and read count, which travel with it.
 - Unlisted articles with no host share the label `outlet:` (empty key): they never count, so this changes no number, but the group is not
-  meaningful and the dashboard must not show it as an outlet.
+  meaningful and must not be read as an outlet.
 - Stricter than agentic on one point (**mine**): a title attribution alone does not verify.
 - Not ported: `sources_say`, `duplicates_removed`, and the verification-status layer (not read).

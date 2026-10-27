@@ -55,3 +55,22 @@ The outcomes are the same, the code is simpler, and the last row is stricter tha
 No order path, no secret, no Groww call. No new workflow or schedule.
 
 ## Verdict: FAIL round 1 at aee8a96. B1 (pin which previous file is compared) required; N1 to N3 requested.
+
+## Addendum 1: round 2 at 7d496ae: PASS
+
+I reviewed `git diff aee8a96 7d496ae`. It adds one test, removes `_previous`, adds two story lines and contract row Z24.
+
+**Gates (locked venv, strong evidence).**
+- 1977 passed.
+- ruff check and format are clean; check_imports is clean.
+- Contract plants are all `ok`, including Z24.
+
+**B1 fixed (strong evidence, replanted).** The new test runs list versions 5, then 7, then a rollback to 6. It expects `company_list_rolled_back` and checks that the compared file is the one that recorded 7. My plant changing `max(earlier)` to `min(earlier)` now fails that test (1 failed).
+
+**N1, N2 and N3 done.**
+- `_previous` is removed, and the two tests that used it now call `_previous_file`.
+- "Said plainly" states the re-run of an older window and the "do not dispatch algorithm 2 before this merges" rule.
+
+**Scope (owner's ingestion-only rule, 27 Oct 2026, as relayed by the orchestrator).** This is a derive-side safeguard on the cluster run; it has no consumer-facing part.
+
+**Verdict: PASS round 2 at 7d496ae.**
