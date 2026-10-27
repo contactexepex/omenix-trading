@@ -23,12 +23,21 @@ show blank links; the page-read pass (NP4) has the same need. NP2c made that lou
   reported; the shared commit step (`ops/commit_news_record.sh`) now guards `$MANIFEST` and every file in the new optional
   `EXTRA_MANIFESTS` the same way (a torn one is discarded from the commit and turns the run red, the good ones are committed), and
   `news-promote.yml` names the index there.
-- The resolve pass reads this index instead of the articles manifest, so its 600 reads go to Google News articles only.
+- The resolve pass reads this index instead of the articles manifest (`resolve/wiring.py`, X9), so its 600 reads go to Google News
+  articles only. NP2c was merged first (main 3ffd7c2) and this story carries the switch, so the fix is delivered here (judge 85 F2).
+- **The staging cleanup keeps a poll while a Google News article in it has no index row** (X8, judge 86's recommended follow-up):
+  `NewsPollProof` now also checks the index, exactly as it already checks the articles manifest row. A poll that is the only way to
+  repair a missing row is therefore never trashed.
+- **The commit guard tolerates a manifest that does not exist yet** (X7, judge 85 F1): `check-manifest` calls an absent file whole, and
+  `git add` of it was fatal, so the first promotes would have committed and pushed nothing. Reproduced by the judge with the real script.
 
 ## Said plainly
 - No back-fill: an article recorded before this change has no row and is never resolved. The orchestrator confirmed none has been
   promoted yet; if some exist when the owner enables promotion, a one-off `index-wrappers` scan of the Record would be needed.
-- A staged poll whose articles are all in the Record can be trashed by the staging cleanup after 7 days. A kill between the article
-  row and the index row that is never followed by another promote of that poll within 7 days would lose that one marker (the window is
-  the milliseconds between two appends; reasoning only).
+- **A torn index loses the rows of its whole run, not one** (judge 86, judge 85 note): the commit guard discards a torn `wrappers.csv`
+  with `git checkout`, dropping every row that run added, while a whole `articles.csv` is committed. The repair is the re-run of the
+  same range that the `manifest_broken` alert asks for (promote is dispatch-only, so the owner runs it). Until it is done, those polls
+  are now protected from the staging cleanup (X8), so the repair stays possible; before X8 it was possible only for 7 days.
+- A held format-1 article seen again in format 2 is indexed by the hash of the held format-1 file, which has no `wrapper_link`, so the
+  resolve pass counts it as not a wrapper. No format-1 news exists today (judge 85, not live).
 - Size: one more small csv, one row per Google News article (about 1,300 a day, about 100 bytes each; reasoning from NP0's counts).

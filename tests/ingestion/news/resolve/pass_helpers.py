@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from fno.ingestion.news.article.keys import PUBLISHER, WRAPPER
 from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
 from fno.ingestion.news.resolve.model import RESOLVED, LinkResolver, Resolved
 from fno.ingestion.news.resolve.resolution_file import key_of_path
 from fno.ingestion.news.resolve.run import ResolvePass
@@ -59,7 +60,7 @@ class World:
         store = DataStore(self.drive, "raw", self.record.receipts, "news-resolve", "run-1")
         manifest = NewsManifest(self.record.manifest_folder, "resolved.csv")
         writer = WriteOnceWriter(record, store, manifest, key_of_path)
-        return ResolvePass(record, NewsManifest(self.record.manifest_folder), self.resolver, writer)
+        return ResolvePass(record, NewsManifest(self.record.manifest_folder, WRAPPERS_FILE), self.resolver, writer)
 
     def run(self, apply: bool = True, cap: int = 80):
         return self.pass_().run(TODAY, apply, cap)

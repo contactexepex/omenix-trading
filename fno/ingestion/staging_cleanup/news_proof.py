@@ -11,7 +11,8 @@ left staged on purpose, which are re-read on every run):
 - it still parses as a whole poll (a refused poll stays);
 - NONE of its items was rejected (a rejected item stays staged with its code), and it has at least one article;
 - EVERY article is already held by the Record exactly as the writer would treat it (a NO_OP in the writer's own rule,
-  `ArticlePlanner`, in the article file or the revision file of that version) AND has its manifest row.
+  `ArticlePlanner`, in the article file or the revision file of that version) AND has its manifest row, and a Google
+  News article with a redirect link also has its row in the wrapper index (NP2d).
 A refused poll answers False. Any other error (Drive down, a collision, a bug) is NOT swallowed here: it propagates and
 `StagingCleanup` keeps the copy, counts it as `proof_error` and turns the run red."""
 
@@ -23,8 +24,9 @@ from collections.abc import Mapping
 from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.article.parse_feed import PollRejected
 from fno.ingestion.news.article.read_poll import read_poll
-from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.manifest import RECORDED, NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner, Outcome
+from fno.ingestion.news.record.wrapper_index import is_resolvable
 from fno.ingestion.promotion.staging import StagedCopy
 from fno.ingestion.staging_cleanup.proof import PromotedProof
 
@@ -32,9 +34,17 @@ POLL_FOLDER = "poll"  # a staged poll lives at <feed>/<Y>/<m>/<d>/poll/<stamp>
 
 
 class NewsPollProof(PromotedProof):
-    def __init__(self, kinds: Mapping[str, str], planner: ArticlePlanner, manifest: NewsManifest):
-        """`kinds`: feed id -> kind; `planner`: the Record, read only; `manifest`: the checkout's articles manifest."""
-        self.kinds, self.planner, self.manifest = kinds, planner, manifest
+    def __init__(
+        self,
+        kinds: Mapping[str, str],
+        planner: ArticlePlanner,
+        manifest: NewsManifest,
+        wrappers: NewsManifest | None = None,
+    ):
+        """`kinds`: feed id -> kind; `planner`: the Record, read only; `manifest`: the checkout's articles manifest;
+        `wrappers`: the wrapper index (NP2d): a Google News article with a link must also have its row there, so a
+        poll is never trashed while its resolve marker is missing (judge 86)."""
+        self.kinds, self.planner, self.manifest, self.wrappers = kinds, planner, manifest, wrappers
 
     def promoted(self, copy: StagedCopy) -> bool:
         parts = copy.path.split("/")
@@ -55,4 +65,11 @@ class NewsPollProof(PromotedProof):
             plan.outcome is Outcome.NO_OP
             and plan.held is not None
             and self.manifest.has(article.key, plan.status, hashlib.sha256(plan.held).hexdigest())
+            and self._indexed(article, plan)
         )
+
+    def _indexed(self, article: Article, plan) -> bool:
+        """A resolvable article's main file also has its row in the wrapper index (revision files are never indexed)."""
+        if self.wrappers is None or plan.status != RECORDED or not is_resolvable(article):
+            return True
+        return self.wrappers.has(article.key, RECORDED, hashlib.sha256(plan.held).hexdigest())

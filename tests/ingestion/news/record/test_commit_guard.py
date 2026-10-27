@@ -346,3 +346,26 @@ def test_the_promote_workflow_names_the_index_as_an_extra_manifest():
     flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
     (job,) = flow["jobs"].values()
     assert job["env"]["EXTRA_MANIFESTS"].split("#")[0].strip() == INDEX
+
+
+def test_a_manifest_that_does_not_exist_yet_does_not_stop_the_step_before_it_commits_and_pushes(tmp_path):
+    """judge 85 F1: `check-manifest` calls an absent file whole; `git add` of it was fatal and nothing reached main."""
+    repo = Repo(tmp_path)
+    repo.write(1, torn=False)  # articles.csv and a receipt exist; wrappers.csv has never been written
+    done = repo.run_step(INDEX)
+    assert done.returncode == 0, done.stderr
+    assert (
+        repo.on_main(MANIFEST)
+        and repo.on_main(f"{RECEIPTS}/articles/ab/one.json.sha256")
+        and repo.on_main(INDEX) is None
+    )
+
+
+def test_the_main_manifest_missing_does_not_stop_the_step_either(tmp_path):
+    repo = Repo(tmp_path)
+    receipt = repo.work / RECEIPTS / "articles" / "ab" / "one.json.sha256"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("receipt\n")
+    done = repo.run_step()
+    assert done.returncode == 0, done.stderr
+    assert repo.on_main(f"{RECEIPTS}/articles/ab/one.json.sha256")

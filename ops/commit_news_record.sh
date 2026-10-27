@@ -12,7 +12,7 @@ set -e
 broken=0
 for manifest in $MANIFEST ${EXTRA_MANIFESTS:-}; do
   if python -m fno news check-manifest "$(dirname "$manifest")" --file "$(basename "$manifest")"; then
-    git add "$manifest"
+    if [ -e "$manifest" ]; then git add -- "$manifest"; fi  # a manifest never written yet is whole, and absent
   else
     git checkout -- "$manifest" 2>/dev/null || rm -f "$manifest"
     broken=1

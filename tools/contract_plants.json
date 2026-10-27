@@ -1222,5 +1222,35 @@
   "file": ".github/workflows/news-resolve.yml",
   "old": "        if: ${{ !inputs.dry_run && inputs.apply }}",
   "new": "        if: ${{ !inputs.dry_run }}"
+ },
+ {
+  "id": "X7",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_manifest_that_does_not_exist_yet_does_not_stop_the_step_before_it_commits_and_pushes",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_main_manifest_missing_does_not_stop_the_step_either"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "    if [ -e \"$manifest\" ]; then git add -- \"$manifest\"; fi",
+  "new": "    git add -- \"$manifest\""
+ },
+ {
+  "id": "X8",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_wrapper_poll_is_kept_while_its_index_row_is_missing_and_trashed_once_it_exists",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_publisher_poll_needs_no_index_row"
+  ],
+  "file": "fno/ingestion/staging_cleanup/news_proof.py",
+  "old": "            and self._indexed(article, plan)",
+  "new": "            and True"
+ },
+ {
+  "id": "X9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_wiring_builds_one_resolver_for_the_whole_run_from_the_private_feed_list",
+   "tests/ingestion/news/resolve/test_pass.py::test_publisher_articles_are_never_read_so_they_cannot_use_up_the_read_cap"
+  ],
+  "file": "fno/ingestion/news/resolve/wiring.py",
+  "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE), build_link_resolver(feeds)",
+  "new": "NewsManifest(POLL_LOG_FOLDER), build_link_resolver(feeds)"
  }
 ]

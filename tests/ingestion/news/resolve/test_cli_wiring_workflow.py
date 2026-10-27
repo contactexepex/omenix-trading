@@ -17,7 +17,7 @@ from fno.ingestion.news.resolve.run import CAP
 from fno.ingestion.storage.batch_receipts import BatchReceiptWriter
 from fno.ingestion.storage.raw_store import AreaStore
 from fno.ingestion.storage.receipts import ReceiptFolder
-from tests.ingestion.news.resolve.pass_helpers import FakeResolver, World, wrapper_item
+from tests.ingestion.news.resolve.pass_helpers import FakeResolver, World, publisher_item, wrapper_item
 
 ROOT = Path(__file__).resolve().parents[4]
 
@@ -125,8 +125,10 @@ def test_the_wiring_builds_one_resolver_for_the_whole_run_from_the_private_feed_
     monkeypatch.setattr(wiring, "build_link_resolver", build)
     pass_ = wiring.build_resolve_pass()
     world.add(wrapper_item(1))
+    world.add(publisher_item(2), feed="feed-02")
+    first = pass_.run(__import__("datetime").date(2026, 10, 27), True)
     pass_.run(__import__("datetime").date(2026, 10, 27), True)
-    pass_.run(__import__("datetime").date(2026, 10, 27), True)
+    assert first.counts["examined"] == 1  # the wiring reads the wrapper index: the publisher article is never read
     assert built == [["search.svc.example"]]  # one resolver, built once, from the wrapper feed hosts
 
 
