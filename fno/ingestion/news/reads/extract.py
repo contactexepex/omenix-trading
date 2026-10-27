@@ -9,11 +9,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from selectolax.parser import HTMLParser
 
 from fno.ingestion.news.article.times import parse_time
+from fno.ingestion.news.reads.snippet import summary_extract
 
 ARTICLE_TYPES = frozenset({"NewsArticle", "Article", "ReportageNewsArticle", "AnalysisNewsArticle", "BlogPosting",
                            "LiveBlogPosting", "OpinionNewsArticle", "BackgroundNewsArticle"})  # fmt: skip
@@ -33,6 +34,7 @@ class PageFacts:
     authors: tuple[str, ...] = ()
     provider: str = ""
     paywalled: bool = False
+    summary_extract: str = field(default="", repr=False)  # NP10: private text, never printed, even by a traceback
 
 
 def clean(value: object, limit: int = MAX_NAME) -> str:
@@ -98,10 +100,12 @@ def facts_of(node: dict) -> PageFacts:
     body = node.get("articleBody")
     flat = " ".join(body.split()) if isinstance(body, str) else ""
     publisher = node.get("publisher")
+    paywalled = not free_to_read(node)  # a paywalled page's body is a teaser: no snippet of it is kept
     return PageFacts(
         JSON_LD, len(flat), hashlib.sha256(flat.encode()).hexdigest() if flat else "",
         utc_time(node.get("datePublished")), utc_time(node.get("dateModified")), names(node.get("author")),
-        clean(publisher.get("name") if isinstance(publisher, dict) else publisher), not free_to_read(node),
+        clean(publisher.get("name") if isinstance(publisher, dict) else publisher), paywalled,
+        "" if paywalled else summary_extract(body if isinstance(body, str) else ""),
     )  # fmt: skip
 
 
