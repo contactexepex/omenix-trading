@@ -22,19 +22,29 @@ Evidence: grep at main 1b1a411 over `fno/ tools/ ops/ .github/ tests/` (strong e
 - Comments in `cluster/similarity.py` and `tests/.../test_labelled_pairs.py` use the word "corroboration" as prose: reworded only
   if they point at deleted code (they do not; left alone).
 
-## DECISION NEEDED: knock-on dead code in the source-rules layer (not on the owner's list)
+## SourceRules methods (orchestrator decision 27 Oct: keep the rules FILE, loader and `wires:`/`promotional:` sections; delete only proven-dead methods)
 
-After the kill-list goes, these `SourceRules` methods have no caller anywhere but their own unit tests
-(`tests/.../sources/test_rules.py`): `wire_of_name`, `wire_of_domain`, `is_promotional_provider`, `is_promotional_domain`,
-`tier_of`, `outlet_key`, `is_opinion`, `domain_of_label`, `may_upgrade_to_https` (the last four I will re-verify in the build;
-`may_fetch` has 5 other callers and stays). The rules FILE sections `wires:` and `promotional:` are then read, validated and
-never used (loader `_promotional`, model `Wire`/`Promotional`, `test_safe_pattern` line 53).
+Per-method grep, `fno/` outside `sources/rules.py`, `view.py`, `origins/`, `corroboration/` (strong evidence; the build re-runs it):
 
-- **Option 1 (recommended, reasoning only):** delete those methods in this same change, but KEEP the rules file format and
-  loader unchanged. The file is a public rules document; removing sections would change a frozen/public format and is a
-  bigger step. Dead methods go; loader stays.
-- **Option 2:** also remove `wires`/`promotional` from loader, model and the rules file (a format change; its own story).
-- **Option 3:** leave all of it (against the no-dead-code rule).
+| Method | Live caller in `fno/` | Tests besides the deleted ones | Verdict |
+|---|---|---|---|
+| `wire_of_name`, `wire_of_domain`, `is_promotional_provider`, `is_promotional_domain` | none | `test_rules.py` (+ `test_shipped_config.py` for two) | delete |
+| `tier_of`, `outlet_key`, `is_opinion`, `domain_of_label` | none | `test_rules.py`, `test_shipped_config.py` | delete |
+| `may_upgrade_to_https` | none (the fetcher does not call it; the expectation was wrong) | `test_rules.py` | delete |
+| `may_fetch` | `reads/links.py`, `pages/fetcher.py`, `pages/probe.py` | yes | KEEP |
+| `lookup`, `_listed_suffixes`, `plain_host` | `pages/wiring.py`, `may_fetch`, resolve/ and article/ | yes | KEEP |
+
+Then the attributes only those methods used (`_wire_name`, `_promo_providers`, `_label_domain`, and constants such as
+`LABEL_IS_A_HOST`, `UNLISTED`, `HOST_PREFIXES` if nothing else imports them) go too, each grep-proved in the build. The rules
+FILE, loader, `Wire`/`Promotional`/`Outlet` models and every file section stay (the downstream consumer reads them). Tests of
+the deleted methods go; `test_shipped_config.py` keeps its checks of the file itself.
+
+## U15/U16 coverage of the live equivalent (confirmed)
+
+The deleted view's "source reaches the tagger / is_material" behaviour lives on in the read pass and is pinned by existing
+plants: M3 (`reads/order.py` `is_material(article.title, tag, article.source)`), M21 (`reads/order.py`
+`tagger.tag(article.title, None, article.source)`), Z1 and Z1b (`cluster/prepare.py` same call), and U14 (`materiality/terms.py`,
+outlet suffix never makes a headline material). Nothing is left unpinned.
 
 ## Contract rows and plants removed (so no plant guards deleted code)
 
