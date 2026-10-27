@@ -88,3 +88,16 @@ def test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules
 def test_the_keys_of_a_group_are_sorted_whatever_order_the_views_came_in():
     result = corroborate([view("b", **READ), view("a", **READ)])
     assert result.groups[0].keys == ("a", "b")
+
+
+def test_reads_used_counts_every_article_with_a_read_file_whatever_its_outcome():
+    result = corroborate(
+        [view("a", access="blocked"), view("b", "pub-b.example", access="full"), view("c", "pub-c.example")]
+    )
+    assert result.reads_used == 2
+
+
+def test_a_group_is_countable_when_any_of_its_articles_is_not_only_when_all_are():
+    result = corroborate([view("a", promotional=True), view("b")])  # one outlet, unread: one countable article
+    assert result.groups[0].countable and result.unverified_origins == 1
+    assert model.ORIGINS_UNVERIFIED in result.flags

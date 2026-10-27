@@ -351,6 +351,8 @@ Which of the owner's companies an article is about, computed when the article is
 | W10b | `unread` fires when no article of the cluster was read. | `cluster_flags` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_each_flag_fires_on_exactly_its_rule_and_in_a_fixed_order` | never unread | **tested, plant run** |
 | W11 | The result does not depend on the order of the views: groups sorted by label, keys sorted. | `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules_it_came_from` | order decides | **tested, plant run** |
 | W11b | Keys inside a group are sorted. | `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_keys_of_a_group_are_sorted_whatever_order_the_views_came_in` | order decides | **tested, plant run** |
+| W11c | `reads_used` counts every article with a read file, whatever its outcome. | `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_reads_used_counts_every_article_with_a_read_file_whatever_its_outcome` | only successful reads | **tested, plant run** |
+| W11d | A group is countable when any of its articles is, not only when all are. | `_group` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_group_is_countable_when_any_of_its_articles_is_not_only_when_all_are` | all must be countable | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

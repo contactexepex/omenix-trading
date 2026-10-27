@@ -1998,5 +1998,23 @@
   "file": "fno/ingestion/news/corroboration/origins.py",
   "old": "tuple(sorted(v.key for v in views))",
   "new": "tuple(v.key for v in views)"
+ },
+ {
+  "id": "W11c",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_reads_used_counts_every_article_with_a_read_file_whatever_its_outcome"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "reads = sum(v.access != \"\" for v in members)",
+  "new": "reads = sum(was_read(v) for v in members)"
+ },
+ {
+  "id": "W11d",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_group_is_countable_when_any_of_its_articles_is_not_only_when_all_are"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "any(countable(v) for v in views),",
+  "new": "all(countable(v) for v in views),"
  }
 ]
