@@ -246,3 +246,30 @@ breaks the freeze rule; the orchestrator should note that, but it changes no ver
 - NSE retry numbers are unchanged.
 
 **Verdict: PASS (strong evidence: gates run, probe re-run, 11 plants caught).**
+
+## Addendum 4: 60ab2d8, the routed round-2 SHA: PASS
+
+The orchestrator corrected the routed SHA to `60ab2d8b989763d2c6a86c067299fd2d29de1126`. `fno/` is byte-identical to
+c05a1d7 (`git diff --quiet`), so the code review, gates and 11 plants of Addendum 3 carry over. At 60ab2d8: 522 passed.
+The delta is the story's line numbers plus one test assertion pinning `nse_json`'s 60 s limit.
+
+I checked each corrected citation against the code at 60ab2d8:
+
+| Citation | Code at that line | Result |
+|---|---|---|
+| `recorder.py:260-262` | the save, then `failures.append(raw_file_error)` | right |
+| `recorder.py:263` | `complete = ... not failures ...` | right |
+| `recorder.py:273-274` | `meta[RAW_FILE_SAVED] = False` | right |
+| `recorder.py:284-286` and `:285-286` | the sidecar put, then the marker put only if `complete` | right |
+| `compare.py:40` | the direct sidecar read | right |
+| `drive_session.py:49` | the per-call `signed_in_again` flag | right |
+| `drive_session.py:54/56/57` | the re-sign check, the flag set, the re-send | right |
+
+Nits, not blocking:
+- `drive_only_store.py:49-62` stops one line short of the method's `return data` at `:63`.
+- `recorder.py:185` names the `if` whose marker put is at `:186`.
+- The worst-case section's `drive_session.py:41-62` is an approximate span of `request`.
+
+Each lands on or next to the code it names, and the reasoning it supports is true.
+
+**Verdict on 60ab2d8: PASS (strong evidence).**
