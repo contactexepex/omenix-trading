@@ -95,3 +95,17 @@ Reviewed `git diff aa00a5c df3fe62`, which folds in judge 72's F1 to F5.
 - **Fix:** `fullmatch` in both places, plus two tests: a host with a trailing newline gives `""`, and a domain key with a trailing newline is refused.
 
 **Verdict: PASS at df3fe62, on condition of `fullmatch` in `rules.py` and `loader.py` with their tests. The merge stays held for decision H.**
+
+## Addendum 3: final at d6f28e4: PASS, condition met
+
+Reviewed `git diff df3fe62 d6f28e4`.
+
+**The condition is met in both places (strong evidence, re-probed):**
+- `plain_host` and `LABEL_IS_A_HOST` use `fullmatch`; `"marketwatch.com\n"` and `"a.example\r\n"` give `""`.
+- `loader._domain` uses `DOMAIN.fullmatch`; `"evil.com\n"` and `"evil.com\r"` are refused.
+- `grep` finds no `.match(` left in `fno/ingestion/news/sources/`.
+- `domain_of_label("reuters.com\n")` still finds reuters.com, which is correct: a label is text, and `strip()` is meant there.
+
+**Gates.** 1316 passed; contract plants O1 to O16 all `ok`. Rows O15 and O16 are new, and each plant fails its test.
+
+**Verdict: PASS at d6f28e4, nothing left open. The merge stays held for owner decision H.**
