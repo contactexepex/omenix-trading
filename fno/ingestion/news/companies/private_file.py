@@ -6,6 +6,7 @@ logged or committed."""
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.companies.model import CompanyList, CompanyListSource
@@ -28,4 +29,4 @@ class PrivateCompanyFile(CompanyListSource):
 
     def companies(self) -> CompanyList:
         picked = self.files.latest(self.lowest_version, self.used)
-        return parse_company_list(picked.data, picked.version)
+        return replace(parse_company_list(picked.data, picked.version), sha256=picked.sha256)
