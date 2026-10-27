@@ -190,3 +190,23 @@ The fixes for sha8 and `kinds_ever_listed` are unchanged since Addendum 2.
 
 **Verdict: PASS (strong evidence).** P2b2 also needs judge #2's PASS before it merges. The owner trims a torn line by
 hand, which is the loud path I asked for.
+
+## Addendum 4: 007ff9c (supersedes 8d91634): PASS
+
+The implementer routed `007ff9c2ede18f59c34d34fb527e201fb01f3c49`, which is 8d91634 plus judge #2's S3 and S4.
+- The production delta is one change in `manifest.py`: `_whole` now also requires a 64-hex `article_id` (S4).
+- The rest is tests: the workflow steps pinned (S3) and the torn-id case.
+
+**Gates:** 764 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+| Plant | Result |
+|---|---|
+| The `article_id` hex check dropped (S4) | caught (2) |
+| The append check dropped (B) | caught |
+| A revision with no row (W1) | caught |
+
+My W2 retired-feed probe still gives `ok=True`.
+
+**Verdict: PASS.** The full set from the orchestrator's list (W1, W2, B, S1, S2, the sha8 compare and the
+`record_conflict` comment) is verified, and Addenda 2 and 3 still hold. P2b2 still needs judge #2's PASS before it
+merges.
