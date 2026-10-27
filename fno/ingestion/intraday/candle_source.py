@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from fno.ingestion.intraday.index_reading import CANDLE_SYMBOL
+from fno.shared.resilience.rate_limit import RateLimit, RateSettings
 
 MIN_GAP_SECONDS = 0.5
 FIFTEEN_MINUTES, ONE_MINUTE = "15m", "1m"
@@ -52,7 +53,8 @@ class GrowwCandleSource(IntradayCandleSource):
                  symbol: str = CANDLE_SYMBOL):  # fmt: skip
         """`api`: A16's `ReadOnlyGroww`, never the SDK client itself; `symbol`: Groww's index (A22 adds BANKNIFTY)."""
         self.api, self.clock, self.sleep, self.monotonic, self.symbol = api, clock, sleep, monotonic, symbol
-        self._last_start: float | None = None
+        gap = RateSettings(min_spacing_seconds=MIN_GAP_SECONDS, max_wait_seconds=float("inf"))
+        self._gap = RateLimit("groww", gap, sleep=sleep, clock=monotonic)  # this caller's own spacing (story R1d1)
 
     def candles(self, start: date, end: date) -> CandleAnswer:
         return self._call(FIFTEEN_MINUTES, start, end, INTERVALS[FIFTEEN_MINUTES])
@@ -62,7 +64,7 @@ class GrowwCandleSource(IntradayCandleSource):
 
     def _call(self, kind: str, start: date, end: date, interval: str) -> CandleAnswer:
         """Every SDK touch inside the try: reading a constant signs in to Groww, whose error text may hold a key."""
-        self._pace()
+        self._gap.acquire()
         requested = self.clock()
         try:
             answer = self.api.get_historical_candles(
@@ -77,9 +79,3 @@ class GrowwCandleSource(IntradayCandleSource):
         if not isinstance(rows, list):  # Groww answers an empty list for a day without candles (probed)
             raise CandleCallFailed(f"Groww {kind} {start}..{end}: no candle list in the answer")
         return CandleAnswer(kind, start, end, raw, rows, requested, self.clock())
-
-    def _pace(self) -> None:
-        now = self.monotonic()
-        if self._last_start is not None and now - self._last_start < MIN_GAP_SECONDS:
-            self.sleep(MIN_GAP_SECONDS - (now - self._last_start))
-        self._last_start = self.monotonic()
