@@ -10,6 +10,7 @@ from pathlib import Path
 from fno.ingestion.news import codes
 from fno.ingestion.news.companies.cli import add_seed_parser
 from fno.ingestion.news.feeds import FeedListError
+from fno.ingestion.news.resolve.cli import add_resolve_parser
 from fno.ingestion.storage.row_log import TableFileBroken
 from fno.shared.models import now_utc
 
@@ -63,6 +64,7 @@ def add_news_parser(subparsers) -> None:
     )
     batches.set_defaults(func=cmd_news_repair_batches)
     add_seed_parser(actions)
+    add_resolve_parser(actions)
 
 
 def cmd_news_fetch(args, out=print) -> int:
