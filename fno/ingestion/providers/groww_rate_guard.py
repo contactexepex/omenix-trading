@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 
 from fno.ingestion.providers.groww_quiet_windows import NoQuietWindows, QuietWindows
+from fno.shared.resilience.pause import FixedPause
 
 RATE_LIMIT_CODE = "429"
 PAUSE_SECONDS = 60
@@ -34,17 +35,19 @@ def is_rate_limit(exc: Exception) -> bool:
 
 
 class RateLimitPause:
+    """The 60 s pause after a 429, one per provider, on the shared `FixedPause` (story R1d1): no probe, no half-open."""
+
     def __init__(self, seconds: float = PAUSE_SECONDS, clock: Callable[[], float] = time.monotonic):
-        self.seconds, self.clock = seconds, clock
-        self._until = float("-inf")
+        self.seconds = seconds
+        self._pause = FixedPause(seconds, clock)
 
     def check(self) -> None:
-        left = self._until - self.clock()
+        left = self._pause.remaining()
         if left > 0:
             raise GrowwRateLimitPaused(PAUSED.format(left=left))
 
     def start(self) -> None:
-        self._until = self.clock() + self.seconds
+        self._pause.start()
 
 
 class RateGuardedGroww:

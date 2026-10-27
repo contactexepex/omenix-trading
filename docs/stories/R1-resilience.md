@@ -191,3 +191,8 @@ config key `resilience` (empty by default, so today's numbers apply); `.gitattri
   invariant "no manifest row or receipt without a Drive file", shown per write path (R1c-drive.md).
 - **R1d note (judge 2):** a Groww half-open defers concurrent snapshot reads during the probe, where today all reads
   resume after 60 s; R1d decides and tests that.
+- **R1d1 (settled):** Groww uses the library's `FixedPause` (no half-open, no probe), so all readers resume together after 60 s.
+- **`RateLimit._slots` (judge 2, R1d1):** the deque of start times was never trimmed unless a per-minute budget was set, so it
+  grew for the life of a process (about 40,000 entries in an A16 run of 2 h 45 min at 4 a second; small, not a failure, but
+  unbounded). Fixed in R1d1: starts are stored only when `per_minute` is set.
+
