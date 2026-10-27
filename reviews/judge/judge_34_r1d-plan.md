@@ -132,3 +132,32 @@ Fix (text only):
 
 **Not blocking:** the plan's "Groww 429" table row still says "the process pauses all Groww reads". Today it is per
 provider, which is one per process only because each command builds one. Reword it.
+
+## Addendum 2: 1508163, round 3: PASS, with two carried conditions
+
+Reviewed `1508163a9fc5d595c7b969aae81485f45210856c`. The diff from d3cab04 is the R1d file only (+25/-17).
+
+**Never-weaker on politeness and on data, and nothing new added (strong evidence: each claim read in the code).**
+- **Spacing.** Every caller keeps today's spacing: intraday 4/s, the NIFTY recorder unpaced (`slot.py`), candle 0.5 s.
+- **The index recorders.** "2.5 a second in total, not 7.5" is right. `IndexQuoteRecording.run` (`quotes/indices.py:55-79`)
+  calls `attempt_now()` on one recorder at a time, and each recorder's `RatePacer` is shared by its 3 workers.
+- **No ceiling.** The plan adds none, and the reason is now true ("today has none; adding one is new behaviour").
+- **The pause.** It is one per `GrowwProvider` (`groww.py:142`); the indices share theirs, and others own theirs. Exactly
+  today's topology.
+- **Deferred.** The cross-provider pause is deferred to the owner with R1d2.
+- **Tests.** Condition 4 states both topology tests.
+
+**Carried to the R1d1 code SHA (required there; not plan-blocking):**
+1. **The composition-root test misses two Groww sites.** Point 4 lists 7 sites, but the code at this SHA has 9 that can
+   build a Groww provider. The two missing:
+   - `fno/ingestion/cli.py:87`: `chain`, through `get_provider(cfg["provider"])`, which is Groww when configured;
+   - `fno/ingestion/providers/groww_check.py:15`.
+
+   Both build exactly one provider today, so the property holds. But a hand-written list goes stale. The test must find
+   every `get_provider(` and `GrowwProvider(` call in `fno/` by scanning and assert one provider per root, so a new
+   site cannot slip past it.
+2. **The "Groww 429" table row still says "the process pauses all Groww reads ... per process".** That contradicts
+   point 3: today the pause is per provider, which is one per process only because each root builds one. The code SHA's
+   story must reword the row.
+
+**Verdict on the plan: PASS (strong evidence).**
