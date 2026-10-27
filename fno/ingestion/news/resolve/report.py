@@ -21,13 +21,14 @@ class ResolveReport:
 
     @property
     def ok(self) -> bool:
-        """Red only for what needs fixing by hand. A service that pushes back is not red: those links wait."""
+        """Red for what needs fixing by hand, and for a resolver that resolves nothing (or under half of a real batch),
+        a pushing-back service included: its links still wait, but the run is never green."""
         return not self.rejected
 
     @property
     def needs_attention(self) -> bool:
-        """Also alerted: links about to fall out of the 3-day look-back unresolved."""
-        return not self.ok or self.counts["expiring"] > 0
+        """Also alerted: links about to leave the 3-day look-back unresolved, and articles the read cap left unread."""
+        return not self.ok or self.counts["expiring"] > 0 or self.counts["unexamined"] > 0
 
     def line(self) -> str:
         mode = "applied" if self.apply else "probe"

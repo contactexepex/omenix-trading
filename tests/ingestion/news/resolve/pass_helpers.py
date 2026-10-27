@@ -35,11 +35,12 @@ class FakeResolver(LinkResolver):
     """Answers from `answers` (link -> Resolved), else a fixed publisher URL; records every call."""
 
     def __init__(self, answers: dict | None = None):
-        self.answers, self.calls = ({} if answers is None else answers), []
+        self.answers, self.calls, self.default = ({} if answers is None else answers), [], None
 
     def resolve(self, links):
         self.calls.append(list(links))
-        return [self.answers.get(link, Resolved(RESOLVED, PUBLISHER_URL.format(n=link[-8:-3]))) for link in links]
+        ok = lambda link: self.default or Resolved(RESOLVED, PUBLISHER_URL.format(n=link[-8:-3]))  # noqa: E731
+        return [self.answers.get(link) or ok(link) for link in links]
 
 
 class World:

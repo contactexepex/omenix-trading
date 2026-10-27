@@ -62,6 +62,9 @@ COMPANY_LIST_DAMAGED = "company_list_damaged"
 COMPANY_LIST_EXISTS = "company_list_exists"  # a seed is never written over an existing list
 SEED_SOURCE_MISSING = "seed_source_missing"  # the archived NSE list the seed is built from could not be read
 # the resolve pass (NP2c)
+RESOLVER_FAILING = (
+    "resolver_failing"  # the resolver resolved nothing (or under half of a real batch): loud, never green
+)
 RESOLUTION_CONFLICT = "resolution_conflict"  # the resolution file exists with other bytes: nothing is overwritten
 RESOLUTION_WRITE_FAILED = (
     "resolution_write_failed"  # Drive or the manifest would not take the file (only the code kept)

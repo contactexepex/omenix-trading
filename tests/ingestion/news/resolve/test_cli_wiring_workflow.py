@@ -71,10 +71,18 @@ def test_a_pass_that_needs_fixing_by_hand_exits_1_and_alerts_the_same_counts_onl
 
 def test_links_about_to_expire_alert_but_do_not_turn_the_run_red(tmp_path, monkeypatch):
     world = World(tmp_path, FakeResolver({}))
-    world.add(wrapper_item(1), days_ago=3)
+    world.add(wrapper_item(1), wrapper_item(2), days_ago=3)
     world.resolver.answers["https://wrap.svc.example/rss/articles/CBMi0001?oc=5"] = Resolved(DECODE_FAILED)
     command = Command(monkeypatch, world)
     assert command.run(apply=True) == 0 and len(command.alerts) == 1 and "expiring 1" in command.lines[0]
+
+
+def test_a_resolver_that_resolves_nothing_exits_1_and_alerts(tmp_path, monkeypatch):
+    world = World(tmp_path, FakeResolver({}))
+    world.resolver.default = Resolved(DECODE_FAILED)
+    world.add(wrapper_item(1), wrapper_item(2))
+    command = Command(monkeypatch, world)
+    assert command.run(apply=True) == 1 and len(command.alerts) == 1 and codes.RESOLVER_FAILING in command.lines[0]
 
 
 def test_an_unexpected_error_prints_only_its_class(tmp_path, monkeypatch):
@@ -147,5 +155,8 @@ def test_the_workflow_commits_only_its_own_manifest_and_receipts_through_the_sha
     text = (ROOT / ".github/workflows/news-resolve.yml").read_text()
     assert "MANIFEST: research/data/manifests/news/resolved.csv" in text and "ops/commit_news_record.sh" in text
     assert "RECEIPTS: receipts/raw/news/resolved receipts/_batches" in text
+    steps = {s.get("name", ""): s for s in workflow()["jobs"]["resolve"]["steps"]}
+    commit = next(s for n, s in steps.items() if n.startswith("Commit the resolved-files manifest"))
+    assert "inputs.apply" in commit["if"] and "!inputs.dry_run" in commit["if"]  # a probe commits nothing (judge 83)
     assert "--no-verify" not in text and "core.hooksPath .githooks" in text
     assert "schedule:" not in text and "cron" not in text

@@ -64,25 +64,56 @@ def test_a_resolved_article_is_not_asked_again(tmp_path):
     assert again.counts["already"] == 1 and again.counts["pending"] == 0 and len(world.resolver.calls) == 1
 
 
-def test_a_failure_writes_nothing_and_the_link_is_tried_again_on_the_next_pass(tmp_path):
+def test_a_failed_link_writes_nothing_and_is_tried_again_on_the_next_pass(tmp_path):
     world = World(tmp_path, FakeResolver({}))
-    world.add(wrapper_item(1))
+    world.add(wrapper_item(1), wrapper_item(2))
     link = "https://wrap.svc.example/rss/articles/CBMi0001?oc=5"
     world.resolver.answers[link] = Resolved(DECODE_FAILED)
     first = world.run()
-    assert first.ok and first.results[DECODE_FAILED] == 1 and world.resolution_files() == []
+    assert first.ok and first.results[DECODE_FAILED] == 1 and len(world.resolution_files()) == 1  # one of two resolved
     del world.resolver.answers[link]
-    assert world.run().results["written"] == 1 and len(world.resolver.calls) == 2
+    assert world.run().results["written"] == 1 and len(world.resolver.calls) == 2 and len(world.resolution_files()) == 2
 
 
-def test_a_pushed_back_service_leaves_the_links_waiting_and_the_run_green(tmp_path):
+def test_a_pushed_back_service_leaves_the_links_waiting_but_the_run_is_not_green(tmp_path):
     world = World(tmp_path)
     world.add(wrapper_item(1), wrapper_item(2))
     world.resolver.answers = {
         f"https://wrap.svc.example/rss/articles/CBMi000{n}?oc=5": Resolved(PAUSED) for n in (1, 2)
     }
     report = world.run()
-    assert report.ok and report.results[PAUSED] == 2 and world.resolution_files() == []
+    assert report.results[PAUSED] == 2 and world.resolution_files() == []
+    assert not report.ok and report.rejected[codes.RESOLVER_FAILING] == 1 and report.needs_attention
+
+
+def test_a_resolver_that_fails_every_link_is_red_and_alerted_never_a_green_run_while_links_age_out(tmp_path):
+    """judge 82 B1: the broken decoder at the first go-live, 4 articles a day over 4 days, a small read cap."""
+    world = World(tmp_path, FakeResolver({}))
+    for days_ago in range(4):
+        world.add(*[wrapper_item(10 * days_ago + n) for n in range(1, 5)], days_ago=days_ago)
+    world.resolver.default = Resolved(DECODE_FAILED)
+    report = world.run()
+    assert not report.ok and report.rejected[codes.RESOLVER_FAILING] == 1 and report.needs_attention
+    assert world.resolution_files() == []
+
+
+def test_a_real_batch_with_under_half_resolved_is_red_and_half_or_more_is_not(tmp_path):
+    for resolved, red in ((4, True), (5, False), (9, False)):
+        world = World(tmp_path / f"w{resolved}", FakeResolver({}))
+        world.add(*[wrapper_item(n) for n in range(1, 11)])
+        for n in range(1, 11 - resolved):
+            world.resolver.answers[f"https://wrap.svc.example/rss/articles/CBMi{n:04d}?oc=5"] = Resolved(DECODE_FAILED)
+        assert (not world.run().ok) is red, resolved
+
+
+def test_articles_the_read_cap_left_unread_are_counted_on_the_last_day_and_alerted(tmp_path, monkeypatch):
+    """judge 82 B1: the 600-read cap must not hide the articles about to age out."""
+    monkeypatch.setattr(run_module, "MAX_READS", 3)
+    world = World(tmp_path)
+    world.add(*[wrapper_item(n) for n in range(1, 5)], days_ago=0)
+    world.add(*[wrapper_item(n) for n in range(11, 15)], days_ago=3)  # the last day: all of it beyond the read cap
+    report = world.run()
+    assert report.counts["unexamined"] == 5 and report.counts["expiring"] == 4 and report.needs_attention
 
 
 def test_the_cap_bounds_the_links_asked_newest_day_first_and_counts_the_rest_as_backlog(tmp_path):
@@ -107,11 +138,11 @@ def test_the_cap_can_never_be_raised_above_eighty(tmp_path):
 def test_articles_older_than_the_look_back_are_not_asked_and_the_last_day_is_counted_as_expiring(tmp_path):
     world = World(tmp_path)
     world.add(wrapper_item(1), days_ago=4)  # outside
-    world.add(wrapper_item(2), days_ago=3)  # the last day of the look-back
+    world.add(wrapper_item(2), wrapper_item(3), days_ago=3)  # the last day of the look-back
     link = "https://wrap.svc.example/rss/articles/CBMi0002?oc=5"
     world.resolver.answers[link] = Resolved(DECODE_FAILED)
     report = world.run()
-    assert report.counts["examined"] == 1 and len(world.resolver.calls[0]) == 1
+    assert report.counts["examined"] == 2 and len(world.resolver.calls[0]) == 2
     assert report.counts["expiring"] == 1 and report.needs_attention and report.ok
 
 
@@ -119,7 +150,7 @@ def test_a_backlog_left_on_the_last_day_by_the_cap_is_expiring_too(tmp_path):
     world = World(tmp_path)
     world.add(wrapper_item(1), wrapper_item(2), days_ago=3)
     report = world.run(cap=1)
-    assert report.counts["expiring"] == 1 and report.counts["backlog"] == 1
+    assert report.counts["expiring"] == 1 and report.counts["backlog"] == 1 and report.ok
 
 
 def test_the_number_of_article_files_read_in_a_pass_is_bounded(tmp_path, monkeypatch):
@@ -191,3 +222,14 @@ def test_the_report_line_is_counts_only(tmp_path):
     line = world.run().line()
     assert line.startswith("news resolve (applied): ") and "outlet.example" not in line and "Zzstory" not in line
     assert "CBMi" not in line and "wrap.svc" not in line
+
+
+def test_a_whole_last_row_with_no_final_newline_stops_the_pass_before_the_resolver_is_asked(tmp_path):
+    """judge 83: only `check_ready` catches this (the row is whole, so it is not counted as skipped)."""
+    world = World(tmp_path)
+    world.add(wrapper_item(1))
+    row = "2026-10-27," + "a" * 64 + ",recorded," + "b" * 64 + ",10"
+    (world.record.manifest_folder / "resolved.csv").write_text("date,article_id,status,sha256,size_bytes\n" + row)
+    report = world.run()
+    assert not report.ok and report.rejected[codes.MANIFEST_BROKEN] == 1
+    assert world.resolver.calls == [] and world.resolution_files() == []

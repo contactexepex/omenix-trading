@@ -28,6 +28,7 @@ from fno.ingestion.storage.row_log import TableFileBroken
 LOOKBACK_DAYS = 3
 CAP = 80  # links per pass: about 53 a pass are needed to keep up with ~1,280 a day at 1.5 s apart
 MAX_READS = 600  # article files read per pass
+FAILING_MIN_ASKED, FAILING_BELOW_SHARE = 10, 0.5  # a batch this big with fewer than half resolved is a failing service
 
 
 class ResolvePass:
@@ -42,14 +43,25 @@ class ResolvePass:
         report = ResolveReport(apply)
         if not self._ready(report, apply):
             return report
+        self.unresolved_last_day = 0
         pending = self._pending(today, min(cap, CAP), report)
         report.counts["pending"] = len(pending)
+        answers: list[Resolved] = []
         if pending:
             answers = self.resolver.resolve([article.wrapper_link for article, _ in pending])
             for (article, _), answer in zip(pending, answers, strict=True):
                 self._record_answer(article, answer, today, apply, report)
-            report.counts["expiring"] += self._failed_on_last_day(today, pending, answers)
+            self._check_service(len(pending), report)
+        report.counts["expiring"] = self._expiring(today, pending, answers)
         return report
+
+    @staticmethod
+    def _check_service(asked: int, report: ResolveReport) -> None:
+        """A resolver that resolves nothing, or fewer than half of a real batch, is loud (red and alerted): a broken
+        decoder, a blocked runner or a service pushing back must never finish green while links age out unresolved."""
+        resolved = report.results[RESOLVED]
+        if resolved == 0 or (asked >= FAILING_MIN_ASKED and resolved / asked < FAILING_BELOW_SHARE):
+            report.reject(codes.RESOLVER_FAILING)
 
     def _ready(self, report: ResolveReport, apply: bool) -> bool:
         if self.writer.skipped_rows or self.articles.skipped:
@@ -74,6 +86,8 @@ class ResolvePass:
                 report.counts["already"] += 1
             elif report.counts["examined"] >= MAX_READS:
                 report.counts["unexamined"] += 1
+                if day == oldest:  # unread, so unknown: counted as expiring rather than hidden by the read cap
+                    self.unresolved_last_day += 1
             else:
                 self._consider(key, day, cap, found, report, oldest)
         return found
@@ -94,7 +108,7 @@ class ResolvePass:
             if day == oldest:
                 self.unresolved_last_day += 1
 
-    def _failed_on_last_day(self, today: date, pending, answers) -> int:
+    def _expiring(self, today: date, pending, answers) -> int:
         oldest = today - timedelta(days=LOOKBACK_DAYS)
         failed = sum(1 for (_, day), a in zip(pending, answers, strict=True) if day == oldest and a.code != RESOLVED)
         return self.unresolved_last_day + failed
