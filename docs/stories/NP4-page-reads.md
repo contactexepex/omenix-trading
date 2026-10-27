@@ -11,8 +11,9 @@ its byline and provider, and a content hash. **No article body and no HTML is ev
 
 ## Decisions I am making, with reasons (the judge should overrule what is wrong)
 1. **No new dependency in NP4a and NP4b: JSON-LD and OpenGraph/meta only, parsed with `selectolax`, which NP2b already
-   hash-locked.** NP0 planned `trafilatura` as well. I measured its cost: a dry install adds **11 packages** (babel, courlan,
-   dateparser, htmldate, jusText, lxml_html_clean, pytz, regex, tld, tzlocal, trafilatura) to a public repo's supply chain. Agentic's own
+   hash-locked.** NP0 planned `trafilatura` as well. I measured its cost: a dry install adds **15 packages** over our
+   locked set (babel, courlan, dateparser, htmldate, jusText, lxml, lxml_html_clean, python-dateutil, pytz, regex, six, tld, tzdata, tzlocal,
+   trafilatura; counted with a dry install into a clean environment: 46 packages against 31 without it. judge 84 found my first count of 11 was short) to a public repo's supply chain. Agentic's own
    numbers (NP0 section 0, strong evidence): JSON-LD produced the text in 422 of about 600 reads (70%), trafilatura in 92 (15%), the
    description of a paywalled page in 82 (14%). Since NP4 stores no body, the main use of trafilatura (body text for key sentences) is
    not needed to store any fact above; **trafilatura becomes an optional NP4c** that the owner can ask for after seeing the real
@@ -26,20 +27,30 @@ its byline and provider, and a content hash. **No article body and no HTML is ev
    ("(Reuters) -"); without the lede it can use only the byline, the JSON-LD provider and the outlet. I will measure how many of the
    wire stories that loses once real reads exist, then the owner decides. **Owner decision wanted, not blocking NP4a.**
 4. **robots.txt.** NP0 does not mention it, and agentic did not read it (I checked its fetch code: allowlist, redirects, 4 MB,
-   20 s). I propose honouring it: one extra request per host per run, a `Disallow` for our User-Agent or `*` on the path means that page
+   20 s). I propose honouring it, **fetched through the same `PageFetcher`** (same guards, spacer and per-host stop, cached for the
+   run; a redirect to another host makes it unreadable): one extra request per host per run, a `Disallow` for our User-Agent or `*` on the path means that page
    is not read (code `robots_disallowed`), an unreadable robots.txt means not read this run. That is the polite reading of
    "respect bot protection" and costs about one request a host. **Owner decision wanted; default: honour it.**
 
 ## NP4a: the page fetcher and the outlet probe
 - `PageFetcher.fetch(url) -> Page(code, final_url, content_type, body)` (interface); adapter `HttpsPageFetcher` over `requests`.
-  Built from the **public** allowlist (`SourceRules`): a host is fetched only when `may_fetch(host)` (listed, `fetch: true`, and a
-  subdomain of a `fetch: false` outlet inherits `false`, the rule NP1 already has; alias inherits).
+  Built from the **public** allowlist (`SourceRules`): a host is fetched only when `may_fetch(host)`.
+  **Correction (judge 84 F1): NP1 does not do what I wrote.** `may_fetch` looks at the nearest listed entry only, so a
+  separately listed child of a `fetch: false` outlet (reproduced: `a.example.com` false, `in.a.example.com` listed true) is fetchable
+  today. NP4a changes `may_fetch` to walk every listed ancestor: a host is fetchable only if its nearest entry is `fetch: true` AND
+  no listed ancestor (alias included) is `fetch: false`. A row and a plant pin it (a listed child of a `fetch: false` parent is
+  never fetched); the 112 shipped entries are checked against the new rule in a test and the owner sees any outlet it changes.
 - Every request and **every redirect hop** (followed by hand, at most 5): https only; no credentials, no port; host passes
   `may_fetch`; otherwise the read stops with `redirect_refused`. Never a hop to an unlisted host (agentic's rule, ported).
-- Resolve the host first and refuse a private, loopback, link-local or reserved address (`blocked_address`): an allowlisted
-  name must not reach inside a network. A check-then-connect gap remains (a name could change its answer between the check and the
-  connection); I accept it because the names are the 112 public outlets and we send nothing but a GET (reasoning only).
-- Limits: 4 MB (streamed; over it is `too_large`, nothing kept), 20 s timeout, `Content-Type` html or xhtml only, one polite
+- Resolve the host first and connect only if **every** resolved address (IPv4 and IPv6) is `is_global` (`blocked_address`),
+  at every hop (judge 84 F2: a plain private/reserved test lets carrier-grade NAT `100.64.0.0/10` through; I measured
+  `100.64.0.1` as `is_private False`, `is_reserved False`, `is_global False`). Also refused: IPv4-mapped IPv6 whose IPv4 is not global,
+  and the NAT64 range `64:ff9b::/96` (Python calls it global, but it embeds an IPv4 address we cannot vouch for). Plant: a redirect
+  that resolves to `100.64.x.x` is refused. A check-then-connect gap remains (a name could change its answer between the check and
+  the connection). Pinning the connection to the checked address would close it but needs a custom adapter that keeps SNI and
+  certificate checks; I do not build that now: the names are the 112 public outlets and we send only a GET (reasoning only), and I
+  will do it if a judge shows a realistic path.
+- Limits: 4 MB of **decoded** bytes (streamed and counted after decompression, so a small gzip bomb is `too_large` too; nothing kept), 20 s timeout, `Content-Type` html or xhtml only, one polite
   User-Agent that says who we are, TLS verification always on, no cookies kept, `Accept-Encoding` as `requests` sends it.
 - **Pacing:** at least 1.5 s between ANY two page requests across hosts (NP2b's `RequestSpacer`, reused, not copied) and a per-host
   stop for the run: a 401, 403, 429, 503 or a challenge page stops that host for the run (the outlet is not retried), others go on.
@@ -77,4 +88,4 @@ redirects by hand; no body stored; write-once read file; dispatch-only workflows
 |---|---|---|
 | NP4a | `PageFetcher`, guard, pacing, `news probe-outlets`, workflow | ~350 |
 | NP4b | extractors, read file, read pass, workflow | ~400 |
-| NP4c | `TrafilaturaExtractor` (optional, owner's call, 11 packages) | ~150 |
+| NP4c | `TrafilaturaExtractor` (optional, owner's call, 15 packages) | ~150 |
