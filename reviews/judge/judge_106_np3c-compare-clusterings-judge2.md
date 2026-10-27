@@ -81,3 +81,39 @@ The new check is a blacklist of the test's invented names. The whitelist over AL
 both plants, and any other name.
 
 **Verdict: FAIL** (round 1 still, `eb0ac05`). B1 is unchanged.
+
+## Addendum 2
+
+**Round 2 re-review at `18527c3`.**
+
+**What changed since `eb0ac05`:** tests and rows only. Production code is unchanged.
+- New test: `test_every_word_the_command_prints_is_a_fixed_label_or_a_count`.
+  - It runs the real `cmd_news_compare`.
+  - It captures the CLI's output AND stdout, and requires the run itself to print nothing.
+  - It allows only fixed label words and counts (`N`, `N-M:N`, `>=N:N`).
+  - It shows that the whitelist bites, by rejecting a hex key and a symbol.
+- Plants J10 and J11 (my L1 and L4), and rows J10 and J11.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1982 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 628 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught, J10 and J11 included.
+
+**My plants, re-run:**
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| L1 | anchor keys appended to the v1/v2 line | caught (2 failed) |
+| L4 | `coverage` prints its symbols to stdout | caught (2 failed) |
+| L5 | an article's `source` appended to the inputs line | 1982 passed, but not a gap |
+
+L5 passed only because every fixture article has `source == ""`, so the plant printed nothing. The whitelist rejects any
+word that is not a label or a count, so a real outlet name would fail it.
+
+**Note (not blocking):** a symbol made only of digits, such as a BSE scrip code, would pass as a count. Every symbol
+in the company list is an NSE letter symbol today, so I am noting it rather than asking for a change.
+
+**Verdict: PASS** (round 2, `18527c3`).

@@ -116,5 +116,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 103 | NP7b company-list pin, code (judge #2) | 1 | PASS (round 2, 7d496ae; round 1 FAIL aee8a96) | `judge_103_np7b-company-list-pin-judge2.md` |
 | 104 | SCOPE ingestion-only rule, rule doc (judge #2) | 1 | PASS (round 2, 7c3c1b3; round 1 FAIL 3142c92) | `judge_104_scope-ingestion-only-judge2.md` |
 | 105 | NP8 material-first reads plan (plan doc, judge #1) | 2 | PASS (94e7c2a; round 2 4907707; round 1 FAIL d9f227b) | `judge_105_np8-plan.md` |
-| 106 | NP3c compare clusterings, code (judge #2) | 1 | FAIL (round 1, d001816 and eb0ac05) | `judge_106_np3c-compare-clusterings-judge2.md` |
+| 106 | NP3c compare clusterings, code (judge #2) | 1 | PASS (round 2, 18527c3; round 1 FAIL d001816, eb0ac05) | `judge_106_np3c-compare-clusterings-judge2.md` |
 | 107 | NP3c compare clusterings (code, judge #1) | 2 | PASS (round 2, 9d16261; round 1 FAIL eb0ac05) | `judge_107_np3c-compare-clusterings.md` |
