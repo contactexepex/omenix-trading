@@ -91,7 +91,7 @@ def _steps():
 
 
 def test_the_promote_step_may_fail_without_stopping_the_commit_and_the_commit_has_no_outcome_condition():
-    """judge 48 S3: good articles' receipts and rows are committed even when the promotion exits 1; then the run fails."""
+    """judge 48 S3: good rows and receipts are committed even when the promotion exits 1; then the run fails."""
     steps = _steps()
     promote = steps["Promote staged polls through the article gate"]
     commit = steps["Commit the news manifest and receipts"]
