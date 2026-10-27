@@ -31,14 +31,23 @@ class NewsGate:
 
     def promote(self, start: date, end: date) -> PromotionReport:
         report = PromotionReport()
+        days = days_between(start, end)
         for feed in self.staging.children(SOURCE):
-            if feed not in self.kinds:  # no kind, so no key: left staged, never guessed
+            if feed not in self.kinds and self._staged_in(feed, days):
+                # no kind, so no key: left staged, never guessed. Only polls in the range count, so a feed
+                # dropped from the list stops being reported once its days are out of the range.
                 report.reject(codes.FEED_UNKNOWN)
         for feed in sorted(self.kinds):
-            for day in days_between(start, end):
-                for poll in self.staging.copies(SOURCE, f"{feed}/{day:%Y/%m/%d}/poll"):
+            for day in days:
+                for poll in self._polls(feed, day):
                     self._poll(poll, self.kinds[feed], report)
         return report
+
+    def _polls(self, feed: str, day: date) -> list[StagedCopy]:
+        return self.staging.copies(SOURCE, f"{feed}/{day:%Y/%m/%d}/poll")
+
+    def _staged_in(self, feed: str, days: list[date]) -> bool:
+        return any(self._polls(feed, day) for day in days)
 
     def _poll(self, poll: StagedCopy, kind: str, report: PromotionReport) -> None:
         try:

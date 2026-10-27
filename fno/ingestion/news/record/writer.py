@@ -18,7 +18,7 @@ from enum import Enum
 from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.record.manifest import RECORDED, REVISION, NewsManifest
 from fno.ingestion.storage.data_store import DataStore
-from fno.ingestion.storage.raw_store import RawFileStore
+from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
 
 ARTICLES, REVISIONS = "news/articles", "news/revisions"
 UNCOMPARED = ("first_seen_at", "format")
@@ -65,6 +65,8 @@ class ArticleWriter:
         path = f"{REVISIONS}/{article.key[:2]}/{article.key}/{sha8}.json"
         held = self._held(path)
         if held is not None:
+            if _fixed(held) != _fixed(data):  # the same 8 hex characters for two versions: never called a no-op
+                raise RawFileConflict(f"{path}: revision name collision")
             self._document(path, held, day, article.key, REVISION)
             return Outcome.NO_OP
         self._save(path, data, day, article.key, REVISION)
