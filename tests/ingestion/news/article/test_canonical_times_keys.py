@@ -152,3 +152,37 @@ def test_a_wrapper_article_holds_no_url_and_an_item_without_a_time_is_kept_as_se
 def test_a_time_with_no_standalone_year_that_overflows_on_conversion_is_no_time_not_an_error(text):
     """judge 46 E1: the year pre-check cannot see these, so the OverflowError clause is what keeps them from raising."""
     assert parse_time(text) == (None, SEEN)
+
+
+@pytest.mark.parametrize(
+    ("text", "kept"),
+    [
+        (
+            "Thu, 01 Jan 2015 10:00:00 +0000",
+            True,
+        ),  # a real 2015 item keeps its time in both formats: the band is not an age check
+        ("2015-01-01T10:00:00Z", True),
+        ("Mon, 01 Jan 1990 00:00:00 +0000", True),  # the band edges, RFC 822 and RFC 3339
+        ("1990-01-01T00:00:00Z", True),
+        ("Sun, 31 Dec 1989 00:00:00 +0000", False),
+        ("1989-12-31T23:59:59Z", False),
+        ("Fri, 31 Dec 2100 12:00:00 +0000", True),
+        ("2100-12-31T23:00:00Z", True),
+        ("Sat, 01 Jan 2101 00:00:00 +0000", False),
+        ("2101-01-01T00:00:00Z", False),
+        ("18500101T000000Z", False),  # a compact RFC 3339 form is judged by its parsed year too
+    ],
+)
+def test_the_year_band_is_not_an_age_check_and_its_edges_are_1990_and_2100(text, kept):
+    moment, source = parse_time(text)
+    assert (moment is not None, source == PUBLISHED) == (kept, kept)
+    assert kept or source == SEEN
+
+
+def test_a_four_digit_fraction_keeps_its_real_time_on_the_rfc_3339_path():
+    """judge 46 E2: `.1234` and `.5000` are fractions of a second, never years; the time keeps its microseconds."""
+    assert parse_time("2026-10-26T10:00:00.1234Z") == (datetime(2026, 10, 26, 10, 0, 0, 123400, tzinfo=UTC), PUBLISHED)
+    assert parse_time("2026-10-26T10:00:00.5000+05:30") == (
+        datetime(2026, 10, 26, 4, 30, 0, 500000, tzinfo=UTC),
+        PUBLISHED,
+    )
