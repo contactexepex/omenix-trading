@@ -5,14 +5,14 @@ write-once path as every derived file (Drive, receipt, then the `provenance.csv`
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.provenance import file
 from fno.ingestion.news.provenance.index import ProvenanceIndex, ProvenanceUnreadable
-from fno.ingestion.news.provenance.model import UNKNOWN, Pair, Pairs, day_of, path_of
+from fno.ingestion.news.provenance.model import LOOKBACK_DAYS, UNKNOWN, Pair, Pairs, day_of, path_of
 from fno.ingestion.news.write_once import WriteOnceWriter
 from fno.ingestion.storage.raw_store import RawFileConflict
 from fno.shared.models import now_utc
@@ -24,9 +24,21 @@ class ProvenanceCollector:
     def __init__(self, scopes: dict[str, str]):
         self.scopes = scopes  # feed id -> scope, UNKNOWN when the list does not label it
         self.days: dict[date, dict[str, set[Pair]]] = defaultdict(lambda: defaultdict(set))
+        self.polls: Counter[date] = Counter()  # polls whose pairs are in `days`, by IST day
+        self.seen: set[str] = set()  # staged paths already looked at in this run
+
+    def first_look(self, poll) -> bool:
+        """True once per staged poll (its path AND fetch time: a feed's polls of one day share a path): the range pass
+        and the sweep never count one poll twice."""
+        identity = f"{poll.path}@{poll.fetched_at.isoformat()}"
+        if identity in self.seen:
+            return False
+        self.seen.add(identity)
+        return True
 
     def add(self, feed: str, moment: datetime, keys: list[str]) -> None:
         pair = (feed, self.scopes.get(feed, UNKNOWN))
+        self.polls[day_of(moment)] += 1
         for key in keys:
             self.days[day_of(moment)][key].add(pair)
 
@@ -41,9 +53,19 @@ class ProvenanceWriter:
     def check_ready(self) -> None:
         self.writer.check_ready()
 
-    def flush(self, collected: dict[date, dict[str, set[Pair]]], report) -> int:
-        """Files written. The open day is skipped until it is over; a damaged or conflicting day is counted and left."""
-        written = 0
+    def open_days(self) -> list[date]:
+        """Closed IST days of the last `LOOKBACK_DAYS` with no provenance file yet: the sweep reads their polls."""
+        today = self.today()
+        days = [today - timedelta(days=back) for back in range(1, LOOKBACK_DAYS + 1)]
+        try:
+            return sorted(day for day in days if self.index.next_number(day) == 0)
+        except ProvenanceUnreadable:
+            return []  # flush reports the damaged day; nothing is swept for it
+
+    def flush(self, collector: ProvenanceCollector, report) -> int:
+        """Files written. The open day is skipped until it is over; a damaged or conflicting day is counted and left;
+        a closed day that is still short of its pairs after the writes is counted as `provenance_polls_missing`."""
+        collected, written = collector.days, 0
         for day in sorted(d for d in collected if d < self.today()):
             try:
                 missing = self._missing(day, collected[day])
@@ -56,7 +78,15 @@ class ProvenanceWriter:
                 report.reject(codes.PROVENANCE_CONFLICT)
             except Exception:  # noqa: BLE001 - Drive's own errors may name paths; only the code is kept
                 report.reject(codes.PROVENANCE_FAILED)
+            if self._still_short(day, collected[day]):
+                report.reject(codes.PROVENANCE_POLLS_MISSING, collector.polls[day])
         return written
+
+    def _still_short(self, day: date, seen: dict[str, set[Pair]]) -> bool:
+        try:
+            return bool(self._missing(day, seen))
+        except ProvenanceUnreadable:
+            return True
 
     def _missing(self, day: date, seen: dict[str, set[Pair]]) -> Pairs:
         held = self.index.pairs(day)

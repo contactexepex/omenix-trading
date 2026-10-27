@@ -207,3 +207,51 @@ def test_pairs_are_written_sorted_whatever_order_they_come_in():
     pairs = {"k": (("feed-02", BROAD), ("feed-01", BROAD), ("q-0123456789ab", TARGETED))}
     listed = json.loads(file.to_bytes(DAY, 0, SALT, pairs))["pairs"]["k"]
     assert listed == sorted(listed) and listed[0] == ["feed-01", BROAD]
+
+
+def daily(monkeypatch, run_day):
+    """What the scheduled job does: a run for one day only, on that day."""
+    monkeypatch.setattr(writer, "now_utc", lambda: today_moment(run_day))
+    return wiring.build_news_promotion().promote(run_day, run_day)
+
+
+def test_daily_runs_for_today_only_still_write_yesterdays_provenance_the_next_day(world, monkeypatch):  # noqa: F811
+    """Judge 123 B1: pairs came only from the polls of the run's own range, so a routine daily run wrote none."""
+    feed_list(world, 1, ("feed-01", BROAD), ("q-0123456789ab", TARGETED))
+    stage(world, "feed-01", ITEM)
+    stage(world, "q-0123456789ab", ITEM, POLL_AT + timedelta(hours=1))
+    assert daily(monkeypatch, DAY).ok and day_files(world) == []  # the day is still open
+    report = daily(monkeypatch, DAY + timedelta(days=1))
+    assert report.ok and day_files(world) == [f"{DAY}.json"]
+    (pairs,) = pairs_of(world, f"{DAY}.json").values()
+    assert pairs == {("feed-01", BROAD), ("q-0123456789ab", TARGETED)}
+    daily(monkeypatch, DAY + timedelta(days=2))
+    assert day_files(world) == [f"{DAY}.json"]  # a day with a file is not written again
+
+
+def test_an_ist_day_is_read_from_the_two_utc_days_that_cover_it(world, monkeypatch):  # noqa: F811
+    """IST day D starts at UTC D-1 18:30: a poll at 20:00 UTC on D-1 belongs to D."""
+    feed_list(world, 1, ("feed-01", BROAD))
+    evening = (POLL_AT - timedelta(days=1)).replace(hour=20)
+    stage(world, "feed-01", ITEM, evening)  # 01:30 IST on DAY
+    stage(world, "feed-01", OTHER, POLL_AT)
+    daily(monkeypatch, DAY + timedelta(days=1))
+    assert day_files(world) == [f"{DAY}.json"]
+    assert len(pairs_of(world, f"{DAY}.json")) == 2
+
+
+def test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent(world, monkeypatch):  # noqa: F811
+    feed_list(world, 1, ("feed-01", BROAD))
+    stage(world, "feed-01", ITEM)
+    stage(world, "feed-01", OTHER, POLL_AT + timedelta(hours=1))
+    real_put = world.put
+
+    def failing(path, data):
+        if "provenance" in path:
+            raise OSError("Drive down")
+        real_put(path, data)
+
+    monkeypatch.setattr(world, "put", failing)
+    report = daily(monkeypatch, DAY + timedelta(days=1))
+    assert report.rejected[codes.PROVENANCE_FAILED] == 1 and report.rejected[codes.PROVENANCE_POLLS_MISSING] == 2
+    assert day_files(world) == []

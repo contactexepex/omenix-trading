@@ -18,6 +18,7 @@ FOLDER = "news/provenance/1"
 FORMAT = 1
 BROAD, TARGETED, UNKNOWN = "broad", "targeted", "unknown"
 LABELLED = (BROAD, TARGETED)  # what a feed list may say; a feed with no label is UNKNOWN, never guessed from its id
+LOOKBACK_DAYS = 9  # closed days still swept for polls: the staging cleanup keeps a promoted poll 7 days, plus a margin
 PROVENANCE_FILE = "provenance.csv"  # the manifest of the provenance files (path, SHA-256, size: no feed id, no key)
 IST = timezone(timedelta(hours=5, minutes=30))
 SEAL_PREFIX = b"provenance\0"

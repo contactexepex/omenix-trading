@@ -93,3 +93,14 @@ hand-listed feeds before the first real run if they want them in `broad`/`target
   `with_unknown_feed` so the owner sees how much of a number rests on unlabelled feeds.
 - Rows are B1-B16 (`B` is the free prefix); the planned P-numbers map as: P1 B1, P2 B2/B3, P3 B4, P4 B5, P5 B6/B6b, P6 B7, P7 B9/B9b,
   P8 B10, P9 B15, P10/P11 B13-B15, P12 B11, P13 B8/B8b, P14 B12.
+
+## Judge 123 round 1 (28 Oct): the range problem, fixed
+
+- **B1:** pairs were collected only from the polls of the run's own range and only closed days are written, so a routine
+  `promote --from today --to today` never wrote provenance, the cleanup gate never proved those polls and the loss was silent.
+  Fixed by a **sweep** (`provenance/sweep.py`): every closed IST day of the last 9 with no provenance file is read from ALL
+  staged polls of the two UTC days that cover it (an IST day is not a UTC day), for every feed in the list, whatever range the run
+  was asked for; the range pass still adds pairs for days that already have a file (they become numbered supplements). A day with
+  a file is not swept again. `provenance_polls_missing` now exists (rows B18, B18b, B19, B20).
+- **N1:** relabelling a feed's scope later creates supplements (the buckets union them); a pair keeps the label it was written with.
+- **N2:** the plan correction is recorded above ("As built"): broad Google News queries are labelled broad.

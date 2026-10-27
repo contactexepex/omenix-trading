@@ -12,6 +12,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.article.parse_feed import PollRejected
 from fno.ingestion.news.article.read_poll import read_poll
 from fno.ingestion.news.fetcher import SOURCE
+from fno.ingestion.news.provenance.sweep import ProvenanceSweep
 from fno.ingestion.news.provenance.writer import ProvenanceCollector, ProvenanceWriter
 from fno.ingestion.news.record.planner import Outcome
 from fno.ingestion.news.record.report import NO_OPS, RECORDED, REVISIONS, PromotionReport
@@ -59,7 +60,8 @@ class NewsGate:
                 for poll in self._polls(feed, day):
                     self._poll(poll, feed, report)
         if self.provenance:
-            self.provenance.flush(self.seen.days, report)
+            ProvenanceSweep(self.staging, self.kinds, self.seen, self.provenance).run(report)
+            self.provenance.flush(self.seen, report)
         return report
 
     def _polls(self, feed: str, day: date) -> list[StagedCopy]:
@@ -69,6 +71,7 @@ class NewsGate:
         return any(self._polls(feed, day) for day in days)
 
     def _poll(self, poll: StagedCopy, feed: str, report: PromotionReport) -> None:
+        self.seen.first_look(poll)
         try:
             reading = read_poll(poll.data, self.kinds[feed], poll.fetched_at)
         except PollRejected as refused:

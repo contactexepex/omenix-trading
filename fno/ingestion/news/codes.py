@@ -104,6 +104,9 @@ MATERIALITY_DAMAGED = "materiality_damaged"
 PROVENANCE_POLL_SKIPPED = (
     "provenance_poll_skipped"  # a staged poll that could not be read at write time: no pairs from it
 )
+PROVENANCE_POLLS_MISSING = (
+    "provenance_polls_missing"  # polls of a closed day whose pairs are not all recorded after the run
+)
 PROVENANCE_UNREADABLE = "provenance_unreadable"  # a provenance file of the day is damaged: nothing written for that day
 PROVENANCE_CONFLICT = "provenance_conflict"  # the day's file name holds other bytes: investigate, never overwrite
 PROVENANCE_FAILED = "provenance_failed"  # Drive or the manifest would not take the file (only the code is kept)

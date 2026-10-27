@@ -2668,5 +2668,41 @@
   "file": "fno/ingestion/news/cli.py",
   "old": "report = build_recall().run(as_of, args.days)\n        out(report.line())\n        return 0 if report.ok else 1",
   "new": "report = build_recall().run(as_of, args.days)\n        out(report.line())\n        return 0"
+ },
+ {
+  "id": "B18",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_daily_runs_for_today_only_still_write_yesterdays_provenance_the_next_day"
+  ],
+  "file": "fno/ingestion/news/record/gate.py",
+  "old": "ProvenanceSweep(self.staging, self.kinds, self.seen, self.provenance).run(report)",
+  "new": "pass"
+ },
+ {
+  "id": "B18b",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_an_ist_day_is_read_from_the_two_utc_days_that_cover_it"
+  ],
+  "file": "fno/ingestion/news/provenance/sweep.py",
+  "old": "for utc_day in (day - timedelta(days=1), day):",
+  "new": "for utc_day in (day,):"
+ },
+ {
+  "id": "B19",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "report.reject(codes.PROVENANCE_POLLS_MISSING, collector.polls[day])",
+  "new": "pass"
+ },
+ {
+  "id": "B20",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "identity = f\"{poll.path}@{poll.fetched_at.isoformat()}\"",
+  "new": "identity = poll.path"
  }
 ]
