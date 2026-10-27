@@ -1,4 +1,4 @@
-# NP1: the news source rules (BUILT, awaiting two judges)
+# NP1: the news source rules (BUILT; round 2 after judge 71; MERGE HELD for owner decision H)
 
 Lane 1, **two judges** (it decides which outlets omenix will ever request: an outside-service rule). The plan is
 [NP0-news-port-plan.md](NP0-news-port-plan.md) (orchestrator-approved 27 Oct 2026). This story builds only its section 2(c) and the
@@ -12,8 +12,8 @@ data of 2(f), 2(g): the allowlist and the pure lookups. Nothing here makes a req
 - `fno/ingestion/news/sources/`: `model.py` (frozen values), `loader.py` (`load_source_rules`, strict validation), `rules.py`
   (`SourceRules`: `lookup`, `tier_of`, `outlet_key`, `may_fetch`, `may_upgrade_to_https`, `is_opinion`, `domain_of_label`,
   `wire_of_name`, `wire_of_domain`, `is_promotional_provider`, `is_promotional_domain`), `labels.py`. Largest file 152 lines.
-- Contract rows **O1 to O8** ([RECORD_CONTRACT.md](../RECORD_CONTRACT.md)), each with a plant that was run and failed a test.
-- 52 offline tests (`tests/ingestion/news/sources/`).
+- Contract rows **O1 to O10** ([RECORD_CONTRACT.md](../RECORD_CONTRACT.md)), each with a plant that was run and failed a test.
+- 60 offline tests (`tests/ingestion/news/sources/`).
 
 ## Decisions and why
 - **A host matches only at a dot boundary, from the right, and only if it is a plain lower-case ASCII name.** `notreuters.com`,
@@ -26,6 +26,16 @@ data of 2(f), 2(g): the allowlist and the pure lookups. Nothing here makes a req
 - **Unlisted means never requested and never counted.** `may_fetch` is True only for a listed outlet with `fetch` not false.
 - **Not ported yet:** wire detection from a byline or text, the promotional text test, material terms, the learned label-to-domain map.
   Those are NP5's pure modules; NP1 holds only their data.
+
+## Round 2 (judge 71 FAIL of 1d1bfed)
+- **B1 accepted, reproduced:** `yaml.safe_load` keeps the last of two equal keys, so `fetch: false, fetch: true` or a second entry for
+  one outlet made `may_fetch` True. The loader now uses a `SafeLoader` that refuses a repeated key at every level (row O9).
+- **Minors accepted:** `plain_host` no longer trims whitespace and refuses any non-ASCII text before lower-casing, so the Kelvin sign
+  and a tab or U+2028 at either end are unlisted (row O10; the doc now matches the code).
+- **Public or private (judge 70 N1, judge 71 note):** this file is public here. The same list is already public in the owner's agentic
+  repository, so republishing adds little exposure (judge 71's point), but it is the owner's decision H in
+  [NP0](NP0-news-port-plan.md) section 7. **This story is not merged until H is answered**; if H is private, the file moves to the
+  Drive config area (same discipline as `feeds-vN.json`) and the loader reads its bytes from there.
 
 ## What is NOT established (said plainly)
 - Every `fetch: false` and note was measured from agentic's cloud on 6 Oct 2026, not from GitHub runners. `fetch: false` can only make us

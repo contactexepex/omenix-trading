@@ -91,3 +91,20 @@ def test_a_file_that_is_missing_or_not_yaml_is_refused_without_its_text(tmp_path
     broken.write_text("domains: [unclosed")
     with pytest.raises(SourceRulesError, match="cannot be read"):
         load_source_rules(broken)
+
+
+def test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_make_an_outlet_fetchable(tmp_path):
+    cases = {
+        "repeated fetch": "domains:\n  bseindia.com: {tier: primary, fetch: false, fetch: true}\n",
+        "repeated outlet": "domains:\n  bseindia.com: {tier: primary, fetch: false}\n  bseindia.com: {tier: primary}\n",
+        "repeated top key": "domains:\n  a.com: {tier: tier1}\ndomains:\n  b.com: {tier: tier1}\n",
+        "repeated wire": "domains:\n  a.com: {tier: tier1}\nwires:\n  W: {names: [x]}\n  W: {names: [y]}\n",
+    }
+    for text in cases.values():
+        file = tmp_path / "rules.yaml"
+        file.write_text(text)
+        with pytest.raises(SourceRulesError, match="repeated key"):
+            load_source_rules(file)
+    good = tmp_path / "good.yaml"
+    good.write_text("domains:\n  a.com: {tier: tier1, fetch: false}\n")
+    assert load_source_rules(good).may_fetch("a.com") is False

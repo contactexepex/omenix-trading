@@ -27,10 +27,30 @@ class SourceRulesError(ValueError):
     """The rules file cannot be used; the message says which entry and why (the file is public, so it may name it)."""
 
 
+class DuplicateKey(yaml.YAMLError):
+    """A mapping repeats a key; PyYAML would silently keep the last one."""
+
+
+class UniqueKeyLoader(yaml.SafeLoader):
+    """`safe_load` that refuses a repeated key at every level. A repeated `fetch:` or a second entry for one outlet
+    would otherwise be last-wins and could turn an outlet marked `fetch: false` into one that is requested."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in seen:
+                raise DuplicateKey(f"repeated key {key!r}")
+            seen.add(key)
+        return super().construct_mapping(node, deep)
+
+
 def load_source_rules(path: Path = DEFAULT_PATH) -> SourceRules:
     try:
-        document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError, UnicodeDecodeError):
+        document = yaml.load(path.read_text(encoding="utf-8"), Loader=UniqueKeyLoader)
+    except DuplicateKey as repeated:
+        raise SourceRulesError(f"the news source rules file has a {repeated}") from None
+    except (OSError, yaml.YAMLError, UnicodeDecodeError, TypeError):
         raise SourceRulesError("the news source rules file cannot be read as YAML") from None
     return build_source_rules(document)
 

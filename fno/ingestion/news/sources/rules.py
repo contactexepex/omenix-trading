@@ -19,8 +19,12 @@ LABEL_IS_A_HOST = re.compile(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
 def plain_host(host: str | None) -> str:
-    """The host in lower case without a trailing dot, or "" when it is not a plain ASCII host name."""
-    cleaned = (host or "").strip().lower().rstrip(".")
+    """The host in lower case without a trailing dot, or "" when it is not a plain ASCII host name. Whitespace anywhere,
+    and any non-ASCII letter (also one that lower-casing would turn into ASCII, such as the Kelvin sign), make it ""."""
+    text = host or ""
+    if not text.isascii():
+        return ""
+    cleaned = text.lower().rstrip(".")
     return cleaned if PLAIN_HOST.match(cleaned) else ""
 
 

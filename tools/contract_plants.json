@@ -496,5 +496,23 @@
   "file": "fno/ingestion/news/sources/rules.py",
   "old": "        return not (path or \"\").startswith(outlet.opinion_unless_path)",
   "new": "        return False"
+ },
+ {
+  "id": "O9",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_make_an_outlet_fetchable"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if key in seen:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O10",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    if not text.isascii():\n        return \"\"\n",
+  "new": ""
  }
 ]

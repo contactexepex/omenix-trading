@@ -120,6 +120,8 @@ The public allowlist `config/news_sources.yaml` and the pure lookups over it. It
 | O6 | The rules file is refused when an outlet names an extractor omenix does not run (newspaper4k is not one). | `loader._outlet` | `tests/ingestion/news/sources/test_loader.py::test_an_extractor_omenix_does_not_run_is_refused` | extractor not checked | **tested, plant run** |
 | O7 | The rules file is refused for any key it does not know, at every level, so a typo is never silently ignored. | `loader._only` | `tests/ingestion/news/sources/test_loader.py::test_an_unknown_key_is_refused_wherever_it_is_so_a_typo_is_never_ignored` | unknown keys accepted | **tested, plant run** |
 | O8 | An outlet that marks its news desk by a path prefix has everything else, and an item with no known path, treated as opinion (never an origin). | `SourceRules.is_opinion` | `tests/ingestion/news/sources/test_rules.py::test_a_news_desk_prefix_decides_opinion_and_an_unknown_path_is_opinion` | nothing is opinion | **tested, plant run** |
+| O9 | The rules file is refused when any mapping repeats a key (a second `fetch:` or a second entry for one outlet would otherwise be last-wins and could make a `fetch: false` outlet fetchable). | `UniqueKeyLoader` | `tests/ingestion/news/sources/test_loader.py::test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_make_an_outlet_fetchable` | repeated keys accepted | **tested, plant run** |
+| O10 | A host with any non-ASCII letter (also one lower-casing would turn into ASCII, the Kelvin sign) or any whitespace is unlisted. | `plain_host` | `tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted` | no ASCII check | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

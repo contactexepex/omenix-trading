@@ -15,6 +15,7 @@ RULES = build_source_rules({
         "businesswire.com": {"tier": "primary", "https_links": True},
         "seekingalpha.com": {"tier": "tier2", "opinion_unless_path": "/news/"},
         "nseindia.com": {"tier": "primary"},
+        "marketwatch.com": {"tier": "tier1", "fetch": False},
     },
     "wires": {"Reuters": {"names": ["Reuters Staff"], "domains": ["reuters.com"]}},
     "promotional": {"providers": ["Zacks"], "domains": ["zacks.com"], "text": ["sponsored content"]},
@@ -36,6 +37,12 @@ def test_a_host_finds_its_outlet_and_its_parent_domains_do_too():
         "reuters.com.evil.example",  # the listed name in the middle
         "reuters.co",
         "x y.reuters.com",  # a space: not a host at all
+        " reuters.com",  # whitespace at either end is not trimmed: it is not a host
+        "reuters.com ",
+        "reuters.com\n",
+        "\treuters.com",
+        "reuters.com\u2028",
+        "mar\u212aetwatch.com",  # the Kelvin sign: lower-casing would turn it into an ASCII k
         "user@reuters.com",
         "reuters.com:8080",
         "reuters.com/news",
