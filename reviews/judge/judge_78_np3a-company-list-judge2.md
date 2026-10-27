@@ -151,3 +151,21 @@ A pattern with five groups, or four groups and one `x?`, is refused. That errs o
 the owner is not surprised.
 
 **Verdict: PASS** (`1a1e5d6`).
+
+## Addendum 3: a targeted delta review, `1a1e5d6`..`0ffad12`
+
+The delta:
+- `MAX_GROUPS = 2` (`pattern.count("(?:")`), after judge #1's chained-alternation case;
+- the docstring and story keep the NP5 text cap as the hard bound, which is a backstop beside my Addendum 2 timing;
+- invented examples replace the real names in `seed.py:5,48` and the story;
+- row Q12.
+
+**Checks:**
+- A grep of the story, `fno/ingestion/news/companies/` and the tests for real names is clean.
+- The worst I could build within the new limits (a 9-way group, an 8-way group, `a?a?b\w*`) takes 0.02 s on 5,000
+  characters. `(?:a|a)(?:a|a)(?:a|a)b` is refused.
+- My plant that removes the group cap fails 2 tests.
+
+**Gates** (in the locked venv): 1527 passed; ruff clean; imports clean; contract plants all ok.
+
+**Verdict: PASS** (`0ffad12`). My should-fix on real names in the documents is done.
