@@ -84,4 +84,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 71 | NP1 news source rules (code, judge #1 of 2) | 1 | FAIL (round 1, 1d1bfed); PASS (round 2, final d6f28e4; held for owner decision H) | `judge_71_np1-source-rules.md` |
 | 72 | NP1 news source rules, code (judge #2 of 2) | 2 | PASS (d6f28e4, df3fe62; FAIL 1d1bfed) | `judge_72_np1-source-rules-judge2.md` |
 | 73 | NP2a article format 2 (code, judge #1 of 2) | 1 | FAIL (round 1, 20c8c32); PASS (round 2, a72a037) | `judge_73_np2a-article-format-2.md` |
-| 74 | NP2a article format 2, code (judge #2 of 2) | 1 | FAIL (round 1, 20c8c32) | `judge_74_np2a-article-format-2-judge2.md` |
+| 74 | NP2a article format 2, code (judge #2 of 2) | 2 | PASS (a72a037; FAIL 20c8c32) | `judge_74_np2a-article-format-2-judge2.md` |

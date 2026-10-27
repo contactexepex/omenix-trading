@@ -82,3 +82,54 @@ passed; contract plants all ok.
 
 **Verdict: FAIL** (round 1, `20c8c32`). F1 and F2 are in the migration and comparison logic this story introduces;
 each has a small, contained fix.
+
+## Addendum 1: round 2 (final) on `a72a037` (includes NP1 final `d6f28e4`)
+
+`git diff 20c8c32 a72a037 -- fno`:
+- the new `article/formats.py`: `read_document` takes an `int` format that we know and exactly that format's key set;
+  `same_version` compares on the older format's fields;
+- the planner searches the key's existing revisions before it names a new one;
+- `clean_https_link` for `wrapper_link`;
+- `article_from_bytes` goes through `read_document`.
+
+**Gates (cleared `__pycache__`):** 1377 passed; ruff check and format clean; imports clean (515 files); code size
+passed; contract plants all ok.
+
+**My round-1 reproductions, re-run:**
+- **F1 fixed.** T2, kept as format-1 revision `d98f05bf.json`, is found when seen again in format 2, giving a NO_OP at
+  that name.
+- **F2 fixed.** The stub `{"key", "format": 1}` and the extra key `evil` are both now not the same version.
+- **Note fixed.** `"format": true` and `1.0` are refused.
+
+**`clean_https_link` checked:** the fragment is dropped; the scheme and host are lower-cased; port 443 is refused,
+along with spaces, controls and backslashes; a trailing line break is trimmed by `strip()` before the checks.
+
+**Plants (6 of 6 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| no revision search | 4 |
+| key set loosened to "at least format 1" | 5 |
+| `bool` format accepted | 2 |
+| always compare format-1 fields | 2 |
+| port 443 allowed | 1 |
+| backslash allowed | 1 |
+
+## Should fix (not blocking; a regression, but it fails closed)
+
+The final collision check (`planner.py:64-66`) no longer compares versions. If the folder listing does not show a
+revision that the planner itself holds in its cache, the same version is reported as a **name collision**. This
+happens when the revision was written earlier in the same run (`ArticleWriter` stores it in `planner.held`) and
+Drive's `files.list` has not caught up yet.
+
+Reproduced with a store whose listing lags: the first plan gives REVISION; the second plan of the same article gives
+`RawFileConflict ... revision name collision`. The old code answered NO_OP there.
+
+The run then ends red with `record_conflict`, so no data is harmed. But it is a false alarm on a re-seen live blog in
+a single promote. How likely is reasoning only: Drive's list index is not guaranteed instant, and the O9-child
+incident shows this repository has met a lagging Drive read before.
+
+Fix in one line: when `self._held(revision)` is not None and `same_version` holds, return NO_OP at that name; raise only
+when they differ, as before.
+
+**Verdict: PASS** (`a72a037`, final round), with the collision-check should-fix above.
