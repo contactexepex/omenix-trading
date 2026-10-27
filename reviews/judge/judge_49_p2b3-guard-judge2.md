@@ -94,3 +94,24 @@ T2 (the skip branch commits nothing of the manifest) is fixed by G5 and G6.
 but a re-run cannot fix it; only a hand fix can. Say "or fix the manifest by hand" when the file ends in a new line.
 
 **Verdict: FAIL** (round 2), on T1 only: two test cases, no code change.
+
+## Addendum 2: 227f668 (PASS)
+
+SHA `227f6689bbb10e77e44a5540590d4b45fa820520`, which replaces `55eea4b`. `well_formed` is now `problem() is None`. Its
+two halves each return their own code: `manifest_broken` for no trailing new line, and `manifest_row_skipped` for a
+row that is not whole. The alert text follows the code: "re-run the same --from..--to range" for a torn file, "fix by
+hand" for a bad row in a complete file. That closes my note. **Gates** (`__pycache__` cleared): 772 passed; ruff,
+format, imports and size clean.
+
+| Plant | Failed |
+|---|---|
+| **G1 the not-whole-rows half removed / G2 the trailing-new-line half removed** | **1 / 4: T1 fixed** |
+| G2b the two codes swapped (wrong alert text) | 4 |
+| G3 guard removed / G5 manifest staged on a skip / G6 no restore / G7 skip exits 0 / G8 no alert / G9 receipts dropped | 2 / 2 / 1 / 2 / 2 / 2 |
+| Carried: C1 wiring / C2 torn-line stop / C3 overwrite / C4 repair with new bytes / C5 reconciliation / C6 commit only on success | 1 / 2 / 5 / 2 / 1 / 1 |
+
+The OOM-kill alert is sufficient, as ruled in Addendum 1. The one case nothing can alert on is the runner itself being
+lost, so the commit step never runs; then the red job is the signal, and Drive files without receipts are healed by
+the next run over the same range.
+
+**Verdict: PASS** (lane 1, judge #2). Merging needs judge #1's PASS too.
