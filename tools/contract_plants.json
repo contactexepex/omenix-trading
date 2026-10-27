@@ -1333,8 +1333,8 @@
    "tests/ingestion/news/pages/test_fetcher.py::test_other_errors_do_not_stop_the_host"
   ],
   "file": "fno/ingestion/news/pages/fetcher.py",
-  "old": "                    self.stopped.add(host)",
-  "new": "                    pass"
+  "old": "                if response.status_code in STOP_STATUSES:\n                    self.stopped.add(host)",
+  "new": "                if response.status_code in STOP_STATUSES:\n                    pass"
  },
  {
   "id": "H8",

@@ -147,3 +147,7 @@ def test_five_long_names_in_a_three_byte_script_still_fit_the_read_file():
     facts = extract(page({**ARTICLE, "author": names, "publisher": {"name": "\u0928" * 80}}))
     data = build_read("k" * 64, "pub.example", facts).to_bytes()
     assert len(data) < MAX_BYTES and parse_read(data).authors[0].startswith("\u0928")
+    emoji = extract(
+        page({**ARTICLE, "author": ["\U0001f600" * 79 + str(i) for i in range(5)]})
+    )  # 12 bytes escaped, 4 raw
+    assert len(build_read("k" * 64, "pub.example", emoji).to_bytes()) < MAX_BYTES
