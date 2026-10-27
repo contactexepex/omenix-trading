@@ -13,7 +13,10 @@ BAD_RESULT = (
     "bad_result"  # a URL came back that we will not keep (not a clean https link, or back on the service itself)
 )
 ERROR = "error"  # the library or the network raised
-CODES = (RESOLVED, REFUSED_LINK, DECODE_FAILED, BAD_RESULT, ERROR)
+PAUSED = (
+    "paused"  # the service pushed back earlier in this run: nothing more is requested, the link waits for the next run
+)
+CODES = (RESOLVED, REFUSED_LINK, DECODE_FAILED, BAD_RESULT, ERROR, PAUSED)
 
 
 @dataclass(frozen=True)

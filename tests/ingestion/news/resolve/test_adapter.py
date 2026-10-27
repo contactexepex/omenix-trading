@@ -1,4 +1,4 @@
-"""NP2b: the decoder adapter against a fake library (no network): codes, batching, order, egress hook, interval."""
+"""NP2b: the decoder adapter against a fake library (no network): codes, batching, order, the egress hook."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import pytest
 
 from fno.ingestion.news.resolve.decoder_adapter import (
     BATCH,
-    MIN_INTERVAL_SECONDS,
     GoogleNewsDecoderResolver,
     egress_hook,
 )
@@ -61,6 +60,7 @@ def test_each_link_gets_its_result_in_order_and_a_refused_link_is_never_sent():
     assert [r.code for r in results] == [RESOLVED, REFUSED_LINK, RESOLVED, REFUSED_LINK]
     assert [r.url for r in results] == ["https://pub.example/1", "", "https://pub.example/2", ""]
     assert FakeDecoder.instances[0].calls[0][0] == [LINK.format(n=1), LINK.format(n=2)]
+    assert FakeDecoder.instances[0].calls[0][1] is None  # the library's own wait is off: we pace in the hooks
 
 
 def test_nothing_refused_means_no_decoder_is_even_created():
@@ -75,13 +75,6 @@ def test_links_go_in_batches_of_ten_in_order():
     results = resolver(ok).resolve(links)
     assert [len(d.calls[0][0]) for d in FakeDecoder.instances] == [10, 10, 5] and BATCH == 10
     assert [r.url for r in results] == [f"https://pub.example/{n}" for n in range(25)]
-
-
-def test_the_wait_between_page_requests_is_never_below_the_floor():
-    resolver(ok, interval_seconds=0).resolve([LINK.format(n=1)])
-    resolver(ok, interval_seconds=1).resolve([LINK.format(n=1)])
-    assert FakeDecoder.instances[0].calls[0][1] == MIN_INTERVAL_SECONDS and MIN_INTERVAL_SECONDS >= 2
-    assert resolver(ok, interval_seconds=5).interval == 5
 
 
 def test_a_failure_the_library_reports_is_a_fixed_code_and_its_message_is_never_kept():
@@ -131,7 +124,7 @@ def test_an_answer_list_of_the_wrong_length_is_an_error_for_the_whole_batch():
 def test_the_egress_hook_is_installed_on_every_decoder_client():
     resolver(ok).resolve([LINK.format(n=1)])
     hooks = FakeDecoder.instances[0].client.event_hooks
-    assert len(hooks["request"]) == 1 and hooks["response"] == []
+    assert len(hooks["request"]) == 3 and len(hooks["response"]) == 1  # egress, stop, pace; the stop's observer
 
 
 # ---- the hook on a REAL httpx client (a mock transport: nothing leaves the machine) ------------------------------

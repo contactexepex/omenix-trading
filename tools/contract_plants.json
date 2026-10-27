@@ -719,7 +719,7 @@
    "tests/ingestion/news/resolve/test_adapter.py::test_a_redirect_to_another_host_is_refused_at_the_hop_by_the_same_hook"
   ],
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
-  "old": "        if request.url.scheme != \"https\" or not guard.allows_host(request.url.host):",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
   "new": "        if False:"
  },
  {
@@ -745,12 +745,11 @@
  {
   "id": "L6",
   "tests": [
-   "tests/ingestion/news/resolve/test_adapter.py::test_the_wait_between_page_requests_is_never_below_the_floor",
    "tests/ingestion/news/resolve/test_adapter.py::test_links_go_in_batches_of_ten_in_order"
   ],
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
-  "old": "        self.interval = max(int(interval_seconds), MIN_INTERVAL_SECONDS)",
-  "new": "        self.interval = int(interval_seconds)"
+  "old": "BATCH = 10\n",
+  "new": "BATCH = 1000\n"
  },
  {
   "id": "L7",
@@ -760,5 +759,52 @@
   "file": "fno/ingestion/news/resolve/guard.py",
   "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
   "new": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)"
+ },
+ {
+  "id": "L8",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_plain_failure_is_still_paced_every_request_waits_even_when_the_one_before_failed"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop), lambda request: self.pacer.wait()],",
+  "new": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop)],"
+ },
+ {
+  "id": "L9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_429_stops_the_run",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_redirect_to_the_sorry_page_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "        if response.status_code in PUSHBACK_STATUSES:",
+  "new": "        if False:"
+ },
+ {
+  "id": "L10",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
+  "new": "        if url.scheme != \"https\" or not guard.allows_host(url.host):"
+ },
+ {
+  "id": "L11",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_floor"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "max(spacing, SPACING_SECONDS)",
+  "new": "spacing"
+ },
+ {
+  "id": "L12",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
+  "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
  }
 ]
