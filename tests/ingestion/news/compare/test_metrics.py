@@ -21,10 +21,12 @@ def test_the_shape_counts_clusters_singletons_the_largest_and_the_size_buckets()
 
 
 def test_a_cluster_that_merges_or_splits_the_others_is_counted_once_each_way():
-    first = clustering(("a", "b"), ("c",), ("d", "e"))
-    second = clustering(("a", "b", "c"), ("d",), ("e",))  # c joins a, b; d, e are split
+    first = clustering(("a",), ("b",), ("c", "d"), ("e", "f"))
+    second = clustering(("a", "b"), ("c",), ("d",), ("e",), ("f",))  # one merge (a, b); two splits (c, d and e, f)
     cross = metrics.crossing(first, second)
-    assert (cross.merged_by_second, cross.split_by_second) == (1, 1)
+    assert (cross.merged_by_second, cross.split_by_second) == (1, 2)
+    back = metrics.crossing(second, first)
+    assert (back.merged_by_second, back.split_by_second) == (2, 1)
     same = metrics.crossing(first, first)
     assert (same.merged_by_second, same.split_by_second) == (0, 0)
 
