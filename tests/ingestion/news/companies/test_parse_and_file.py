@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 
 import pytest
 
@@ -153,8 +154,9 @@ def test_a_newest_version_that_is_invalid_stops_the_run_rather_than_falling_back
 def test_no_exclusion_the_list_accepts_can_run_long_on_a_crafted_headline():
     import time
 
-    pattern = r"Zzfoo (?:Alpha|Beta)\w*.*Z"  # two open-ended repeats: the most the list allows
+    pattern = r"Zzfoo (?:Alpha|Beta)\w*"  # the richest shape the grammar allows
     parse_company_list(file_bytes(company(exclusions=[pattern])), 1)
     start = time.monotonic()
-    __import__("re").search(pattern, "Zzfoo Alpha " + "a" * 400)
+    for text in ("Zzfoo Alpha" + "a" * 50_000, "Zzfoo Alpha " * 4_000):
+        re.search(pattern, text)
     assert time.monotonic() - start < 1

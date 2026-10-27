@@ -182,3 +182,16 @@ def test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned(monkey
     monkeypatch.setattr(seed_module, "parse_company_list", refuse)
     with pytest.raises(CompanyListError):
         build_seed(LOTS, EQUITY, NIFTY500)
+
+
+def test_when_the_lists_disagree_the_equity_list_wins_over_the_nifty_500_and_that_over_the_master():
+    equity = EQUITY + b"ZZORD,Zzord Equity Name Limited,EQ,06-OCT-2008,1,1,INE000000020,1\n"
+    n500 = (
+        NIFTY500
+        + b"Zzord Nifty Name Ltd.,Cap,ZZORD,EQ,INE000000020\nZzord2 Nifty Name Ltd.,Cap,ZZORD2,EQ,INE000000021\n"
+    )
+    lots = LOTS + b"ZZORD MASTER NAME LTD                ,ZZORD     ,10         ,10\n"
+    lots += b"ZZORD2 MASTER NAME LTD               ,ZZORD2    ,10         ,10\n"
+    _, by_symbol = seeded(lots, equity, n500)
+    assert by_symbol["ZZORD"]["name"] == "Zzord Equity Name"  # equity list over both others
+    assert by_symbol["ZZORD2"]["name"] == "Zzord2 Nifty Name"  # nifty 500 over the master

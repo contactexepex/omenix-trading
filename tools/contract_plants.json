@@ -698,8 +698,8 @@
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
   "file": "fno/ingestion/news/companies/parse.py",
-  "old": "        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern) or _too_costly(pattern):",
-  "new": "        if len(pattern) > MAX_PATTERN or _too_costly(pattern):"
+  "old": "        if len(pattern) > MAX_PATTERN or not EXCLUSION_GRAMMAR.fullmatch(pattern) or pattern.count(\"?\") > MAX_OPTIONALS:",
+  "new": "        if len(pattern) > MAX_PATTERN:"
  },
  {
   "id": "Q2",
@@ -876,8 +876,8 @@
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
   "file": "fno/ingestion/news/companies/parse.py",
-  "old": "    return len(OPEN_REPEAT.findall(plain)) > MAX_OPEN_REPEATS or plain.count(\"?\") > MAX_OPTIONALS",
-  "new": "    return False"
+  "old": "or pattern.count(\"?\") > MAX_OPTIONALS:",
+  "new": ":"
  },
  {
   "id": "Q9",
@@ -896,5 +896,14 @@
   "file": "fno/ingestion/news/companies/seed.py",
   "old": "    parse_company_list(data, 1)  # what",
   "new": "    (lambda *a: None)(data, 1)  # what"
+ },
+ {
+  "id": "Q11",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_when_the_lists_disagree_the_equity_list_wins_over_the_nifty_500_and_that_over_the_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "n500.get(symbol) or legal.get(symbol) or master[symbol]"
  }
 ]

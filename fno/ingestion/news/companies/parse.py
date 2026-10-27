@@ -3,9 +3,10 @@ content, so a refusal is ONE fixed code and never names a symbol, a name or a li
 
 - a symbol that is not an NSE-style symbol, or a repeated one; a name or alias that is empty once normalised;
 - two companies claiming one normalised name or alias (a tag would be ambiguous);
-- an exclusion that is not a regular expression, is long, puts a quantifier after a group, or has more than
-  `MAX_OPEN_REPEATS` open-ended repeats (`*`, `+`, `{n,}`) or `MAX_OPTIONALS` optional parts: each extra open repeat
-  multiplies the work on a crafted headline (measured: six `.*` on 90 characters ran 18 s), each extra `?` doubles it;
+- an exclusion that is not a regular expression or does not fit `EXCLUSION_GRAMMAR`: plain text, `(?:A|B)` alternatives
+  of plain text, `x?` for an optional letter (at most `MAX_OPTIONALS` per pattern) and one `\\w*` word tail at the end.
+  Nothing else (no `.`, `*`, `+`, `{n,m}`, class or look-around), so no owner pattern can run long on a crafted
+  headline. A list of shapes to refuse cannot be complete (measured: two `.*` took 14 s on 5,000 characters);
 - an unknown key, a kind other than stock or index, more entries or longer texts than the caps below."""
 
 from __future__ import annotations
@@ -22,12 +23,12 @@ MAX_COMPANIES = 2000
 MAX_ALIASES, MAX_EXCLUSIONS = 20, 20
 MAX_TEXT, MAX_PATTERN = 120, 120
 SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9&-]{0,19}$")
-QUANTIFIED_GROUP = re.compile(
-    r"\)\s*(?:[*+{]|\?\?)"
-)  # a group followed by * + {n,m} (`)?` is allowed: one optional group)
-MAX_OPEN_REPEATS, MAX_OPTIONALS = 2, 4
-CLASS_OR_ESCAPE = re.compile(r"\[(?:\\.|[^\]\\])*\]|\\.")  # `[...]` and `\x` count as one plain character
-OPEN_REPEAT = re.compile(r"[*+]|\{\d*,\d*\}")
+MAX_OPTIONALS = 4
+_LETTER = r"(?:[A-Za-z0-9 &'-]|\\\.)"  # a plain character, or an escaped full stop
+_ATOM = _LETTER + r"\??"  # a letter, optionally absent (`Lifespaces?`)
+_SEQUENCE = f"(?:{_ATOM})+"
+_GROUP = rf"\(\?:{_SEQUENCE}(?:\|{_SEQUENCE})*\)"  # (?:Alpha|Beta): alternatives of plain text, no quantifier after it
+EXCLUSION_GRAMMAR = re.compile(rf"(?:{_ATOM}|{_GROUP})+(?:\\w\*)?")  # and at most one word tail, last
 COMPANY_KEYS = frozenset({"symbol", "name", "aliases", "exclusions", "targeted", "kind"})
 TOP_KEYS = frozenset({"format", "companies"})
 
@@ -50,16 +51,10 @@ def _texts(value: object, limit: int) -> tuple[str, ...]:
     return tuple(value)
 
 
-def _too_costly(pattern: str) -> bool:
-    plain = CLASS_OR_ESCAPE.sub("x", pattern).replace("(?", "(")  # a group's own `(?` is not a repeat
-    plain = re.sub(r"([*+?}])\?", r"\1", plain)  # a lazy mark is not a second repeat
-    return len(OPEN_REPEAT.findall(plain)) > MAX_OPEN_REPEATS or plain.count("?") > MAX_OPTIONALS
-
-
 def _exclusions(value: object) -> tuple[str, ...]:
     patterns = _texts(value, MAX_EXCLUSIONS)
     for pattern in patterns:
-        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern) or _too_costly(pattern):
+        if len(pattern) > MAX_PATTERN or not EXCLUSION_GRAMMAR.fullmatch(pattern) or pattern.count("?") > MAX_OPTIONALS:
             raise _invalid()
         try:
             re.compile(pattern)
