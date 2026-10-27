@@ -107,7 +107,7 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
   was never confirmed against a real archived file), so a cross-check of closes can only be a report afterwards, not a gate.
 - **Receipts are verified only through the Drive cache (`DriveCache`).** `data-checks.yml` syncs only `data/vix`. The promotion gate, the news writer,
   the cluster run and the feed list read Drive directly, so a file changed behind its receipt is not detected there.
-- **Recovery is limited** to Drive's trash and version history. Receipts detect a changed file only where they are checked (next bullet); they do not restore it, and a change that also rewrites the
+- **Recovery is limited** to Drive's trash and version history. Receipts detect a changed file only where they are checked (previous bullet); they do not restore it, and a change that also rewrites the
   receipt is not caught by the receipt alone.
 - **Two cases still end a run without a commit:** a crashed commit step (red from its traceback, no commit alert) and the intraday sync's
   FOREIGN_STAGED refusal (green but alerted once by the sync). See CF1.
