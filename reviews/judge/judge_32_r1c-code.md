@@ -154,3 +154,40 @@ harness can be small. `_save_quote_file` already runs alone in the new tests, an
 function that is tested directly is enough for me. A comment or a written argument is not.
 
 There are no other findings. I re-read the whole diff for this addendum.
+
+## Addendum 2: 65a99c0 and e25ab90, reviewed together: FAIL, two of four findings still open
+
+I was sent `65a99c0b421ee8f7caac15f6ef29b1d981114db1`, but `story/R1c-code-r2` already carried
+`e25ab90a68938b500de6d7a0ce42ff7ebf5464f1` on top of it. I reviewed both. `fno/` is byte-identical to 1381a8e
+(`git diff --quiet 1381a8e e25ab90 -- fno`), so only tests and the story changed.
+
+Gates on e25ab90:
+- ruff and imports are clean.
+- The suite passed 517 of 517 in 9 runs after clearing `__pycache__`.
+- The first run, right after the checkout, showed `1 failed, 516 passed`. I could not reproduce it and did not capture
+  the test's name (some evidence that it was stale bytecode from the switch; not proven).
+
+| # | Finding | Status | Evidence |
+|---|---|---|---|
+| 1 | Drive's 900 s total limit can cut a call below 5 tries | **open** | `fno` unchanged; my probe at e25ab90 still gives 4 tries at 110 s attempts and 3 at 200 s (Retry-After 300) |
+| 2 | Failed quote save must not be complete or canonical | **closed** | A real `_attempt` over the sample provider, plus a control run. The plant (`complete` ignores `raw_file_error`) is now caught. The story names both readers. |
+| 3 | Failed intraday save must give no `taken` ledger row | **open, not addressed** | The plant on `intraday/recorder.py:_take` (swallow the save error, return a taken tuple with `path=None`) still passes all 517 tests |
+| 4 | Retried re-send after a 401 must be pinned | **closed** | The plant (re-send's `ConnectionError` not retried) is now caught. The per-call re-sign test is good. |
+
+**On finding 1, the new `test_the_worst_retry_after_case_stays_inside_the_policys_total_limit`:** it assumes the very
+thing the finding disputes, that each request lasts at most `TIMEOUT_SECONDS` (60 s). `requests`' timeout limits
+each connect and each read, not the whole request (strong evidence: the documented behaviour of `requests`). So a slow
+multipart upload or an `alt=media` download can run longer. The test also sets 780 s against 900 s as arithmetic only;
+it never runs the policy with timed attempts.
+
+It does catch a plant lowering the limit to 780 s, but only because it asserts `== 900.0`. That pins the number, not the
+behaviour.
+
+The fix stays as in Addendum 1:
+- Either raise Drive's `max_total_seconds`, so the 5-try count is the only stop, and add a test that runs
+  `DriveSession` with attempts of 110 s or more and asserts 5 tries.
+- Or the owner accepts, in writing, a time bound below today's. Today has no time bound.
+
+**Minor (no action required):** the comparison test asserts `AttributeError` from `None.decode()`. That pins a crash's
+type, not a designed refusal. It is loud, which is the point, but a later tidy-up of `compare` could turn it into a
+silent `None`. This is acceptable for now because the writer-side test is now the main protection.
