@@ -37,3 +37,19 @@ Reviewed NP5b's own files, `git diff 29d19cf 691f315`: `materiality/{terms,file}
 No order path, no secret, no Groww call, no request, no write.
 
 ## Verdict: FAIL round 1 at 691f315. B1 and the H7 plant required. Re-review after NP5a is settled and NP5b rebased.
+
+## Addendum 1: round 2 at fb94003: PASS
+
+Reviewed fb94003. It is stacked on NP5a ab4acd2 (judge 93 PASS) and has `main` merged in.
+
+**Gates (locked venv).** 1918 passed; ruff is clean; contract plants all `ok`, including H7 (now `main`'s entry) and U11 to U13.
+
+**B1 fixed (strong evidence, my reproduction re-run).**
+- `view.py`: with no effective URL, `host = ""`; the claimed `source_domain` is not used.
+- An unresolved wrapper claiming `reuters.com` now gives: url `''`, host `''`, tier `unlisted`, listed False, wire `''`, promotional False.
+- An agency named in the title or byline can still mark a wire: those are the item's own facts, not a claimed domain, which matches NP0.
+- Plant U13 pins it.
+
+**The merge artifact is fixed.** H7 is `main`'s entry and is caught.
+
+**Verdict: PASS round 2 at fb94003.** It merges after NP5a.
