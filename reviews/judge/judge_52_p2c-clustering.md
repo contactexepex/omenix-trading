@@ -55,3 +55,27 @@ easy ones.
 ## Hard lines
 
 A pure module: no I/O, nothing committed, no secrets.
+
+## Addendum 1: round 2, d5af65f: PASS
+
+Reviewed `d5af65f77d141305490d5fc6bed6ad851456b750`. The code delta is the sort key only:
+`(first_seen_at, key, article.to_bytes())`. The rest is the docstring, the story and tests.
+
+**Gates:** 807 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+**C1 is closed (strong evidence).**
+- All 6 permutations of my reproduction (two same-key, same-time sightings with different titles, plus a third article)
+  now give one identical clustering.
+- The plant that replaces the byte tie-break with a constant is caught.
+- The tie-break uses the article file's own deterministic bytes, so it is total.
+
+**The near-miss is pinned honestly.** "record high" against "record low" is in the labelled set and still merges. The
+pinned result is now precision 5 of 6 and recall 5 of 8, on 17 invented pairs. The docstring now says both directions
+are untrustworthy:
+- splitting one story inflates the story count and deflates its corroboration;
+- merging two stories does the reverse;
+- lexical similarity cannot tell "high" from "low".
+
+That is the right disclosure. Fixing it needs a rule that understands meaning, which is out of scope.
+
+**Verdict: PASS.** Round 1's holds stand. P2c is clear to merge, with one judge as ruled.
