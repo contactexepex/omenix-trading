@@ -339,6 +339,19 @@ Which of the owner's companies an article is about, computed when the article is
 | U15 | The view hands the article's source to the materiality check. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_the_outlet_suffix_of_a_title_never_makes_the_view_material` | source dropped | **tested, plant run** |
 | U16 | The view hands the article's source to the tagger, so an outlet suffix on a title never tags. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_the_view_hands_the_articles_source_to_the_tagger` | source dropped | **tested, plant run** |
 
+## Independent origins (NP6b)
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| W7 | A group's label is the agency when there is one, else the outlet key; articles of one agency, or of one outlet, are one origin. | `label_of`, `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_articles_of_one_agency_are_one_origin_whichever_outlet_carries_them`<br>`tests/ingestion/news/corroboration/test_origins_and_flags.py::test_articles_of_one_outlet_are_one_origin_and_an_agency_label_beats_the_outlet` | agency label ignored | **tested, plant run** |
+| W7b | The view carries the outlet key (one outlet's hosts are one key) and which fact proved the agency. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_the_view_names_the_outlet_key_and_which_fact_proved_the_agency` | raw host as outlet | **tested, plant run** |
+| W8 | A promotional, opinion or unlisted article never counts as an origin. | `countable` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_promotional_an_opinion_and_an_unlisted_article_never_count` | promotional counts | **tested, plant run** |
+| W9 | Verified means a read page or an agency proved by more than its title. | `verifies` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_countable_article_is_verified_by_a_read_or_by_an_agency_proved_by_more_than_its_title` | title-only wire verifies | **tested, plant run** |
+| W10 | `single_source` fires on exactly one independent origin. | `cluster_flags` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_each_flag_fires_on_exactly_its_rule_and_in_a_fixed_order` | fires on zero too | **tested, plant run** |
+| W10b | `unread` fires when no article of the cluster was read. | `cluster_flags` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_each_flag_fires_on_exactly_its_rule_and_in_a_fixed_order` | never unread | **tested, plant run** |
+| W11 | The result does not depend on the order of the views: groups sorted by label, keys sorted. | `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules_it_came_from` | order decides | **tested, plant run** |
+| W11b | Keys inside a group are sorted. | `corroborate` | `tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_keys_of_a_group_are_sorted_whatever_order_the_views_came_in` | order decides | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the

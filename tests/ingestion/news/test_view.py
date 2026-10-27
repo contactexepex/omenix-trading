@@ -120,3 +120,12 @@ def test_the_view_hands_the_articles_source_to_the_tagger():
     assert VIEWER.view(
         article(canonical_url="https://pub.example/news/a", title="Zzalpha shares rise")
     ).tag.primary == ("ZZAL",)
+
+
+def test_the_view_names_the_outlet_key_and_which_fact_proved_the_agency():
+    on_domain = VIEWER.view(article(canonical_url="https://www.wire-a.example/rates"))
+    assert (on_domain.wire, on_domain.wire_via, on_domain.outlet) == ("AgencyA", "domain", "wire-a.example")
+    by_title = VIEWER.view(article(canonical_url="https://pub.example/news/a", title="Rates hold - AgencyA"))
+    assert (by_title.wire, by_title.wire_via, by_title.outlet) == ("AgencyA", "title", "pub.example")
+    plain = VIEWER.view(article(canonical_url="https://pub.example/news/a"))
+    assert (plain.wire, plain.wire_via) == ("", "")

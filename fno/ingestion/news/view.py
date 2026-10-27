@@ -30,6 +30,8 @@ class ArticleView:
     listed: bool
     opinion: bool
     wire: str
+    wire_via: str  # which fact named the agency: domain, provider, byline or title ("" without a wire)
+    outlet: str  # the outlet key: one outlet's hosts are one key
     promotional: bool
     tag: Tag
     material: bool
@@ -48,6 +50,7 @@ class ArticleViewer:
         provider, authors = (read.provider, read.authors) if read else ("", ())
         tag = self.tagger.tag(article.title, article.summary, article.source)
         tier = self.rules.tier_of(host)
+        origin = self.origins.read(host, provider, authors, article.title)
         return ArticleView(
             key=article.key,
             url=url,
@@ -55,7 +58,9 @@ class ArticleViewer:
             tier=tier,
             listed=tier != UNLISTED,
             opinion=self.rules.is_opinion(host, parts.path if parts else None),
-            wire=self.origins.read(host, provider, authors, article.title).wire,
+            wire=origin.wire,
+            wire_via=origin.via,
+            outlet=self.rules.outlet_key(host),
             promotional=self.promotions.check(
                 host, provider, authors, article.source, article.title, article.summary
             ).promotional,
