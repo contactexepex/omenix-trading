@@ -24,10 +24,7 @@ a correction is a new version number. The public rules (outlets, tiers, agencies
 4. **Compare the two clusterings:** dispatch `news-compare-clusterings` (read only, counts only). Read `url_joins_unlike_title` first: above zero
    means the URL rule lets generic links merge unlike stories. Merges that version 2 makes and version 1 does not are not proof that version 2 is
    right; there is no ground truth, only a human reading real pairs.
-5. **Unreceipted files:** **a scheduled `data-cache sync raw/news --unreceipted` check does not exist yet** (judge 62 F-a; nothing runs it). Until
-   it does, a Record file with no valid receipt would pass silently. This gate is open. It is a small workflow addition (lane 1) that has not
-   been written; say so if you want it before go-live.
-6. **Dry runs:** every workflow has a `dry_run` input that proves the runner, the dependencies and the command load; run each once.
+5. **Dry runs:** every workflow has a `dry_run` input that proves the runner, the dependencies and the command load; run each once.
 
 ## 3. Order of the first runs, then of the schedules
 First, by hand (one at a time, reading the one-line counts after each): fetch; promote (`from_date` = today); resolve with `apply`; read-pages
@@ -67,3 +64,10 @@ repository.
 Whether the runner reaches the outlets and the resolver; the unresolved share; the share of material headlines; the run time of one read pass
 (ranking up to 300 articles, then at most 100 resolution reads) and of one cluster run (one Drive read per Google News item in the window);
 the merge rates of the two clusterings. Each of these appears in the one-line counts of its first run.
+
+## 8. Recommended hardening after go-live (not built, optional)
+A scheduled `data-cache sync raw/news --unreceipted` check (judge 62 F-a) is **not built and is not a gate**. Nothing runs it today. What
+protects the Record already is the writer's order (the Drive file, then its receipt, then the manifest row) and the commit guard
+(`ops/commit_news_record.sh`: a torn manifest never reaches main, its receipts do). The case the walk would catch is a run that dies between
+the file and its receipt, leaving a file with no valid receipt that `DriveCache.sync` cannot see; the walk is detective defence in depth, run by
+hand today with the command above. It is a small lane 1 workflow addition (called NP7d, unwritten) that the owner can ask for.
