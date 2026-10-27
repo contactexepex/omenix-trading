@@ -70,3 +70,72 @@ ok.
   could demote Beta wrongly. That is fine for the low confidence it gives.
 
 **Verdict: FAIL** (round 1, `29d19cf`). Three small fixes in `text.py`, `tagger.py` and `dictionary.py`.
+
+## Addendum 1
+
+**Round 2 re-review of `story/NP5a-tagger` at `ab4acd2`** (`97cca3f` plus judge 93's B1 table test). I re-derived each
+fix myself from the diff `29d19cf..ab4acd2`, reproduced it with invented names, and planted my own mutations.
+
+**Gates (locked venv, `__pycache__` cleared):** `pytest -q -n auto` gave 1817 passed. `ruff check` and
+`ruff format --check` were clean. `check_imports` reported 583 files clean, `test_code_size` 3 passed and `check_numbers`
+was clean. `tools/contract_plants.py` caught every plant, including the new T13, T14 and T15.
+
+### The three round-1 findings
+
+1. **F1 (possessive): fixed.**
+   - `words()` drops a trailing `'s` or `'` from each word (`text.py:59-66`). `word_tuple` reuses it, so names and text
+     fold the same way.
+   - Reproduced:
+     - "Zzalpha's profit jumps 20%" tags ZZAL, high.
+     - "Zzalpha Bank's profit" tags ZZAB, the longest match still wins.
+     - "ZZ&LT's shares" and "Zz & Lt Works's shares" tag ZZLT.
+     - "Zzalphas' rise" tags nothing. A plural is not the name.
+   - The end position is the stem's end (`("acme", 0, 4)`), so exclusion spans and list detection stay correct.
+2. **F2 (outlet suffix): fixed for the case found.**
+   - `without_outlet()` strips a trailing source name only when it follows whitespace and a separator (`-`, `–`, `—`
+     or `|`). The match ignores case.
+   - Reproduced with source "Zzalpha":
+     - "Markets close higher - Zzalpha", the en-dash and em-dash forms, and "— ZZALPHA" all tag nothing.
+     - "Markets rally as Zzalpha" still tags ZZAL.
+     - "Results: Zzbeta - Zzalpha" tags ZZBE only.
+     - "Zzalpha - Zzalpha" tags ZZAL from the headline.
+3. **F3 (exchange label): fixed.**
+   - `_candidates` (`dictionary.py:50-57`) handles three shapes:
+     - A lone part is a symbol, so "(BSE)" still tags the listed company BSE.
+     - In a two-part bracket that starts with NSE or BSE, only the second part is a candidate, so "(NSE: BSE)" tags BSE.
+     - Otherwise an exchange label is never a candidate.
+   - Reproduced:
+     - "(BSE: 500325)" and "(bse: 500325)" tag nothing.
+     - "(BSE:500325, NSE: ZZDE)" tags ZZDE only.
+     - "(BSE, NSE)" tags nothing.
+
+### My plants (each restored afterwards)
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| P1 | drop the "ends with a separator" check | caught (1 failed) |
+| P2 | drop the "whitespace before the name" check | **survives** |
+| P3 | `(NSE: X)` returns nothing | caught (2 failed) |
+| P4 | possessive `'s?$` becomes `'s$` | caught (1 failed) |
+| P5 | the end position becomes `match.end()` | caught (1 failed) |
+| P6 | a lone `(BSE)` is dropped too | caught (1 failed) |
+| P7 | the outlet match becomes case-sensitive | **survives** |
+
+### Notes (not blocking)
+
+- **N1, test gaps.** The P2 and P7 behaviour is correct by my reproduction ("— ZZALPHA" is stripped). No test pins
+  either, so a later edit could drop them silently. Suggested additions:
+  - "Merger of Zzbeta-Zzalpha" with source "Zzalpha" keeps ZZAL (P2);
+  - an upper-case outlet suffix (P7).
+
+  Either can go in the next push that already touches these files.
+- **N2, outlet name variants (reasoning only).** Three variants are not stripped:
+  - a title with trailing whitespace ("... | Zzalpha ");
+  - a source that differs from the suffix ("The Zzalpha" against "- Zzalpha");
+  - a missing source.
+
+  Google News normally gives the `<source>` text identical to the suffix, and feed parsers strip whitespace, so I
+  expect this to be rare. NP5b's caller must pass `source`, and I check that in the NP5b review.
+- NP5a has no production caller of `Tagger.tag` yet, so the effect on the Record comes only through NP5b.
+
+**Verdict: PASS** (round 2, `ab4acd2`).
