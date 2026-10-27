@@ -821,8 +821,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and SAFE_PATTERN.fullmatch(pattern) is not None\n",
   "new": ""
  },
  {
@@ -884,8 +884,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or pattern.count(\"?\") > MAX_OPTIONALS\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and pattern.count(\"?\") <= MAX_OPTIONALS\n",
   "new": ""
  },
  {
@@ -920,8 +920,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and pattern.count(\"(?:\") <= MAX_GROUPS\n",
   "new": ""
  },
  {
@@ -1616,5 +1616,151 @@
   "file": "fno/ingestion/news/reads/cli.py",
   "old": "from fno.ingestion.news.reads.limits import PAGES",
   "new": "from fno.ingestion.news.reads.run import PAGES"
+ },
+ {
+  "id": "T1",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_the_summary_is_used_only_when_the_title_names_nobody_and_then_only_as_mentioned",
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_company_named_alone_in_the_title_is_primary_with_high_confidence"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "        if in_title:",
+  "new": "        if False:"
+ },
+ {
+  "id": "T2",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_names_and_aliases_match_whole_words_in_any_case_and_never_inside_a_longer_word"
+  ],
+  "file": "fno/ingestion/news/tagging/text.py",
+  "old": "_WORD = re.compile(r\"[\\w&']+\")",
+  "new": "_WORD = re.compile(r\"[a-z&']+\", re.IGNORECASE)"
+ },
+ {
+  "id": "T3",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_the_longest_name_wins_at_a_position_and_names_do_not_overlap"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "            for length in range(min(self.dictionary.longest, len(tokens) - i), 0, -1):",
+  "new": "            for length in range(1, min(self.dictionary.longest, len(tokens) - i) + 1):"
+ },
+ {
+  "id": "T4",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_symbol_in_brackets_is_a_company_only_in_capitals_and_in_brackets"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "if s in self.dictionary.symbols]",
+  "new": "if s.upper() in self.dictionary.symbols]"
+ },
+ {
+  "id": "T5",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_phrase_the_owner_excluded_does_not_tag_its_company"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "        return any(",
+  "new": "        return False and any("
+ },
+ {
+  "id": "T6",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_comparison_title_makes_its_companies_mentioned_with_low_confidence",
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_list_of_companies_is_mentioned_but_a_comma_after_a_lone_company_is_not_a_list",
+   "tests/ingestion/news/tagging/test_tagger.py::test_several_companies_in_a_sentence_that_is_not_a_list_are_all_primary_with_low_confidence"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "        if _VERSUS.search(title):",
+  "new": "        if False:"
+ },
+ {
+  "id": "T7",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_company_named_alone_in_the_title_is_primary_with_high_confidence",
+   "tests/ingestion/news/tagging/test_tagger.py::test_nothing_tagged_is_empty"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "            return Tag((symbols[0],), (), HIGH)",
+  "new": "            return Tag((symbols[0],), (), LOW)"
+ },
+ {
+  "id": "T8",
+  "tests": [
+   "tests/ingestion/news/tagging/test_text.py::test_a_link_or_a_source_name_never_becomes_text",
+   "tests/ingestion/news/tagging/test_text.py::test_a_summary_becomes_plain_text_without_tags_entities_links_or_domains",
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_search_link_or_a_source_name_in_the_summary_tags_nobody"
+  ],
+  "file": "fno/ingestion/news/tagging/text.py",
+  "old": "    text = re.sub(r\"\\s+\", \" \", _DOMAINS.sub(\" \", _URLS.sub(\" \", text))).strip()",
+  "new": "    text = re.sub(r\"\\s+\", \" \", _DOMAINS.sub(\" \", text)).strip()"
+ },
+ {
+  "id": "T9",
+  "tests": [
+   "tests/ingestion/news/tagging/test_text.py::test_a_text_is_cut_after_cleaning_so_the_outlet_suffix_does_not_use_up_the_cap",
+   "tests/ingestion/news/tagging/test_tagger.py::test_only_the_first_thousand_characters_are_looked_at",
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_long_summary_with_a_heavy_exclusion_finishes_inside_a_bound",
+   "tests/ingestion/news/tagging/test_tagger.py::test_hits_never_looks_past_the_cap_even_when_called_directly"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "        text = text[:MAX_TEXT]\n",
+  "new": "        text = text\n"
+ },
+ {
+  "id": "T10",
+  "tests": [
+   "tests/ingestion/news/tagging/test_text.py::test_the_raw_summary_is_cut_before_the_cleaners_run_so_a_huge_one_is_fast",
+   "tests/ingestion/news/tagging/test_text.py::test_the_tag_pattern_never_reads_past_the_next_opening_bracket"
+  ],
+  "file": "fno/ingestion/news/tagging/text.py",
+  "old": "_TAGS = re.compile(r\"<[^<>]*>\")",
+  "new": "_TAGS = re.compile(r\"<[^>]*>\")"
+ },
+ {
+  "id": "T11",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_an_exclusion_that_is_no_longer_safe_is_dropped_not_fatal"
+  ],
+  "file": "fno/ingestion/news/tagging/dictionary.py",
+  "old": "    except ValueError:\n        return None",
+  "new": "    except ZeroDivisionError:\n        return None"
+ },
+ {
+  "id": "T12",
+  "tests": [
+   "tests/ingestion/news/test_safe_pattern.py::test_every_shipped_promotional_phrase_is_in_the_grammar_and_the_shipped_file_loads",
+   "tests/ingestion/news/test_safe_pattern.py::test_the_loader_refuses_a_promotional_phrase_outside_the_grammar"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            compile_safe(pattern)\n        except ValueError:",
+  "new": "            re.compile(pattern)\n        except ValueError:"
+ },
+ {
+  "id": "T13",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_possessive_is_the_company_and_a_plural_word_is_not"
+  ],
+  "file": "fno/ingestion/news/tagging/text.py",
+  "old": "_POSSESSIVE.sub(\"\", match.group().lower())",
+  "new": "match.group().lower()"
+ },
+ {
+  "id": "T14",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "without_outlet(capped(title), source)",
+  "new": "capped(title)"
+ },
+ {
+  "id": "T15",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol"
+  ],
+  "file": "fno/ingestion/news/tagging/dictionary.py",
+  "old": "for p in _candidates(parts)]",
+  "new": "for p in parts if p]"
  }
 ]

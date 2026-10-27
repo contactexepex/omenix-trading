@@ -80,7 +80,7 @@ def test_a_name_two_outlets_claim_is_refused_even_when_only_case_differs():
 def test_a_wire_or_promotional_entry_with_a_bad_domain_or_pattern_is_refused():
     refused(doc(wires={"W": {"domains": ["NOT A HOST"]}}), "wire W domains")
     refused(doc(promotional={"domains": ["https://x.com"]}), "promotional domains")
-    refused(doc(promotional={"text": ["(unclosed"]}), "not a regular expression")
+    refused(doc(promotional={"text": ["(unclosed"]}), "not a safe pattern")
     refused(doc(promotional={"providers": "Zacks"}), "expected a list")
 
 

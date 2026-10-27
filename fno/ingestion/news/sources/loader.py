@@ -10,6 +10,7 @@ from pathlib import Path
 
 import yaml
 
+from fno.ingestion.news.safe_pattern import compile_safe
 from fno.ingestion.news.sources.labels import normalise_label
 from fno.ingestion.news.sources.model import EXTRACTORS, LISTED_TIERS, Outlet, Promotional, Wire, is_public_suffix
 from fno.ingestion.news.sources.rules import SourceRules
@@ -198,7 +199,7 @@ def _promotional(section: object) -> Promotional:
     text = _strings(section.get("text"), "promotional text")
     for pattern in text:
         try:
-            re.compile(pattern)
-        except re.error:
-            raise SourceRulesError(f"promotional text pattern {pattern!r} is not a regular expression") from None
+            compile_safe(pattern)
+        except ValueError:
+            raise SourceRulesError(f"promotional text pattern {pattern!r} is not a safe pattern") from None
     return Promotional(_strings(section.get("providers"), "promotional providers"), domains, text)
