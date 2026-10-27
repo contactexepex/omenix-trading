@@ -2,7 +2,8 @@
 # Manual only (workflow_dispatch): NO schedule. Report only unless `apply` is ticked, so a first dispatch writes nothing. It reads
 # Drive and writes only `receipts/` (committed to main); it changes nothing in Drive. A rebuilt receipt proves the file's bytes AS OF
 # THE REBUILD, not what the original run wrote (the owner's accepted caveat). It never replaces an existing receipt.
-# Research data only; never places orders; no Groww.
+# Run it while the circulars workflow is paused and outside the flow-history windows (07:15 and 21:30 IST): a run that races a writer of the
+# same prefixes ends in a red merge conflict, so it fails closed. Research data only; never places orders; no Groww.
 name: rebuild-receipts
 
 on:
@@ -11,7 +12,7 @@ on:
       prefixes:
         description: "Drive path prefixes, space separated, area included."
         type: string
-        default: "data/circulars/list data/flows/history"
+        default: "data/circulars data/flows/history"
       apply:
         description: "Write and commit the missing receipts (off: report only)."
         type: boolean
@@ -37,7 +38,6 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
-      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       PREFIXES: ${{ inputs.prefixes }}
       APPLY: ${{ inputs.apply }}
     steps:
@@ -61,4 +61,5 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           if [ "$APPLY" = "true" ]; then flag="--apply"; else flag=""; fi
+          set -f # the prefixes are plain paths: never expand a '*' against the checkout
           python -m fno data-repair rebuild-receipts $PREFIXES $flag

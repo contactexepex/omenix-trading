@@ -43,6 +43,7 @@ receipted, the rebuild not visible in the receipt, an unreadable file not report
 
 ## Not done / for the owner
 - It has not been run against the real Drive (that needs the workflow, or the owner's session). The first run should be `apply` off.
-- `data/circulars/` files other than the list (the saved circulars themselves) also lack receipts; `capture.py` asks `receipts.read` before saving, so they
-  would be re-saved (same bytes, a no-op in Drive) and receipted at the next run. Add `data/circulars` to the prefixes to avoid that.
+- The default prefixes are now `data/circulars` (the whole tree: the list AND the saved circulars, which `capture.py` checks with `receipts.read` before saving)
+  and `data/flows/history`. Not a backfill of every old Drive file: that is a separate go-live decision.
+- **HOLD: do not apply against the real Drive until the owner chooses rebuild or import** (the rebuild is a one-way door, see F3).
 - After the rebuild: sync both prefixes, dispatch circulars once by hand, then restore its cron (see the comment in `circulars.yml`).

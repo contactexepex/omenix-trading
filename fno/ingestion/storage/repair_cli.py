@@ -36,7 +36,7 @@ def add_repair_parser(subparsers) -> None:
         "rebuild-receipts",
         help="write the receipt the CURRENT bytes of each unreceipted Drive file under a prefix prove",
     )
-    rebuild.add_argument("prefixes", nargs="+", help="Drive path prefixes, area included, e.g. data/circulars/list")
+    rebuild.add_argument("prefixes", nargs="+", help="Drive path prefixes, area included, e.g. data/circulars")
     rebuild.add_argument("--apply", action="store_true", help="write and commit the receipts (default: report only)")
     rebuild.set_defaults(func=cmd_rebuild_receipts)
 
