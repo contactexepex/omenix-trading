@@ -19,11 +19,13 @@ def rss_item(
     pub="Tue, 27 Oct 2026 08:00:00 +0530",
     desc="d",
     source="",
+    source_url="",
 ) -> str:
     parts = [f"<title>{title}</title>" if title is not None else ""]
     parts += [f"<link>{link}</link>" if link else "", f"<guid>{guid}</guid>" if guid else ""]
     parts += [f"<pubDate>{pub}</pubDate>" if pub else "", f"<description>{desc}</description>" if desc else ""]
-    parts += [f"<source>{source}</source>" if source else ""]
+    attribute = f' url="{source_url}"' if source_url else ""
+    parts += [f"<source{attribute}>{source}</source>" if source else ""]
     return f"<item>{''.join(parts)}</item>"
 
 

@@ -43,6 +43,25 @@ def _fixed(data: bytes) -> bytes | None:
         return None  # a damaged held file differs from every article
 
 
+def _fields(data: bytes) -> dict | None:
+    try:
+        document = json.loads(data)
+        return {k: v for k, v in document.items() if k not in UNCOMPARED} if isinstance(document, dict) else None
+    except ValueError:
+        return None
+
+
+def same_version(held: bytes, new: bytes) -> bool:
+    """Whether two article files say the same thing. They are compared on the fields BOTH carry, so an older file that
+    lacks a field a newer format added is not a different article (without this every format 1 file would be written
+    again as a "revision" the first time its article was seen again). Two files of one format differ in any field."""
+    a, b = _fields(held), _fields(new)
+    if a is None or b is None:
+        return False  # a damaged file differs from every article
+    shared = a.keys() & b.keys()
+    return bool(shared) and all(a[k] == b[k] for k in shared)
+
+
 @dataclass(frozen=True)
 class Plan:
     outcome: Outcome
@@ -62,14 +81,14 @@ class ArticlePlanner:
         held = self._held(path)
         if held is None:
             return Plan(Outcome.RECORDED, path, RECORDED, None)
-        if _fixed(held) is not None and _fixed(held) == _fixed(data):
+        if same_version(held, data):
             return Plan(Outcome.NO_OP, path, RECORDED, held)
         sha8 = hashlib.sha256(_fixed(data) or b"").hexdigest()[:8]
         revision = f"{REVISIONS}/{article.key[:2]}/{article.key}/{sha8}.json"
         kept = self._held(revision)
         if kept is None:
             return Plan(Outcome.REVISION, revision, REVISION, None)
-        if _fixed(kept) != _fixed(data):  # the same 8 hex characters for two versions: never called a no-op
+        if not same_version(kept, data):  # the same 8 hex characters for two versions: never called a no-op
             raise RawFileConflict(f"{revision}: revision name collision")
         return Plan(Outcome.NO_OP, revision, REVISION, kept)
 

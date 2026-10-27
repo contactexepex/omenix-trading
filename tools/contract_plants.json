@@ -190,7 +190,7 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_running_the_same_range_again_is_all_no_ops_and_writes_nothing_new"
   ],
   "file": "fno/ingestion/news/record/planner.py",
-  "old": "        if _fixed(held) is not None and _fixed(held) == _fixed(data):\n            return Plan(Outcome.NO_OP, path, RECORDED, held)",
+  "old": "        if same_version(held, data):\n            return Plan(Outcome.NO_OP, path, RECORDED, held)",
   "new": "        if False:\n            return Plan(Outcome.NO_OP, path, RECORDED, held)"
  },
  {
@@ -496,5 +496,55 @@
   "file": "fno/ingestion/news/sources/rules.py",
   "old": "        return not (path or \"\").startswith(outlet.opinion_unless_path)",
   "new": "        return False"
+ },
+ {
+  "id": "F1",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_format_1_file_is_still_read_with_empty_source_facts",
+   "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_extra_key_is_refused_so_a_future_field_is_never_silently_dropped",
+   "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_format_a_missing_key_or_text_that_is_not_an_article_is_refused"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "READABLE_FORMATS = (1, 2)",
+  "new": "READABLE_FORMATS = (2,)"
+ },
+ {
+  "id": "F2",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_format_1_file_and_the_same_article_as_format_2_are_a_no_op_not_a_revision"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "    return bool(shared) and all(a[k] == b[k] for k in shared)",
+  "new": "    return a == b"
+ },
+ {
+  "id": "F3",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_two_format_2_files_that_differ_only_in_a_format_2_field_are_a_revision",
+   "tests/ingestion/news/record/test_format_compat.py::test_a_damaged_held_file_or_files_sharing_no_field_are_never_the_same_version"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "    return bool(shared) and all(a[k] == b[k] for k in shared)",
+  "new": "    return True"
+ },
+ {
+  "id": "F4",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_source_element_that_is_not_an_https_plain_host_gives_no_domain",
+   "tests/ingestion/news/article/test_source_facts.py::test_a_google_news_item_takes_the_outlet_host_from_its_source_element_and_leaves_the_url_empty",
+   "tests/ingestion/news/article/test_source_facts.py::test_a_publisher_item_without_a_usable_https_link_has_no_source"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "        if parts.scheme.lower() != HTTPS or parts.username is not None or parts.password is not None:",
+  "new": "        if parts.username is not None or parts.password is not None:"
+ },
+ {
+  "id": "F5",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_no_tier_wire_or_promotional_judgement_is_written_into_an_article_file"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "        document = {\"format\": FORMAT, **asdict(self)}",
+  "new": "        document = {\"format\": FORMAT, \"tier\": \"unlisted\", **asdict(self)}"
  }
 ]
