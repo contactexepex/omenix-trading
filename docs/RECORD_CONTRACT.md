@@ -315,6 +315,8 @@ Which of the owner's companies an article is about, computed when the article is
 | T13 | A trailing possessive is dropped from names and text alike, so "Acme's profit" tags Acme. | `words` | `tests/ingestion/news/tagging/test_tagger.py::test_a_possessive_is_the_company_and_a_plural_word_is_not` | possessive misses | **tested, plant run** |
 | T14 | The outlet name after a separator at the end of a title never tags; the same word in the headline does. | `without_outlet`, `Tagger.tag` | `tests/ingestion/news/tagging/test_tagger.py::test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does` | outlet tags | **tested, plant run** |
 | T15 | An exchange label (NSE, BSE) beside another part of a colon bracket is never the symbol. | `_candidates` | `tests/ingestion/news/tagging/test_tagger.py::test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol` | exchange tags | **tested, plant run** |
+| T16 | A separator must stand apart from the outlet name: a hyphen inside a word is not one. | `without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | separator check dropped | **tested, plant run** |
+| T17 | The outlet name is matched without regard to case. | `without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | case-sensitive match | **tested, plant run** |
 
 ## Origins, promotion and materiality (NP5b)
 
