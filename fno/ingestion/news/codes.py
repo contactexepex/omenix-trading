@@ -54,3 +54,10 @@ WINDOW_IN_FUTURE = (
 PREVIOUS_UNREADABLE = (
     "previous_unreadable"  # the earlier run's cluster file is damaged: the replaced ids cannot be named
 )
+# the company list (NP3a): fixed codes; the list is the owner's private content, so no code carries a symbol or a name
+COMPANY_LIST_MISSING = "company_list_missing"
+COMPANY_LIST_INVALID = "company_list_invalid"
+COMPANY_LIST_ROLLED_BACK = "company_list_rolled_back"
+COMPANY_LIST_DAMAGED = "company_list_damaged"
+COMPANY_LIST_EXISTS = "company_list_exists"  # a seed is never written over an existing list
+SEED_SOURCE_MISSING = "seed_source_missing"  # the archived NSE list the seed is built from could not be read

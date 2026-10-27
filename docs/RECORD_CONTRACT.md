@@ -149,6 +149,20 @@ The article file gains `source_domain` and, for a Google News item, `wrapper_lin
 | F12 | The format must be an integer we know (not `true`, not `1.0`); a test also ties the format 2 field set to the `Article` fields, so a new field needs a new format. | `formats.read_document` | `tests/ingestion/news/record/test_format_compat.py::test_a_format_must_be_an_integer_we_know_so_true_and_one_point_zero_and_three_are_refused` | type of format not checked | **tested, plant run** |
 | F13 | A revision whose name is already held is the same version (NO_OP) when the files are the same version, even if the folder listing did not show it; only a DIFFERENT version under the same 8 hex characters is a conflict. | `ArticlePlanner.plan` | `tests/ingestion/news/record/test_format_compat.py::test_a_lagging_listing_gives_no_op_for_the_same_version_and_a_conflict_only_for_a_different_one` | the name is called a collision without comparing | **tested, plant run** |
 
+## The company list (NP3a)
+
+The owner's private list of companies (`companies/companies-vN.json` in the Drive config area) and its seed. It is content, not code: the count is whatever the file holds, and nothing about it is ever committed or printed.
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| Q1 | An exclusion that is not a regular expression, is long, or puts a quantifier after a group is refused, so no entry of the owner's list can make the tagger run for ever on a crafted headline. | `parse_company_list` | `tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused` | quantified group accepted | **tested, plant run** |
+| Q2 | A repeated symbol, an unknown key or kind, an empty name, or two companies claiming one normalised name or alias is refused with one fixed code that never names a symbol, a name or a pattern. | `parse_company_list` | `tests/ingestion/news/companies/test_parse_and_file.py::test_a_list_with_a_mistake_is_refused_with_one_fixed_code` | name collision accepted | **tested, plant run** |
+| Q3 | The newest version of a versioned private file is used, none older than one already used; a version edited after it was used is skipped for the older good one (the feed list and the company list share this one definition). | `VersionedFiles.latest` | `tests/ingestion/news/companies/test_parse_and_file.py::test_a_version_edited_after_it_was_used_is_skipped_for_the_older_good_one` | edited version used | **tested, plant run** |
+| Q4 | The seed takes a company's name from the equity list, then the Nifty 500, and only last from the F&O master, whose names NSE abbreviates. | `build_seed` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master` | master name first | **tested, plant run** |
+| Q5 | `news seed-companies` without `--apply` writes nothing and prints counts only (no symbol or name). | `seed_companies` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_without_apply_nothing_is_written_and_the_line_is_counts_only` | written without apply | **tested, plant run** |
+| Q6 | A seed is never written over an existing company list. | `seed_companies` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused` | existing list overwritten | **tested, plant run** |
+| Q7 | Two symbols with one cleaned name never collide: the second keeps its full form, so the seed always passes the list checks. | `build_seed` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form` | collision left in the seed | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the

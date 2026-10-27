@@ -15,10 +15,10 @@ from urllib.parse import urlparse
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.article.keys import KINDS
+from fno.ingestion.news.versioned import ErrorCodes, VersionedFiles
 from fno.ingestion.storage.raw_store import RawFileStore
 
 FEEDS_FOLDER = "feeds"
-VERSION_NAME = re.compile(r"^feeds-v(\d+)\.json$")
 FEED_ID = re.compile(r"^feed-\d{2,3}$")
 MAX_FEEDS = 50
 MIN_SALT_LENGTH = 16  # a random salt makes the list's logged SHA-256 useless for confirming a guessed list
@@ -81,37 +81,25 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
 class PrivateFeedLists:
     def __init__(self, store: RawFileStore):
         """`store`: the private config area of Drive (read only here)."""
-        self.store = store
+        self.files = VersionedFiles(
+            store, FEEDS_FOLDER, "feeds",
+            ErrorCodes(codes.FEED_LIST_MISSING, codes.FEED_LIST_ROLLED_BACK, codes.FEED_LIST_DAMAGED), FeedListError,
+        )  # fmt: skip
 
     def latest(self, lowest_version: int = 0, used: Mapping[int, str] | None = None) -> FeedList:
         """The newest usable version. `lowest_version`: the newest already used, below which the run stops. `used`: the
         SHA-256 each used version had when it was used; a version whose file now differs was edited in place, is skipped
         (never silently) and the next older good one is used instead."""
-        used = used or {}
-        versions = self._versions()
-        if not versions:
-            raise FeedListError(codes.FEED_LIST_MISSING)
-        if max(versions) < lowest_version:
-            raise FeedListError(codes.FEED_LIST_ROLLED_BACK)
-        damaged = []
-        for version in sorted(versions, reverse=True):
-            data = self.store.get(f"{FEEDS_FOLDER}/{versions[version]}")
-            if data is None:
-                raise FeedListError(codes.FEED_LIST_MISSING)
-            if version in used and hashlib.sha256(data).hexdigest() != used[version]:
-                damaged.append(version)
-                continue
-            found = parse_feed_list(data, version)
-            return FeedList(found.version, found.feeds, found.sha256, tuple(damaged))
-        raise FeedListError(codes.FEED_LIST_DAMAGED)
+        picked = self.files.latest(lowest_version, used)
+        found = parse_feed_list(picked.data, picked.version)
+        return FeedList(found.version, found.feeds, found.sha256, picked.damaged)
 
     def kinds_ever_listed(self) -> dict[str, str]:
         """Feed id -> kind over every valid version, so a feed retired from the newest list still has its kind and its
         staged polls stay promotable. A version that cannot be read is skipped; one id given two kinds stops the run
         (changing a kind would give existing items new keys)."""
         kinds: dict[str, str] = {}
-        for version, name in sorted(self._versions().items()):
-            data = self.store.get(f"{FEEDS_FOLDER}/{name}")
+        for version, data in self.files.every_version():
             try:
                 listed = parse_feed_list(data, version) if data is not None else None
             except FeedListError:
@@ -122,6 +110,3 @@ class PrivateFeedLists:
         if not kinds:
             raise FeedListError(codes.FEED_LIST_MISSING)
         return kinds
-
-    def _versions(self) -> dict[int, str]:
-        return {int(m.group(1)): n for n in self.store.checksums(FEEDS_FOLDER) if (m := VERSION_NAME.match(n))}
