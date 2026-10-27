@@ -64,3 +64,41 @@ Fix:
 ## Hard lines
 
 No orders and no secrets: the alert text is fixed. Write-once is untouched, and nothing is truncated or rewritten.
+
+## Addendum 1: SHA corrected to 55eea4b: FAIL on G1 only; G2 closed
+
+The orchestrator corrected the routed SHA to `55eea4b46526fc1d90a8a1134e36820f79ce4ff2`, which supersedes e41cd1e.
+
+**Gates:** 769 passed, 2 runs out of 2. ruff, imports (442 files) and size are clean.
+
+**G2 is closed, and it is loud enough in the pure OOM or SIGKILL case (reasoning, plus plants).**
+- `check-manifest` runs as its **own** Python process in the commit step, after promote has died. On a broken manifest
+  it sends a fixed-text alert to #fno-desk naming the range-bound repair ("Re-run the same --from..--to range").
+- The step restores `main`'s manifest (`git checkout -- "$MANIFEST"`, or `rm -f` when `main` has none), so the torn
+  file never reaches `main` and the next checkout is clean.
+- It still commits the receipts, so the original evidence time is kept; the next run re-adds the rows from the held
+  bytes.
+- It ends with `exit "$broken"`, so the run is red.
+
+A killed promote therefore gives an alert, a red run, and a clean `main`. That satisfies (d).
+
+**Plants (the implementer's list plus mine):**
+
+| Plant | Result |
+|---|---|
+| Guard bypassed | caught |
+| Discard removed | caught |
+| Exit swallowed | caught |
+| Alert removed | caught |
+| Receipts dropped in the broken branch | caught |
+
+**G1 is still open (required).** The plant that drops `check_appendable` from `well_formed()` still **passes all 769
+tests**. The new `test_commit_guard.py` tests tear inside fields that `_whole` already rejects, so the newline check never
+decides alone.
+
+My Addendum-0 reproduction stands: a final row torn inside the size field (`…,recorded,<64 hex>,12`, no newline) gives
+`skipped=0`, and only the newline check marks it broken. Without that check the corrupt row would be committed.
+
+Fix: one test with that input asserting `check-manifest` exits 1. The plant must then fail.
+
+**Verdict at 55eea4b: FAIL, on G1 alone** (one test).
