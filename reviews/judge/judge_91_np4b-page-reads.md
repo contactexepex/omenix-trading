@@ -64,3 +64,11 @@ Reviewed `git diff 337f0ea 346e78c`, which also answers judge 89.
 - Plants: no deadline between drips → 4 failed; no deadline per hop → 1 failed.
 
 **Verdict: PASS at 346e78c.**
+
+## Addendum 2: 98ad64a: PASS
+
+Reviewed `git diff 346e78c 98ad64a`: only a test and its plant (Y19). They pin that the command line loads without the HTML parser, which is my M1. No code changed.
+
+**Gates (locked venv).** 1807 passed; contract plants all `ok`, Y19 included.
+
+**Verdict: PASS at 98ad64a.**
