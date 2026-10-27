@@ -2277,5 +2277,144 @@
   "file": "fno/ingestion/news/cluster_record/run.py",
   "old": "max(earlier)[1]",
   "new": "min(earlier)[1]"
+ },
+ {
+  "id": "J1",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_the_shape_counts_clusters_singletons_the_largest_and_the_size_buckets"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "tuple(sum(low <= n <= high for n in sizes) for low, high in SIZE_BUCKETS),",
+  "new": "tuple(sum(low < n <= high for n in sizes) for low, high in SIZE_BUCKETS),"
+ },
+ {
+  "id": "J2",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_a_cluster_that_merges_or_splits_the_others_is_counted_once_each_way"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "return Crossing(_spanning(shared, in_second, in_first), _spanning(shared, in_first, in_second))",
+  "new": "return Crossing(_spanning(shared, in_first, in_second), _spanning(shared, in_second, in_first))"
+ },
+ {
+  "id": "J3",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_coverage_counts_tagged_high_confidence_and_how_many_companies_reach_each_threshold",
+   "tests/ingestion/news/compare/test_metrics.py::test_the_metrics_hold_no_key_title_or_symbol"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "high += tag.confidence == HIGH",
+  "new": "high += bool(tag.symbols)"
+ },
+ {
+  "id": "J4",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_has_no_way_to_write"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "class ComparisonRun:\n    def __init__(self, source: ArticleSource, grouping: SymbolGrouping):\n        self.source, self.grouping = source, grouping",
+  "new": "class ComparisonRun:\n    def __init__(self, source: ArticleSource, grouping: SymbolGrouping):\n        self.source, self.grouping = source, grouping\n        self.writer = ClusterWriter"
+ },
+ {
+  "id": "J5",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_a_company_list_that_exists_but_cannot_be_read_stops_the_comparison_with_its_code",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_no_list_at_all_still_compares_with_version_zero"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.rejected[str(blocked)] += 1",
+  "new": "pass"
+ },
+ {
+  "id": "J6",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_command_prints_the_lines_and_exits_zero_or_one_and_never_a_traceback"
+  ],
+  "file": "fno/ingestion/news/cli.py",
+  "old": "return 0 if report.ok else 1",
+  "new": "return 0"
+ },
+ {
+  "id": "J7",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing"
+  ],
+  "file": ".github/workflows/news-compare-clusterings.yml",
+  "old": "  contents: read",
+  "new": "  contents: write"
+ },
+ {
+  "id": "J8",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.lines += [_shape_line(\"v1\", first), _shape_line(\"v2\", second), _crossing_line(first, second)]",
+  "new": "report.lines += [_shape_line(\"v1\", first), _shape_line(\"v2\", second), _crossing_line(first, second), found.articles[0].title]"
+ },
+ {
+  "id": "J9",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))",
+  "new": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))\n        report.lines.append(\",\".join(sorted(inputs.preparer.tagger.dictionary.symbols)))"
+ },
+ {
+  "id": "J10",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "f\"largest {shape.largest}, sizes {sizes}\"",
+  "new": "f\"largest {shape.largest}, sizes {sizes} {[c.anchor_key for c in clustering.clusters]}\""
+ },
+ {
+  "id": "J11",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))",
+  "new": "    print(dict(seen))\n    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))"
+ },
+ {
+  "id": "J12",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_count_of_the_url_early_warning_shows_under_its_own_name_with_its_own_value"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "url_joins_unlike_title {second.url_joins_unlike_title}",
+  "new": "url_joins_unlike_title {second.url_joins}"
+ },
+ {
+  "id": "J13",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_size_buckets_and_singletons_are_counted_with_distinct_values_and_the_edges_in_the_right_bucket"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "sizes.count(1),",
+  "new": "sizes.count(2),"
+ },
+ {
+  "id": "J14",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_size_buckets_and_singletons_are_counted_with_distinct_values_and_the_edges_in_the_right_bucket"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "(11, 10**9)",
+  "new": "(12, 10**9)"
+ },
+ {
+  "id": "J15",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_count_of_the_url_early_warning_shows_under_its_own_name_with_its_own_value",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_prints_the_six_lines_of_counts"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "manifest_rows_skipped {self.source.skipped_rows}",
+  "new": "manifest_rows_skipped 0"
  }
 ]
