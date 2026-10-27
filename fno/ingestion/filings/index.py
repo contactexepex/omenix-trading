@@ -25,6 +25,7 @@ NSE_SHAREHOLDING = "/api/corporate-share-holdings-master"
 INTEGRATED_FINANCIALS = "Integrated Filing- Financials"  # NSE's type name (the governance filings are not numbers)
 NSE_CONSOLIDATION = {"Consolidated": CONSOLIDATED, "Non-Consolidated": STANDALONE, "Standalone": STANDALONE}
 OLDEST_LATE_FILING = timedelta(days=400)  # a period ending this long before the window cannot be filed inside it
+KEY_NAME_LIMIT = 40  # characters of a key name shown in a failure line
 MAX_PAGES = 20  # NSE pages the integrated list 20 per page; 3 years are about 3 pages
 
 
@@ -70,6 +71,22 @@ def _placeable(row: dict) -> bool:
     return _timed(row) or bool(nse_time(row.get("filingDate"))) or bool(xbrl_link(row.get("xbrl")))
 
 
+def listed(body: object, what: str) -> list[dict]:
+    """The rows of a list NSE answered: nothing for an empty answer; a ValueError that says what came instead when
+    the body is not a list of objects (a non-empty object, text, or rows that are not objects), so the run names the
+    odd answer, not a bare TypeError or AttributeError that would end it. An unknown answer is a failure to read,
+    never "no filings": that would hide missing data."""
+    if not body:
+        return []
+    if isinstance(body, list) and all(isinstance(row, dict) for row in body):
+        return body
+    if isinstance(body, dict):
+        shape = f"an object with keys {[str(key)[:KEY_NAME_LIMIT] for key in sorted(map(str, body))[:5]]}"
+    else:
+        shape = type(body).__name__ if not isinstance(body, list) else "a list with rows that are not objects"
+    raise ValueError(f"{what}: NSE answered {shape}, not a list of rows")
+
+
 class FilingIndex(ABC):
     name: str = "index"
     kind: str = ""  # FILING_RESULTS or FILING_SHAREHOLDING
@@ -90,9 +107,9 @@ class NseLegacyResultsIndex(FilingIndex):
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
         params = {"index": self.MARKET, "symbol": symbol, "period": "Quarterly"}
-        rows = self.get_json(NSE_LEGACY_RESULTS, params)
+        rows = listed(self.get_json(NSE_LEGACY_RESULTS, params), self.name)
         oldest = since - OLDEST_LATE_FILING
-        recent = [r for r in rows or [] if nse_day(r[self.PERIOD_END]) >= oldest and _placeable(r)]
+        recent = [r for r in rows if nse_day(r[self.PERIOD_END]) >= oldest and _placeable(r)]
         found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 
@@ -131,7 +148,9 @@ class NseIntegratedResultsIndex(FilingIndex):
         rows: list[dict] = []
         for page in range(1, MAX_PAGES + 1):
             answer = self.get_json(NSE_INTEGRATED_RESULTS, {"index": "equities", "symbol": symbol, "page": page})
-            new = [r for r in answer.get("data") or [] if r not in rows]
+            if not isinstance(answer, dict):
+                raise ValueError(f"{self.name}: NSE answered {type(answer).__name__}, not an object")
+            new = [r for r in listed(answer.get("data"), self.name) if r not in rows]
             rows += new
             if not new or len(rows) >= int(answer.get("totalCount") or 0):
                 return rows
@@ -154,8 +173,8 @@ class NseShareholdingIndex(FilingIndex):
     name, kind = "NSE shareholding list", FILING_SHAREHOLDING
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
-        rows = self.get_json(NSE_SHAREHOLDING, {"index": "equities", "symbol": symbol})
-        found = (self._filing(symbol, row) for row in rows or [])
+        rows = listed(self.get_json(NSE_SHAREHOLDING, {"index": "equities", "symbol": symbol}), self.name)
+        found = (self._filing(symbol, row) for row in rows)
         return [f for f in found if f.filed_at.date() >= since]
 
     def _filing(self, symbol: str, row: dict) -> Filing:
