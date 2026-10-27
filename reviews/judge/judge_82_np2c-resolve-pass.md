@@ -53,3 +53,34 @@
 No order path, no secret, no Groww call, and nothing requested without a dispatch.
 
 ## Verdict: FAIL round 1 at feb5fa9. B1 required.
+
+## Addendum 1: round 2 at b1917e7: PASS
+
+Reviewed `git diff feb5fa9 b1917e7`, which also folds in judge #2's should-fixes.
+
+**Gates (locked venv).** 1561 passed; ruff is clean; contract plants all `ok`, V1 to V16.
+
+**B1 fixed (strong evidence, my round-1 scenario re-run unchanged).** A resolver that always fails, 4 days × 4 wrappers, `MAX_READS` patched to 5:
+
+```
+news resolve (applied): examined 5, ..., pending 5, expiring 4, unexamined 11, decode_failed 5, resolver_failing 1
+ok False | needs_attention True
+```
+
+- `_check_service` makes the run red and alerted when nothing resolved, or when under half of a batch of 10 or more did.
+- Unread articles on the last look-back day now count as `expiring`.
+- Plants (each one undone):
+
+| Plant | Result |
+|---|---|
+| service check removed | 4 failed |
+| share rule disabled | 1 failed |
+| unread last day not counted as expiring | 1 failed |
+| "any `unexamined` raises attention" removed | **0 failed (unpinned)** |
+
+**Minor (requested, not blocking).**
+- Pin "any `unexamined` makes the run need attention" with a case that has `unexamined > 0` and `expiring == 0`. The rule is claimed but no test reaches it alone.
+- **Noise (reasoning only).** A run whose only pending link is one dead link (`pending = 1`, resolved 0) is red on every pass until that link leaves the 3-day look-back. That is honest but noisy. Consider applying `resolved == 0` only when `asked >= FAILING_MIN_ASKED`, or accept it as stated.
+- **Agreed:** skipping publisher articles needs the gate or manifest to record which article is a wrapper. The proposed NP2d, with its own judges, is the right place; until then the `unexamined` alert is honest.
+
+**Verdict: PASS round 2 at b1917e7.**
