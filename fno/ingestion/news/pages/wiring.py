@@ -17,6 +17,7 @@ def build_page_fetcher(include_refusing: bool = False) -> HttpsPageFetcher:
     return HttpsPageFetcher(rules, host_allowed=allowed)
 
 
-def build_outlet_probe(include_refusing: bool) -> Callable[[], ProbeReport]:
+def build_outlet_probe(include_refusing: bool) -> Callable[[Callable[[str], None]], ProbeReport]:
+    """The probe, as a function of where each outlet's line goes as soon as it is known."""
     rules = load_source_rules()
-    return lambda: probe_outlets(rules, build_page_fetcher(include_refusing), include_refusing)
+    return lambda on_result: probe_outlets(rules, build_page_fetcher(include_refusing), include_refusing, on_result)

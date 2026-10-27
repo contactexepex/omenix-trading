@@ -23,7 +23,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90 # up to ~224 requests at 1.5 s apart, each with a 20 s timeout if a host is silent
     env:
       INCLUDE_REFUSING: ${{ inputs.include_refusing && '--include-refusing' || '' }}
     steps:

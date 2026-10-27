@@ -3,9 +3,9 @@ redirect hop (followed by hand, at most `MAX_HOPS`) must pass, in order:
 
 1. the URL is https, with no credentials and no port, and a plain host name; 2. the host is a listed outlet that
 allows automated reads, with no listed parent that refuses them (`may_fetch`); 3. the host has not refused or pushed
-back earlier in this run (a 401, 403, 429 or 503 stops that host, not the others); 4. robots.txt allows the path (read
-through this same method, once per host per run); 5. every address the name resolves to is global
-(`pages/address.py`).
+back earlier in this run (a 401, 403, 429 or 503 stops that host, not the others); 4. every address the name resolves
+to is global (`pages/address.py`; checked BEFORE robots.txt, so nothing is requested from a name that resolves
+inside a network); 5. robots.txt allows the path (read through this same method, once per host per run).
 
 Then at least `spacing` seconds since ANY earlier page request (across hosts; NP2b's `RequestSpacer`, reused), a GET
 with one polite User-Agent, no cookies kept, TLS verification on, a timeout, and the body streamed up to `MAX_BYTES`

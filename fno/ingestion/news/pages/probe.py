@@ -9,6 +9,7 @@ false` flag itself; the result is a report for the owner, and the allowlist file
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from fno.ingestion.news.pages.model import OK, PageFetcher
@@ -26,20 +27,30 @@ class ProbeReport:
         done = ", ".join(f"{code} {n}" for code, n in sorted(self.counts().items())) or "no outlets"
         return f"news probe-outlets: {len(self.results)} outlets, {done}"
 
+    @staticmethod
+    def line_of(row: tuple[str, bool, str]) -> str:
+        domain, refuses, code = row
+        return f"{domain}{' (fetch: false)' if refuses else ''}: {code}"
+
     def outlet_lines(self) -> list[str]:
-        return [f"{domain}{' (fetch: false)' if refuses else ''}: {code}" for domain, refuses, code in self.results]
+        return [self.line_of(row) for row in self.results]
 
     @property
     def reachable(self) -> int:
         return self.counts()[OK]
 
 
-def probe_outlets(rules: SourceRules, fetcher: PageFetcher, include_refusing: bool) -> ProbeReport:
+def probe_outlets(
+    rules: SourceRules, fetcher: PageFetcher, include_refusing: bool, on_result: Callable[[str], None] | None = None
+) -> ProbeReport:
+    """`on_result`: called with each outlet's line as soon as it is known, so a run that is killed (a dropped runner,
+    the job timeout) still leaves the results so far in the log (judge 87)."""
     report = ProbeReport()
-    for domain in sorted(rules.outlets):
-        refuses = not rules.may_fetch(domain)
+    listed = [(domain, not rules.may_fetch(domain)) for domain in sorted(rules.outlets)]
+    for domain, refuses in sorted(listed, key=lambda row: row[1]):  # fetchable outlets first
         if refuses and not include_refusing:
             continue
         report.results.append((domain, refuses, fetcher.fetch(f"https://{domain}/").code))
-    report.results.sort(key=lambda row: row[1])  # fetchable outlets first
+        if on_result is not None:
+            on_result(report.line_of(report.results[-1]))
     return report

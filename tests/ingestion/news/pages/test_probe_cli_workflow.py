@@ -5,6 +5,7 @@ from __future__ import annotations
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
 import yaml
 
 from fno.ingestion.news import codes
@@ -54,7 +55,7 @@ def test_the_command_prints_a_counts_line_then_one_line_per_outlet_and_writes_no
     monkeypatch.setattr(wiring, "build_page_fetcher", lambda include_refusing=False: Recording())
     lines: list[str] = []
     assert probe_cli.cmd_probe_outlets(Namespace(include_refusing=False), out=lines.append) == 0
-    assert lines == ["news probe-outlets: 2 outlets, ok 2", "other.example: ok", "pub.example: ok"]
+    assert lines == ["other.example: ok", "pub.example: ok", "news probe-outlets: 2 outlets, ok 2"]
 
 
 def test_an_unexpected_error_prints_only_its_class(monkeypatch):
@@ -88,3 +89,22 @@ def test_the_workflow_is_dispatch_only_read_only_and_holds_no_secret():
     text = (ROOT / ".github/workflows/news-probe-outlets.yml").read_text()
     assert "secrets." not in text and "git push" not in text and "git commit" not in text and "schedule:" not in text
     assert triggers["workflow_dispatch"]["inputs"]["include_refusing"]["default"] is False
+
+
+def test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_log_so_far():
+    seen: list[str] = []
+
+    class Dies(PageFetcher):
+        def fetch(self, url):
+            if url.startswith("https://pub.example"):
+                raise KeyboardInterrupt  # the runner is killed here
+            return Page(model.OK, url)
+
+    with pytest.raises(KeyboardInterrupt):
+        probe_outlets(RULES, Dies(), include_refusing=False, on_result=seen.append)
+    assert seen == ["other.example: ok"]  # what was known before the kill was already out
+
+
+def test_the_job_timeout_covers_the_worst_case_of_every_request_timing_out():
+    steps = workflow()["jobs"]["probe"]
+    assert steps["timeout-minutes"] * 60 >= 224 * 20  # ~224 requests, 20 s timeout each

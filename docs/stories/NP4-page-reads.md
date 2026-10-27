@@ -54,7 +54,7 @@ its byline and provider, and a content hash. **No article body and no HTML is ev
   User-Agent that says who we are, TLS verification always on, no cookies kept, `Accept-Encoding` as `requests` sends it.
 - **Pacing:** at least 1.5 s between ANY two page requests across hosts (NP2b's `RequestSpacer`, reused, not copied) and a per-host
   stop for the run: a 401, 403, 429, 503 or a challenge page stops that host for the run (the outlet is not retried), others go on.
-- **The outlet probe** `news probe-outlets`: one GET of the front page of each fetchable listed outlet, counts and per-outlet
+- **The outlet probe** `news probe-outlets`: one GET of the front page of each fetchable listed outlet (and, only with `--include-refusing`, once each of the outlets marked `fetch: false`), counts and per-outlet
   outcome (the allowlist is public, so naming an outlet is not private; no URL beyond the host, no page content). Dispatch-only
   workflow, run once by the owner **from a GitHub runner**, because agentic's `fetch: false` list was measured from another network
   (NP0 2d). Its result goes to the owner before any outlet is changed; the allowlist file is never edited by a job.

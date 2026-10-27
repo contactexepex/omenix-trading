@@ -1274,5 +1274,15 @@
   "file": "fno/ingestion/news/pages/probe.py",
   "old": "        if refuses and not include_refusing:",
   "new": "        if False:"
+ },
+ {
+  "id": "H12",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_log_so_far",
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_job_timeout_covers_the_worst_case_of_every_request_timing_out"
+  ],
+  "file": "fno/ingestion/news/pages/probe.py",
+  "old": "        if on_result is not None:",
+  "new": "        if False:"
  }
 ]
