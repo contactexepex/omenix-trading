@@ -117,3 +117,33 @@ word that is not a label or a count, so a real outlet name would fail it.
 in the company list is an NSE letter symbol today, so I am noting it rather than asking for a change.
 
 **Verdict: PASS** (round 2, `18527c3`).
+
+## Addendum 3
+
+**Re-check of the final head, `9d16261`.** It is `18527c3`, the head I passed in Addendum 2, plus:
+- judge 107's count pins J12 to J14;
+- J15, which adds one new output line, `input: articles N, manifest_rows_skipped N` (`run.py:51`; `skipped_rows` is
+  `ArticleSource`'s existing property);
+- main merged in (NP7b).
+
+Against main, the only production changes are in `fno/ingestion/news/compare/` and the CLI.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1992 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 628 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught.
+
+**My plants:**
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| L1 | anchor keys appended to a line | caught (2 failed) |
+| L4 | the symbol counter printed to stdout | caught (2 failed) |
+| L6 | an article title appended to the new `input:` line | caught (4 failed) |
+
+The new line is inside the whitelist.
+
+**Verdict: PASS** (`9d16261`).
