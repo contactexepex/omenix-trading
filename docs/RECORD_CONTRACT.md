@@ -126,6 +126,8 @@ The public allowlist `config/news_sources.yaml` and the pure lookups over it. It
 | O12 | An alias (`same_as`) of an outlet marked `fetch: false` is not fetchable either. | `SourceRules.may_fetch` | `tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too` | alias ignores the main's flag | **tested, plant run** |
 | O13 | Two wires claiming one name or one domain are refused, not last-wins. | `loader._check_wires` | `tests/ingestion/news/sources/test_loader.py::test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins` | wire name collision accepted | **tested, plant run** |
 | O14 | A label or name that is empty once normalised (None, blank, only dots) names no outlet, wire or vendor. | `SourceRules` | `tests/ingestion/news/sources/test_rules.py::test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one` | empty label looked up | **tested, plant run** |
+| O15 | A host that ends in a line break is not a host: `plain_host` and `outlet_key` return "" (a newline must never reach a line-based file). | `plain_host` | `tests/ingestion/news/sources/test_rules.py::test_a_host_with_a_trailing_line_break_is_not_passed_on_by_plain_host_or_outlet_key` | `match` not `fullmatch` | **tested, plant run** |
+| O16 | A domain named in the rules file (outlet, wire or promotional) with a line break is refused. | `loader._domain` | `tests/ingestion/news/sources/test_loader.py::test_a_domain_with_a_line_break_is_refused_wherever_a_domain_is_named` | `match` not `fullmatch` | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

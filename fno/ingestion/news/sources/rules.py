@@ -25,7 +25,7 @@ def plain_host(host: str | None) -> str:
     if not text.isascii():
         return ""
     cleaned = text.lower().rstrip(".")
-    return cleaned if PLAIN_HOST.match(cleaned) else ""
+    return cleaned if PLAIN_HOST.fullmatch(cleaned) else ""
 
 
 def _under(host: str, domain: str) -> bool:
@@ -90,7 +90,7 @@ class SourceRules:
         """The listed domain a source label names ('Business Today'), or a label that is itself a listed host."""
         key = normalise_label(label)
         domain = self._label_domain.get(key) if key else None  # an empty label names nothing
-        if domain is None and label and LABEL_IS_A_HOST.match(label.strip()):
+        if domain is None and label and LABEL_IS_A_HOST.fullmatch(label.strip()):
             outlet = self.lookup(label.strip())
             domain = outlet.domain if outlet else None
         return domain

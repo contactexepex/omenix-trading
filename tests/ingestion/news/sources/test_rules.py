@@ -39,6 +39,7 @@ def test_a_host_finds_its_outlet_and_its_parent_domains_do_too():
         "x y.reuters.com",  # a space: not a host at all
         " reuters.com",  # whitespace at either end is not trimmed: it is not a host
         "reuters.com ",
+        "reuters.com\n\n",
         "reuters.com\n",
         "\treuters.com",
         "reuters.com\u2028",
@@ -134,3 +135,8 @@ def test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_
 def test_the_news_desk_prefix_must_match_at_a_slash_boundary():
     assert RULES.is_opinion("seekingalpha.com", "/newsletter/today") and RULES.is_opinion("seekingalpha.com", "/news")
     assert not RULES.is_opinion("seekingalpha.com", "/news/today")
+
+
+def test_a_host_with_a_trailing_line_break_is_not_passed_on_by_plain_host_or_outlet_key():
+    for host in ("marketwatch.com\n", "example.org\n", "example.org\r\n", "example.org\n\n"):
+        assert RULES.lookup(host) is None and RULES.outlet_key(host) == ""

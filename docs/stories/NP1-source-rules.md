@@ -12,7 +12,7 @@ data of 2(f), 2(g): the allowlist and the pure lookups. Nothing here makes a req
 - `fno/ingestion/news/sources/`: `model.py` (frozen values), `loader.py` (`load_source_rules`, strict validation), `rules.py`
   (`SourceRules`: `lookup`, `tier_of`, `outlet_key`, `may_fetch`, `may_upgrade_to_https`, `is_opinion`, `domain_of_label`,
   `wire_of_name`, `wire_of_domain`, `is_promotional_provider`, `is_promotional_domain`), `labels.py`. Largest file 152 lines.
-- Contract rows **O1 to O14** ([RECORD_CONTRACT.md](../RECORD_CONTRACT.md)), each with a plant that was run and failed a test.
+- Contract rows **O1 to O16** ([RECORD_CONTRACT.md](../RECORD_CONTRACT.md)), each with a plant that was run and failed a test.
 - 76 offline tests (`tests/ingestion/news/sources/`).
 
 ## Decisions and why
@@ -46,6 +46,11 @@ data of 2(f), 2(g): the allowlist and the pure lookups. Nothing here makes a req
 - **Port fidelity, checked by the orchestrator (not by a judge):** host-key set diff of this file against agentic `f1b9bb6`
   `config/news_sources.yaml` (all 119 host keys identical, none dropped or added, including the wire and promotional domains) and a
   diff of the `fetch: false` outlet set (the same 11); the only differences are the deliberate removal of `newspaper` and comments.
+
+- **Judge 71's last condition accepted, reproduced:** `re.match` with `$` lets a trailing newline through, so `plain_host("x.com\n")` kept
+  its newline (it would have reached line-based files) and `"evil.com\n"` was an accepted domain. Both regexes now use `fullmatch` (rows
+  O15, O16). **Forward note (judge 72) for NP4:** a domain listed separately under a `fetch: false` parent must inherit the parent's
+  flag; none is nested in the shipped file, but NP4's fetch check has to enforce it.
 
 ## What is NOT established (said plainly)
 - Every `fetch: false` and note was measured from agentic's cloud on 6 Oct 2026, not from GitHub runners. `fetch: false` can only make us
