@@ -6,7 +6,9 @@ code obeys the rule and says nothing about whether the threshold is right for re
 the first week of real polls, neither a story count nor a corroboration count from clusters may be trusted: splitting
 one story into several clusters inflates the story count AND deflates each story's corroboration (its outlets are
 spread over the pieces), and merging two different stories does the reverse. Lexical similarity cannot tell "record
-high" from "record low".
+high" from "record low", so a false merge can collapse two OPPOSITE stories into one and corroboration would then count
+a contradiction as agreement. Tuning needs hard near-miss pairs from real data (not easy negatives); a sentiment- or
+antonym-aware measure is a possible later class behind this interface (an owner decision that needs the measured data).
 """
 
 from __future__ import annotations

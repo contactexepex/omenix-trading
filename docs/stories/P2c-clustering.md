@@ -100,7 +100,10 @@ decision). One judge, as for P2b1 (a pure module), after P2b3 merges.
   recall 5 of 8. The defaults under-merge short rewordings ("wins" against "bags", "a record low" against "record low") and
   cannot tell a one-word reversal from a rewording: a hard near-miss added on Judge 1's request ("Nifty closes at record high"
   against "record low") MERGES. Under-merging inflates a story count and deflates each story's corroboration; the false merge
-  does the reverse; so neither number is trustworthy until the threshold is re-tuned on real data. I did not tune on my own
+  does the reverse, and it can collapse two OPPOSITE stories into one, so corroboration would count a contradiction as agreement.
+  Neither number is trustworthy until the threshold is re-tuned on real data using HARD near-miss pairs (not easy negatives). A
+  sentiment- or antonym-aware `Similarity` is a possible later class behind the same interface: an owner decision that needs the
+  measured data. I did not tune on my own
   pairs: that would fit the numbers to my own invention. Reasoning only; no real news is behind any of it.
 - **Proof:** 31 tests; plants fail a test for stage 1, the title stage and the outlet trim, an entity merging alone, the entity
   bar, the match window, chaining, the two-anchor choice, the assignment order, the id hash, `previous_cluster_ids`, the window
