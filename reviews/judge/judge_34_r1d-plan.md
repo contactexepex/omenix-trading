@@ -84,3 +84,51 @@ Fix (text only):
 
 This is a plan document only: no code, data or service is touched. No secrets. No Groww call was made for this review;
 it was code reading only.
+
+## Addendum 1: d3cab04, round 2: FAIL, the shared 429 pause
+
+Reviewed `d3cab04e19a4c834ce89f6079682ae0eaabf7db3`. The plan's diff from b3891f8 is the R1d file only (+23/-6). The
+other files in the range are main merged in.
+
+**My original gap is closed (strong evidence).**
+- The quotes row is added.
+- Each caller keeps today's spacing as its own limiter: intraday 4/s, indices 2.5/s, other slots their own
+  `per_second`, candle 0.5 s.
+- Condition 5 now specifies my item-4 tests: per-caller spacing unchanged, and the combined rate equals the sum.
+
+**No host ceiling: the conclusion is right, the stated reason is not.** Today no host-wide Groww ceiling exists, so
+adding none is never-weaker. But the plan's reason, "two callers in one process would sum to 6.5 a second (390 a
+minute)", describes no real process. Every Groww command builds exactly one provider and one caller:
+- `intraday/wiring.py:63` (intraday record);
+- `intraday/feed_wiring.py:51` (feed);
+- `intraday/backfill_wiring.py:46` (candles);
+- `quotes/index_wiring.py:20`, one provider for the index recorders, which run one after another;
+- `quotes/window_wiring.py:28`.
+
+`groww_quiet_windows.py:3-5` also says "every scheduled routine runs in its own container, so no limiter is shared."
+Fix: replace the reason with "today has no host ceiling, so adding one would be new behaviour".
+
+**The shared per-process 429 pause: FAIL (strong evidence on the first two points, reasoning on the third).**
+1. **It changes nothing today.** No process holds two `GrowwProvider`s (list above), so a per-process pause equals
+   today's per-provider pause in every real run. It adds a mechanism and a named behaviour change for no present
+   benefit. That breaks the repo's own rule, "never add a pattern without a second use".
+2. **Its safety claim is unproven, and the repository hints against it.** "When one is rate-limited the others couldn't
+   succeed anyway" holds only if Groww's limit is one aggregate per token. The code names a per-type limit: "Groww's
+   300 a minute **Live Data** cap" (`groww_quiet_windows.py:3`). The plan's cited evidence,
+   `research/school/probes/2026-10-22-p0-1-groww-chain.md`, is not in this repository at this SHA, so I could not check
+   it. My recollection is that Groww publishes separate limits per API type (orders, live data, non-trading); that is
+   reasoning only, not verified here.
+3. **If the limits are per type,** a future process mixing types would have a shared pause refuse reads that would have
+   succeeded. That is weaker on data. Sharing pauses across providers is exactly the "data-vs-blacklist" trade-off the
+   orchestrator deferred to the owner one ruling earlier.
+
+Fix (text only):
+- R1d1 keeps **one 429 pause per `GrowwProvider`, exactly as today** (`groww.py:142`). The index recorders keep sharing
+  theirs through their one provider.
+- Condition 4 becomes "one pause per provider as today". The tests: two recorders on one provider share the pause, and
+  two providers do not.
+- A cross-provider or per-process pause goes to the owner with R1d2, together with the evidence on Groww's limit
+  granularity.
+
+**Not blocking:** the plan's "Groww 429" table row still says "the process pauses all Groww reads". Today it is per
+provider, which is one per process only because each command builds one. Reword it.
