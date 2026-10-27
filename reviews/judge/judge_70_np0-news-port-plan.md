@@ -75,3 +75,32 @@ Honest, except the cluster figures (above) and "strong" on the per-day rates. El
 None touched: a plan only, no orders, no Groww, no secrets. It correctly keeps the watchlist and queries private.
 
 ## Verdict: FAIL round 1 at 0e9401a. N1, N2 and N3, plus the wording in (5), are required; the counting method for the cluster figures and the day counts are requested.
+
+## Addendum 1: round 2 at 6439195: PASS
+
+Reviewed `git diff 0e9401a 6439195`: one file, 287 lines (under 500). Section 8 lists each finding with the check the author made.
+
+**Cluster numbers and day counts: fixed.** The method is now stated (latest `as_of` per `cluster_id`) and the figures equal my recount: 35 / 760 / 762 / 587 / 442 / 233, and 21 by first-seen state. Rates are per day that has a file (17, 16 and 16 days).
+
+**N1: fixed as an owner decision.** The allowlist's place is decision H, with the precedent stated (the same list is public in agentic). NP1 is not merged before the owner answers. The watchlist and queries are always private. A marker test for "no host name in summaries" is required of each story that prints one.
+
+**N2: fixed.** The wrapper key is untouched and independent of resolution (sections 1 and 2b), and NP2a does not touch `keys.py`.
+
+**N3: fixed by a better mechanism than the one I suggested, and I accept the reasoning (some evidence, reasoning plus code).**
+- A re-poll rebuilds the item as unresolved. With the URL inside the article file, every re-poll would differ and record a false revision, unless the planner learned an asymmetric rule.
+- The chosen mechanism is a separate write-once resolution file, plus a resolve pass over the Record's last 3 days that never needs staging. That cannot churn, leaves the planner alone, and makes S1's trashing irrelevant.
+- `wrapper_link` stays uncompared, so a changed redirect token makes no revision.
+- The second migration trap is real: `cluster_record/article_source.py:30` raises "unknown format" for anything but `FORMAT = 1`.
+- Keeping tier, wire, promotional, tickers and priority (rule-file judgements) out of the article file is correct. They would cause mass false revisions whenever a rule file changed.
+
+**Pacing wording: fixed.**
+
+**Gaps in the new design (requested, not blocking for a plan; NP2a and NP2c must carry them):**
+1. **Every Google article recorded before NP2a can never be resolved.** Format 1 has no `wrapper_link`, and nothing is back-filled. Section 3 says "not back-filled", but it should say plainly: their dashboard URL stays empty and their tier stays `unlisted` forever.
+2. **The throughput margin is thin (reasoning only).** Nominal capacity is 80 per pass × 24 passes = 1,920 a day, against about 1,280 arrivals a day: 1.5 times the need.
+   - The plan itself says scheduled runs arrive hours late. Below 16 passes a day, the 3-day window expires about (1,280 − 80 × passes) items a day for good.
+   - NP2c must report `expired` and the backlog in counts, alert on `expired > 0`, and state the cadence it needs.
+
+**Hard lines.** None touched; the plan keeps every story at `workflow_dispatch` until go-live, with two judges each.
+
+**Verdict: PASS round 2 at 6439195.** Gaps 1 and 2 are for the NP2a/NP2c stories, and the doc wording for gap 1 is requested.
