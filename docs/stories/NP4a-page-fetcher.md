@@ -15,7 +15,7 @@ no workflow calls the fetcher yet.**
   allow it. A listed child of a `fetch: false` outlet was fetchable before; the 112 shipped entries are unchanged by the new rule
   (a test pins the 101 fetchable and 11 refusing).
 - **Addresses (judge 84 F2)**: every address the name resolves to must be `is_global`, at every hop, robots.txt included. Also
-  refused: IPv4-mapped IPv6 with a non-global IPv4, NAT64, and multicast (Python calls multicast ranges global; the test found it).
+  refused: IPv4-mapped IPv6 with a non-global IPv4, NAT64, IPv4-compatible `::/96`, site-local `fec0::/10`, ORCHIDv2 `2001:20::/28` (judge 88) and multicast (Python calls multicast ranges global; the test found it).
 - **robots.txt** is honoured (owner's default): fetched through the same method, once per host per run; absent or a client error means no
   restriction; a server error, a network failure, a redirect to another host or an oversized file means the host's pages are not
   read this run; a refusal stops the host.
@@ -31,3 +31,6 @@ no workflow calls the fetcher yet.**
   a one-time report for the owner, still through robots.txt and every other guard; no job changes the allowlist.
 - robots.txt is part of the fetcher, so a probe also reads each outlet's robots.txt: about 2 requests per outlet at 1.5 s apart, about
   5 minutes for the fetchable set.
+- **No per-page wall-clock limit here** (judge 88): the 20 s timeout is per read. The run-wide time budget belongs to the caller; NP4b's
+  read pass must cap its total fetch time (the plan's 900 s) and pin it with a plant. The session ignores proxy settings in the
+  environment (`trust_env` off, H16), so no hop can bypass the guards.

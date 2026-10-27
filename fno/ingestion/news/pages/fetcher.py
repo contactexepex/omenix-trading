@@ -54,6 +54,7 @@ class HttpsPageFetcher(PageFetcher):
         self.rules, self.spacer, self.resolver, self.max_bytes = rules, spacer or RequestSpacer(), resolver, max_bytes
         self.host_allowed = host_allowed or rules.may_fetch
         self.session = session or requests.Session()
+        self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop
         self.session.headers["User-Agent"] = RESEARCH_USER_AGENT
         self.session.cookies.set_policy(RejectAllCookies())
         self.stopped: set[str] = set()

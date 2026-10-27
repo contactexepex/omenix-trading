@@ -19,6 +19,7 @@ def test_a_global_address_is_reachable(address):
         "239.1.1.1", "ff0e::1",
         "100.64.0.1", "100.127.255.254",  # carrier-grade NAT: private False, reserved False, global False
         "198.18.0.1", "192.0.0.8", "::1", "fe80::1", "fc00::1", "::ffff:10.0.0.1", "::ffff:100.64.0.1",
+        "::127.0.0.1", "::a00:1", "::8.8.8.8", "fec0::1", "2001:20::1", "2001:2f::1",
         "64:ff9b::7f00:1", "64:ff9b::808:808", "64:ff9b:1::1",  # NAT64: Python calls it global, it embeds an IPv4
         "not an address", "", "999.1.1.1",
     ],

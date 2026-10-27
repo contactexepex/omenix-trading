@@ -189,3 +189,9 @@ def test_the_fetcher_is_a_page_fetcher_and_keeps_no_cookies():
     fetch, session, _ = fetcher()
     assert isinstance(fetch, model.PageFetcher) and isinstance(session.cookies._policy, RejectAllCookies)
     assert HttpsPageFetcher.__mro__[1] is model.PageFetcher and RULES.may_fetch("pub.example")
+
+
+def test_the_session_takes_no_proxy_or_settings_from_the_environment():
+    """judge 88: with trust_env on, a proxy variable could carry a hop the address check never saw."""
+    _, session, _ = fetcher()
+    assert session.trust_env is False

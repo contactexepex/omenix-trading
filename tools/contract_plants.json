@@ -1284,5 +1284,41 @@
   "file": "fno/ingestion/news/pages/probe.py",
   "old": "        if on_result is not None:",
   "new": "        if False:"
+ },
+ {
+  "id": "H13",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"::/96\",  # IPv4-compatible (deprecated; embeds an IPv4 address): ::127.0.0.1\n",
+  "new": ""
+ },
+ {
+  "id": "H14",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"fec0::/10\",  # deprecated site-local\n",
+  "new": ""
+ },
+ {
+  "id": "H15",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"2001:20::/28\",  # ORCHIDv2 (not routable)\n",
+  "new": ""
+ },
+ {
+  "id": "H16",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_session_takes_no_proxy_or_settings_from_the_environment"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop",
+  "new": "        pass"
  }
 ]
