@@ -88,3 +88,55 @@ in that venv.
 
 **Verdict: FAIL** (round 1, `3cc0c62`). F1 is a real pacing defect against a third party's unofficial endpoint; F2 is a
 wrong statement about what is sent.
+
+## Addendum 1: round 2 (final) on `356b149`
+
+`git diff 3cc0c62 356b149 -- fno`:
+- the new `resolve/pacing.py`: `RequestSpacer`, at least 1.5 s between any two requests; `PushbackStop`, where 429,
+  503 or `/sorry/` stops the run;
+- request hooks on the library's client, in this order: egress (now also refusing userinfo and an explicit port), then
+  stopped, then the pacer;
+- a response hook, `observe`;
+- the library's own wait turned off;
+- a new `paused` code;
+- the docstring now says plainly that the library requests only its own fixed URLs.
+
+The lock is unchanged since round 1.
+
+**Gates:** in the venv from `requirements.lock` with `--require-hashes`, 1454 passed. ruff check and format are clean;
+imports clean (526 files); code size passed; contract plants all ok.
+
+**F1 fixed: re-run on the real `GoogleDecoder` (MockTransport, fake clock), 25 links:**
+
+| The service answers | Requests | Codes |
+|---|---|---|
+| 503 | 1, then stop | all `paused` |
+| 429 | 1 | all `paused` |
+| 500 | 25 | `decode_failed`; the smallest gap is exactly 1.5 s |
+| 302 with no location | 25 | the smallest gap is 1.5 s |
+
+**F2 fixed:** the text now matches the library.
+
+**Plants (8 of 8 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| no pacer hook | 3 |
+| no stopped hook | 5 |
+| no `observe` | 4 |
+| spacing below the floor | 2 |
+| port allowed | 2 |
+| userinfo allowed | 2 |
+| sorry check off | 2 |
+| no per-batch stop | 2 |
+
+## Notes (not blocking)
+
+- **403 does not stop the run.** It is paced at 1.5 s and comes back as `decode_failed`. Google often answers bots with
+  403. Consider adding it to `PUSHBACK_STATUSES` once NP2c's probe shows what a refusal really looks like (reasoning
+  only).
+- **`_after_stop` relabels earlier failures.** Once a batch has been stopped, it turns *every* unresolved outcome of
+  that batch into `paused`, including a real `decode_failed` that came before the stop. That is harmless, because it is
+  retried next run, but it hides one count.
+
+**Verdict: PASS** (`356b149`, final round).
