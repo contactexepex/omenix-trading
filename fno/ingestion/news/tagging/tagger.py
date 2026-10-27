@@ -3,7 +3,8 @@ is read, never stored. Rules ported from agentic's tagger unless marked mine:
 
 1. **Headline first.** The title is the subject: companies named in the title are tagged and the summary is not used.
 Only when the title names none is the PLAIN-TEXT summary used (tags, URLs, domains and the trailing outlet name
-removed). A search query that found the item never tags it. 2. **Roles.** A company named in the title is `primary`,
+removed). A search query that found the item never tags it, and neither does the outlet name Google News
+appends to a title (" - Outlet"). 2. **Roles.** A company named in the title is `primary`,
 except where the title is a comparison ("X vs Y", "versus", "v/s") or lists companies ("A, B and C rise"; comma or
 slash separated), where they are `mentioned`. Mine: a list needs at least two companies in the title, so "A, the
 largest lender, rises" keeps A primary. A company found only in the summary is `mentioned`. 3. **Confidence.** `high`
@@ -21,7 +22,7 @@ import re
 from dataclasses import dataclass
 
 from fno.ingestion.news.tagging.dictionary import NameDictionary
-from fno.ingestion.news.tagging.text import MAX_TEXT, capped, plain_text, spans, words
+from fno.ingestion.news.tagging.text import MAX_TEXT, capped, plain_text, spans, without_outlet, words
 
 HIGH, LOW, NONE = "high", "low", ""
 _VERSUS = re.compile(r"\b(?:vs\.?|versus|v/s)(?=\s|$)", re.IGNORECASE)
@@ -60,7 +61,7 @@ class Tagger:
         return [hit for hit in found if not self._excluded(hit, text)]
 
     def tag(self, title: str | None, summary: str | None = None, source: str | None = None) -> Tag:
-        title_text = capped(title)
+        title_text = without_outlet(capped(title), source)
         in_title = self.hits(title_text)
         if in_title:
             return self._from_title(title_text, in_title)

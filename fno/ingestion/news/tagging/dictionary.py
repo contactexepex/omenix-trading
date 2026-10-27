@@ -13,6 +13,7 @@ from fno.ingestion.news.safe_pattern import compile_safe
 from fno.ingestion.news.tagging.text import word_tuple
 
 _BRACKETS = re.compile(r"\(([^()]{1,40})\)")
+EXCHANGES = frozenset({"NSE", "BSE"})  # a label in `(BSE: 500325)`, never the symbol beside it
 
 
 class NameDictionary:
@@ -41,9 +42,19 @@ class NameDictionary:
         found = []
         for match in _BRACKETS.finditer(text):
             parts = [part.strip() for part in match.group(1).split(":")]
-            if len(parts) <= 3:  # `SYM`, `SYM:EXCHANGE`, `EXCHANGE: SYM`: each part is a candidate symbol
-                found += [(p, match.start(), match.end()) for p in parts if p]  # kept by the tagger only if a symbol
+            if len(parts) <= 3:  # `SYM`, `SYM:EXCHANGE`, `EXCHANGE: SYM`; kept by the tagger only if a symbol
+                found += [(p, match.start(), match.end()) for p in _candidates(parts)]
         return found
+
+
+def _candidates(parts: list[str]) -> list[str]:
+    """The parts that may be a symbol: an exchange label next to another part is a label (`(BSE: 500325)` is not the
+    company BSE); a lone `(BSE)` is a symbol, and in `(NSE: BSE)` the first part is the label."""
+    if len(parts) == 1:
+        return [p for p in parts if p]
+    if len(parts) == 2 and parts[0] in EXCHANGES:
+        return [parts[1]] if parts[1] else []
+    return [p for p in parts if p and p not in EXCHANGES]
 
 
 def _compiled(pattern: str) -> re.Pattern | None:

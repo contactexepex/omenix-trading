@@ -39,8 +39,9 @@ def test_the_raw_summary_is_cut_before_the_cleaners_run_so_a_huge_one_is_fast():
     assert time.monotonic() - start < 2
 
 
-def test_words_keep_ampersands_and_apostrophes_whole_and_give_their_positions():
-    assert [w for w, _, _ in words("L&T's Zzalpha, rises")] == ["l&t's", "zzalpha", "rises"]
+def test_words_keep_ampersands_and_inner_apostrophes_whole_and_drop_a_trailing_possessive():
+    assert [w for w, _, _ in words("L&T's Zzalpha, don't rise banks'")] == ["l&t", "zzalpha", "don't", "rise", "banks"]
+    assert words("Acme's")[0] == ("acme", 0, 4)
     assert words("ab cd")[1][1:] == (3, 5) and word_tuple("Zz & Lt  Works") == ("zz", "&", "lt", "works")
 
 

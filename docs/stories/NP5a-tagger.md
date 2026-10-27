@@ -36,3 +36,10 @@ recorded byte.
 - Tests use invented companies only. What guards privacy is: no `companies-v*.json` file in the repository (a file-name walk), the
   seed's four public index names, the commit hook's record scan, and placeholders in code and docs; a blanket "no company name in the
   repository" cannot be checked mechanically and is not claimed.
+
+## Judge 92 round 1 (judge #2), all three checked with invented names and accepted
+- F1: "Zzalpha's profit jumps" gave no tag (reproduced). `words` now drops a trailing `'s` / `'` from names and text alike (T13).
+- F2: " - Outlet" on a Google News title tagged the outlet (reproduced with an alias equal to the outlet). `without_outlet` strips it,
+  after a separator only, so a title ending in the same word keeps it (T14).
+- F3: `(BSE: 500325)` tagged a company whose symbol is `BSE` (reproduced; BSE Ltd is an F&O underlying). An exchange label beside
+  another part is never the symbol; a lone `(BSE)` still is (T15).
