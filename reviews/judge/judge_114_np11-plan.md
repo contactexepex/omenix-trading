@@ -50,3 +50,29 @@
 No orders, no Groww, no secret in git. The provenance join must stay unguessable from public data, which is B1.
 
 ## Verdict: FAIL round 1 at e050a46. B1 (seal the provenance files with private entropy; no plain-hash supplement names) and B2 (cleanup must not silently remove a day's polls before its provenance exists) required; N1 and N2 requested.
+
+## Addendum 1: round 2 at bcd6f4e: PASS
+
+I reviewed `git diff e050a46 bcd6f4e -- docs/stories/NP11-feed-provenance.md` (81 lines).
+
+**B1 fixed (reasoning on the design; the facts it rests on are strong evidence from round 1).**
+- **The seal.** Every provenance file carries `"seal": HMAC-SHA-256(feed-list salt, "provenance" 0x00 <path>)`. Without the salt, nobody can rebuild the file's bytes, so they cannot match the public receipt's SHA-256.
+- **Determinism holds.** The salt is frozen because the planned `q-` ids already depend on it. Re-promoting the same polls still gives the same bytes.
+- **The salt is the right secret.** Anyone who has it can already reverse the `q-` ids, so the seal adds no new secret to protect.
+- **Supplements** are `<day>-<n>.json`, with no hash of the pairs in any name, and `n` is part of the HMAC message.
+- **The size leak is stated plainly.** It shows a volume, not a pair.
+- **P2b's plant** (seal removed, so the SHA can be rebuilt from public data) pins the fix.
+- **The stated principle is right:** a file that is a pure function of public values must carry a salted seal before its SHA-256 is published.
+
+**B2 fixed.** `NewsPollProof` gains an explicit gate: a staged poll stays until its `(key, feed)` pairs are held by its day's provenance files. There is no timing assumption, and `provenance_polls_missing` and `provenance_polls_skipped` make an incomplete day visible. Row P12 and its plant (the pairs check dropped) pin it.
+
+**Also fixed:**
+- N1: `scope` is optional, old lists still parse, and adding a new feed-list version is stated as the owner's step.
+- Judge 113's B3: `provenance.csv` is added to `news-promote` `EXTRA_MANIFESTS` (P14).
+- The owner's quote is cited in the plan header.
+
+**Notes for the code (not conditions):**
+- A feed later removed from the list leaves its old polls staged for good, because the proof refuses an unknown feed. That is the existing behaviour, but it should be one counted line, not silent.
+- The scope is written into each file when the file is made. If the owner later labels a feed, older files stay `unknown`. Say so in the recall report's notes, or have the reader take the scope from the current list. That is the owner's choice.
+
+**Verdict: PASS round 2 at bcd6f4e.**

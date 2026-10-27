@@ -72,3 +72,41 @@ approximate feeds-per-article overlap. Say it plainly in the plan rather than "N
 - B2 is one proof rule with a row.
 - B3 is one workflow line.
 - Points 4 and 5 go in the same edit.
+
+## Addendum 1
+
+**Round 2 re-review at `bcd6f4e`.** Against main, only `docs/stories/NP11-feed-provenance.md` changed (81 lines).
+
+**Gates (text only):** the doc-reading tests, 79 passed.
+
+**My round-1 items:**
+- **B1: fixed.** The owner's words ("For point number 5, recall measurement, we store a feed ID on each article. I want
+  to add it, so do that.") are in `conversations/2026-10-28.md` on main (line 49), and the plan's header cites them.
+- **B2: fixed** (design item 7, row P12).
+  - The staging cleanup proof gains the condition that every `(key, feed)` pair of a poll is held by its day's
+    provenance files. Otherwise the poll stays staged and heals on a later run.
+  - `provenance_polls_missing` and `provenance_polls_skipped` are counted (row P13). No timing assumption is left.
+- **B3: fixed** (item 10, row P14). `provenance.csv` is added to `news-promote.yml`'s `EXTRA_MANIFESTS`.
+- **Points 4 and 5: fixed** (items 8 and 9).
+  - All staged polls of the day, for all feeds, already-recorded articles included.
+  - An unreadable poll adds no pairs, is counted and stays staged.
+  - `scope` is optional and old lists parse.
+- **The size note:** stated (item 6).
+
+**Judge 114's seal (item 3).** I did not find this in round 1, and I disclose that.
+- I checked the reasoning myself:
+  - keys are unsalted digests of public guids and URLs;
+  - feed ids are public;
+  - scope has three values.
+- So an unsealed provenance file is a low-entropy function of public data. Its public receipt SHA-256 could be matched
+  by building candidate files, which would confirm a key-to-`q-`feed pair and so a tracked company. The finding is
+  correct.
+- The fix holds. The seal is `HMAC-SHA-256(salt, "provenance" 0x00 path)`: a per-path 256-bit value that cannot be
+  computed without the salt, so the file's SHA cannot be rebuilt.
+  - It stays deterministic, because the salt is frozen.
+  - It needs no change to the receipt machinery.
+  - Numbered supplements remove the pair hash from names.
+- The principle the plan states is right and worth keeping: a file that is a pure function of public values must carry
+  a salted seal before its SHA is published.
+
+**Verdict: PASS** (round 2, `bcd6f4e`).
