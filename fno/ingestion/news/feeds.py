@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from fno.ingestion.news import codes
+from fno.ingestion.news.article.keys import KINDS
 from fno.ingestion.storage.raw_store import RawFileStore
 
 FEEDS_FOLDER = "feeds"
@@ -31,6 +32,9 @@ class FeedListError(Exception):
 class FeedEntry:
     feed_id: str
     url: str = field(repr=False)  # never printed, even by a traceback
+    kind: str = (
+        "publisher"  # "wrapper" for a feed whose links are redirect wrappers (Google News): set in the private file
+    )
 
     @property
     def host(self) -> str:
@@ -49,7 +53,7 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
     try:
         document = json.loads(data)
         salt, entries = document["salt"], document["feeds"]
-        feeds = tuple(FeedEntry(item["id"], item["url"]) for item in entries)
+        feeds = tuple(FeedEntry(item["id"], item["url"], item.get("kind", "publisher")) for item in entries)
     except (UnicodeDecodeError, ValueError, KeyError, TypeError):
         raise FeedListError(codes.FEED_LIST_INVALID) from None
     ids = [feed.feed_id for feed in feeds]
@@ -66,6 +70,7 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
         and len(set(ids)) == len(ids)
         and all(FEED_ID.match(i) for i in ids)
         and hosts_ok
+        and all(f.kind in KINDS for f in feeds)
         and all(isinstance(f.url, str) and f.url.startswith("https://") for f in feeds)
     )
     if not valid:
