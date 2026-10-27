@@ -62,3 +62,28 @@ dry install.
 first request.
 
 Separately, NP2c at `feb5fa9` was already reviewed: **PASS**, with two should-fix items (judge_83, main `9fe3166`).
+
+## Addendum 1: round 2 on `a12cae7` (the plan document only)
+
+`git diff c886e5a a12cae7` changes only `docs/stories/NP4-page-reads.md`, which is now 91 lines.
+
+- **F1 fixed.**
+  - The plan now says plainly that NP1 does not make a listed child of a `fetch: false` outlet unfetchable.
+  - NP4a must change `may_fetch` to walk every listed ancestor and alias: a host is fetchable only if its nearest entry
+    is true and no listed ancestor is false.
+  - The plan adds a row, a plant, and a test of the 112 shipped entries against the new rule, with any outlet it
+    changes shown to the owner.
+- **F2 fixed.**
+  - The rule is now "every resolved IPv4 and IPv6 address `is_global`, at every hop" (line 45).
+  - It also refuses an IPv4-mapped address whose IPv4 is not global, and NAT64 `64:ff9b::/96`. That is right: I
+    confirmed `ipaddress` calls `64:ff9b::7f00:1` (loopback embedded) global, so that extra refusal is needed.
+  - The plant is a redirect that resolves to `100.64.x.x`.
+- **Should-fixes:**
+  - the count is 15, with the list;
+  - the 4 MB cap counts decoded bytes, and a gzip bomb is `too_large` (line 53);
+  - robots.txt goes through the same `PageFetcher`, guards, spacer and stop, cached per run, and a cross-host redirect
+    makes it unreadable.
+- **IP pinning:** declined, with a stated reason (it needs a custom adapter that keeps SNI and certificate checks; the
+  names are 112 public outlets; GET only). That is acceptable for a plan; it is reasoning only on the risk.
+
+**Verdict: PASS** (`a12cae7`).

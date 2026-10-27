@@ -216,10 +216,11 @@ def test_the_cluster_workflow_is_dispatch_only_serial_with_promote_and_uses_the_
     assert last["if"] == "${{ failure() && !inputs.dry_run }}" and "build_alert_sender" in last["run"]
 
 
-def test_nothing_in_the_package_prints_or_reads_a_clock_and_the_writer_is_the_only_putter():
+def test_nothing_in_the_package_prints_or_reads_a_clock_and_the_shared_writer_is_the_only_putter():
+    """NP2c moved the one `put` into `news/write_once.py`, which ClusterWriter extends: still one place that writes."""
     package = ROOT / "fno/ingestion/news/cluster_record"
     puts = {}
-    for file in package.glob("*.py"):
+    for file in [*package.glob("*.py"), ROOT / "fno/ingestion/news/write_once.py"]:
         for node in ast.walk(ast.parse(file.read_text())):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 if node.func.attr == "put":
@@ -228,7 +229,7 @@ def test_nothing_in_the_package_prints_or_reads_a_clock_and_the_writer_is_the_on
                 assert node.func.attr not in {"now", "utcnow", "today"}, file.name
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id != "print", file.name
-    assert puts == {"writer.py": 1}
+    assert puts == {"write_once.py": 1}
 
 
 def test_a_window_end_later_than_this_hour_is_refused_with_a_fixed_code_and_nothing_runs(tmp_path, monkeypatch):
