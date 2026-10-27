@@ -144,6 +144,8 @@ The engine (separate repo) reads the Record through the verified Drive cache. Th
 see "Security" for what holds today): write-once, schema-valid, freshness-checked, authoritative-source-preferred, with a SHA-256 receipt per file in GitHub. News is
 delivered as deduped clusters with corroboration counts. *(To be firmed up with the engine's needs.)*
 
+What the code guarantees today, each claim with its test and a plant, is in [RECORD_CONTRACT.md](RECORD_CONTRACT.md) (the owning document).
+
 ## Open decisions (owner)
 
 1. **Promotion tolerances** — exact freshness windows and cross-source agreement tolerances per dataset.
