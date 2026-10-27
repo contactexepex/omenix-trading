@@ -96,3 +96,72 @@ same areas. I agree with D1-D8; I do not repeat them.
 - The labelled pair set with measured precision and recall before any threshold is chosen.
 
 **Verdict: FAIL** (round 1). Must fix: N1, N2, N5, N6, N7. Should fix: N3, N4, N8-N11. Owner: N12.
+
+## Addendum 1: design round 2, ca6a8c5 (FAIL: three new gaps the rewrite leaves open)
+
+Branch `story/P2-news-plan`, SHA `ca6a8c5aca97039e2c49be53ea90ace7fb0b6290`.
+
+**My round-1 items, as written:**
+
+| Item | Where in round 2 | Verdict |
+|---|---|---|
+| N1 committed outputs | feed ids in the snapshot row, staging path and receipts; a news manifest with no `url` column | resolved for those outputs, but see R1 below |
+| N2 / N4 | fixed reason codes, exceptions by class, the master marker test across failure paths, logs, alerts and the commit message | resolved |
+| N3 | synthetic fixtures only | resolved |
+| N5 | same key, other content -> `RevisionSink` | resolved (see R4 for a false-revision source) |
+| N6 | no age check at the gate; `time_source=seen` | resolved at the gate; see R2 for the cluster layer |
+| N7 | an entity only constrains a title match, no chaining, the two-NIFTY test and plant | resolved |
+| N8 / N9 / N10 / N11 | reconciliation and skip plant / `concurrency` with `cancel-in-progress: false` / as-of reader helper / block page | resolved, except that N11 never says whether redirects are followed (R5) |
+
+**New gaps.** Three must fix.
+
+1. **R1 (must fix): the search queries would still be public, in the code.** "Each feed has a fixed short id **in the
+   code** (`gn-nifty`, not its URL)". The id has to map to a URL somewhere, and every place the design offers is
+   committed to this public repository: the code, and `config.yaml` (`git ls-files config.yaml`). So the `q=` research
+   intent that N1 kept out of the logs and manifests sits in the source tree instead. The id `gn-nifty` also names
+   the topic.
+   - Fix: the feed list (id to URL) lives outside the repository, for example a private Drive config file read at run
+     time, or a GitHub Actions secret or variable. Ids are opaque (`gn-01`).
+   - Extend the master test to the source tree, as plain text in `fno/`, `config.yaml` and `.github/`.
+   - If the owner is content to publish the queries, that is the owner's call and should be written as one; it should
+     not be decided by default.
+2. **R2 (must fix): a late arrival is in the Record but no cluster ever includes it.** The cluster input rule is
+   "first seen_at at or before the window end **and published within the window**". Take an article published 3 days
+   ago and first seen today (after an outage, at the first real run, or surfaced late by Google):
+   - It is in the Record (N6), but no window seen since then covers its publication time.
+   - The N10 reader looks for "a file whose window covers t", but those files were written before the article was
+     seen.
+
+   So no cluster file ever lists it, and the cluster consumer never sees it: the N6 loss moved from the gate to the
+   cluster layer, against invariant 4 ("never hides"). Fix: window membership by `max(published, first seen_at)`, or
+   a late article enters the first run after it is seen, flagged `late`. Add a test: an article published before the
+   last window and seen now appears in the next cluster file.
+3. **R3 (must fix): "no cookies" is not met by the session the design reuses.** Invariant 6 says no cookies.
+   `PacedSession` is a `requests.Session` with no cookie policy (`http_pacing.py`), and a `requests.Session` stores
+   every `Set-Cookie` and sends it back. Google sets cookies on news.google.com answers, so polls after the first
+   would carry Google's cookies. Fix: the news fetcher's session refuses cookies (a cookie policy that rejects all,
+   or a jar cleared before each request). Add a test: an answer that sets a cookie, and the next request carries no
+   `Cookie` header.
+4. **R4 (should fix): the feed id is one of the compared fields, so one article in two feeds becomes a false
+   revision.** The article file's fixed fields include the feed id, and a re-poll compares on those fields. A Google
+   News item (one `guid`, so one key) that appears in two search feeds then differs by feed id, and is stored as a
+   revision with no real change. Fix: leave the feed id out of the compared fields (it belongs in the poll's
+   reconciliation and snapshot row); keep the first feed in the file if wanted.
+5. **R5 (should fix): redirects.** The block rule speaks of "a redirect to a consent or sorry address" but does not say
+   redirects are not followed. Following one is a second request to another host (and, with R3, may set a consent
+   cookie). State `allow_redirects=False` and that any redirect is a block, as in the Yahoo source.
+6. **R6 (should fix, minor): cluster lineage when the anchor leaves the window.** When a cluster's earliest article
+   ages out of the window, its remaining members get a new earliest article and so a new id.
+   `previous_cluster_ids` should cover that case too, not only a late earlier article or a merge. Also name the
+   assignment rule that, under no-chaining, decides which cluster an article joins when it matches two anchors (for
+   example, the earliest anchor). Determinism holds already; the rule makes it reviewable.
+7. Residual, accepted (reasoning only): `article_id` is a SHA-256 of a public URL, so someone holding a guessed URL
+   can confirm the owner archived it. This is very low risk; I name it so the owner knows.
+
+**Verdict: FAIL** (round 2). This is decisive, so R1-R3 go to the owner with the orchestrator. Each is small and
+concrete:
+- R1: a private feed list;
+- R2: one changed input rule and a test;
+- R3: a cookie policy and a test.
+
+R4 to R6 are one-line text fixes.
