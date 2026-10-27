@@ -47,3 +47,31 @@ ruff and check_imports are clean; 1287 passed; contract plants all `ok`, includi
 No order path, no secret, no Groww call, no request, no Drive.
 
 ## Verdict: FAIL round 1 at 1d1bfed. B1 required; the two host-doc mismatches and the privacy line requested.
+
+## Addendum 1: round 2 at aa00a5c: PASS, on condition of a one-word fix (`fullmatch`)
+
+Reviewed `git diff 1d1bfed aa00a5c`.
+
+**Gates (strong evidence).** ruff and check_imports are clean; 1294 passed; contract plants O1 to O10 all `ok`.
+
+**B1 fixed (strong evidence, my round-1 probe re-run).**
+- `UniqueKeyLoader` refuses:
+  - a repeated `fetch` (inline and block style);
+  - a second `bseindia.com` entry;
+  - a YAML merge key (`<<`), refused as unreadable.
+- Accepted, and both harmless:
+  - an alias reused for two outlets (each gets the same settings, which is visible in the file);
+  - a repeated name inside a list.
+
+**Host minors fixed.** The Kelvin sign, a tab, a space at either end and U+2028 are now unlisted; upper case and a trailing dot still match, as designed.
+
+**One gap left (strong evidence, reproduced): `plain_host` still returns a host with a trailing newline.**
+- `PLAIN_HOST.match` uses `$`, which in Python matches *before* a final `\n`.
+- `plain_host("marketwatch.com\n")` returns `'marketwatch.com\n'`, not `""`, contradicting its docstring ("Whitespace anywhere ... make it ''").
+- Lookups are still safe: `tier_of` gives `unlisted`, and `may_fetch` gives False.
+- But `outlet_key` passes the newline through. Any later story that writes an outlet key into a line-based file (TSV, CSV, a receipt) inherits a line break.
+- **Condition:** `PLAIN_HOST.fullmatch(cleaned)`, plus a test with `"marketwatch.com\n"` → `""`. The orchestrator can check it.
+
+**Privacy.** The story now states the point and that the merge is held for owner decision H. That is consistent with judge 70's addendum.
+
+**Verdict: PASS round 2 at aa00a5c, on condition of `fullmatch` plus its test. The merge stays held for decision H.**

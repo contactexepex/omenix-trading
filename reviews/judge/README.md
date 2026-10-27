@@ -81,5 +81,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 68 | S1b loud proof errors, code (judge #2, sole) | 1 | PASS (cead192) | `judge_68_s1b-loud-proof-errors-judge2.md` |
 | 69 | CP2 re-enable the circulars cron (judge #2, sole) | 1 | PASS (c07e721) | `judge_69_cp2-circulars-cron-on-judge2.md` |
 | 70 | NP0 news port plan (plan doc) | 1 | FAIL (round 1, 0e9401a); PASS (round 2, 6439195) | `judge_70_np0-news-port-plan.md` |
-| 71 | NP1 news source rules (code, judge #1 of 2) | 1 | FAIL (round 1, 1d1bfed) | `judge_71_np1-source-rules.md` |
+| 71 | NP1 news source rules (code, judge #1 of 2) | 1 | FAIL (round 1, 1d1bfed); PASS (round 2, aa00a5c; fullmatch condition) | `judge_71_np1-source-rules.md` |
 | 72 | NP1 news source rules, code (judge #2 of 2) | 1 | FAIL (round 1, 1d1bfed) | `judge_72_np1-source-rules-judge2.md` |
