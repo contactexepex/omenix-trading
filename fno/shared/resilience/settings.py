@@ -47,10 +47,15 @@ DEFAULTS: dict[str, SourceSettings] = {
         ),  # fmt: skip
     ),
     "drive": SourceSettings(
+        # Drive is the write target: retry with Retry-After as a capped floor (the cap is applied by the Drive
+        # classifier, so the ceiling here, which STOPS a call, is set above it and never fires); no breaker (R1c)
         retry=RetrySettings(
-            waits=(2.0, 8.0, 30.0, 60.0), cap_seconds=120.0, retry_after_ceiling_seconds=120.0, max_total_seconds=900.0
+            waits=(2.0, 8.0, 30.0, 60.0),
+            cap_seconds=120.0,
+            retry_after_ceiling_seconds=600.0,
+            max_total_seconds=float("inf"),  # as today: no total bound, a call always makes its five tries
+            jitter=0.25,
         ),  # fmt: skip
-        breaker=BreakerSettings(threshold=5, cool_down_seconds=900.0, cool_down_cap_seconds=DAY_SECONDS),
         rate=RateSettings(min_spacing_seconds=0.0),
     ),
     "groww": SourceSettings(

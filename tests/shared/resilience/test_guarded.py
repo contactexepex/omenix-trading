@@ -44,10 +44,17 @@ def drive_classify(status, error):
     return Verdict(Outcome.OK)
 
 
+COUNTS_EXHAUSTED = BreakerSettings(
+    threshold=5, cool_down_seconds=900.0, cool_down_cap_seconds=86400.0
+)  # the library option
+
+
 def guarded(source="nse", alerts=None):
+    """`drive` keeps its retry table here but runs with a breaker that counts exhausted calls: the shipped Drive
+    settings carry no breaker (story R1c), and this keeps the library's `count_exhausted` mechanism under test."""
     s = settings_for(source)
     clock, wall = FakeClock(), WallClock()
-    breaker = CircuitBreaker(source, s.breaker, wall, alerts=alerts)
+    breaker = CircuitBreaker(source, s.breaker or COUNTS_EXHAUSTED, wall, alerts=alerts)
     return (
         GuardedCall(source, RetryPolicy(s.retry, clock.sleep, clock, floor_jitter), breaker, alerts),
         breaker,

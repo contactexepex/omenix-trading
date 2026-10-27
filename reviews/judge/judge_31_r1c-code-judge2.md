@@ -144,3 +144,63 @@ missed it. The ruled fix (no total cap for Drive only; NSE untouched) is right.
 Checks added for the next SHA: a long-attempt case (each attempt over 105 s on a fake clock) still makes 5 tries;
 putting a 900 s total back for Drive makes a test fail; NSE's `max_total_seconds` and `RetryPolicy` are unchanged vs
 `main`.
+
+## Addendum 4: decisive round 2, c05a1d7 (PASS)
+
+Branch `story/R1c-code-r2`, SHA `c05a1d7d022d7dd88770ff1287f47b9460367015`. It supersedes `1381a8e` and `65a99c0`
+(the orchestrator's round count: this is code round 2). Compared with `1381a8e`, the only code change is the Drive
+`max_total_seconds` set to `float("inf")` in `settings.py`; the rest is tests and the story text.
+
+**Gates** (`__pycache__` cleared): 522 passed; ruff check and ruff format clean; imports clean; code size passed.
+
+**The cross-source guard:** in `git diff origin/main c05a1d7 -- fno/shared` only the `drive` entry of `settings.py`
+changed. `retry.py`, `nse_pacer.py` and NSE's settings (including its `max_total_seconds`) are unchanged.
+`retry.py:90` compares against `inf`, so a Drive call is never cut on total time: always five tries, as today.
+
+**Plants on c05a1d7, all 22 caught** (each restored, `__pycache__` cleared):
+
+| Plant | Failed |
+|---|---|
+| T1 the 900 s Drive total put back | 3 |
+| R4 receipt repair invents a receipt when Drive has no file / R4b several-files refusal removed | 1 / 1 |
+| W6b `meta[RAW_FILE_SAVED] = False` removed | 1 |
+| X1 library ceiling 600 -> 120 / D2 no 120 s cap | 1 / 2 |
+| X2 401 counted as a retry / X3 re-sign on every attempt | 7 / 2 |
+| D4 409 not accepted / D5 rate-limited 403 permanent / D7 dropped connection permanent | 3 / 4 / 4 |
+| D8 a Drive breaker put back / D10 waits table changed | 2 / 14 |
+| Row before file: W1 manifest, W2 revision index, W3 global-cue log, W4 candle row, W5b filings with no put, W6 quote save error swallowed, R3 data store with no put, R5 snapshot with no save | 1, 1, 1, 1, 1, 2, 1, 2 |
+| R1 reader ignores the not-saved flag | 2 |
+
+**My findings:** S1 fixed (`test_receipt_repair_refuses_a_path_with_no_file...`, `..._with_two_files...`). S2 fixed
+(the delta and no-spin tests). S3 fixed: the recorder-level test runs a real attempt with a store that fails and
+checks the sidecar flag and the guarded read. The Addendum 3 correction is fixed too:
+`test_long_attempts_never_cut_a_call_below_five_tries` and plant T1. The story names both sidecar readers
+(`drive_only_store.py`, `quotes/compare.py:40`) and the one intentional delta.
+
+**Not blocking, recommended:** `tests/ingestion/test_drive_resilience.py` is 576 lines, the only test file over 350.
+The 350-line rule is applied to `fno/` (CLAUDE.md "across `fno/shared/` and `fno/ingestion/`"; `tests/test_code_size.py`
+scans `fno/` only), so it does not break the rule as written. Splitting it by mechanism (session, writers, readers,
+receipt repair) would keep each part readable. If the orchestrator reads `docs/JUDGE.md` item 5 as covering tests, it
+becomes a should-fix.
+
+**Verdict: PASS** (lane 1, code round 2, judge #2).
+
+## Addendum 5: the routed round-2 SHA is 60ab2d8 (PASS carries over)
+
+The orchestrator routed `60ab2d8b989763d2c6a86c067299fd2d29de1126` in place of `c05a1d7`. `git diff --stat c05a1d7
+60ab2d8` changes only `docs/stories/R1c-drive.md` and `tests/ingestion/test_drive_resilience.py`, so `fno/` is byte-identical.
+The message said the change was doc only; it also adds one test assert, that `nse_json` keeps `max_total_seconds == 60.0`,
+which matches `main`'s `settings.py:45`.
+
+- Corrected citations checked against the code: `recorder.py:260-262` (save, then the failure appended), `:263`
+  (`complete`), `:273-274` (the flag), `:285-286` (the canonical marker), `drive_only_store.py:49-62`,
+  `compare.py:40-43`. All correct.
+- The new follow-ups are accurate. `compare.py:42` calls `.decode()` on what the guarded store returns, so a not-saved
+  file fails with `AttributeError` rather than a named refusal. Safe (no snapshot is built), and fine as a lane-2
+  follow-up. The dashboard contract is correctly left to the owner.
+- Story is 253 lines (under 500).
+- Gates on `60ab2d8` (`__pycache__` cleared): 522 passed; ruff check and format clean; imports clean. Plants re-run:
+  T1 (the 900 s Drive total) 3 failed, W6b 1 failed, R4 1 failed. All other Addendum 4 plants carry over unchanged
+  on identical code.
+
+**Verdict: PASS** on `60ab2d8` (lane 1, code round 2, judge #2).

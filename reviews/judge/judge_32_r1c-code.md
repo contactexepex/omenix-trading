@@ -191,3 +191,85 @@ The fix stays as in Addendum 1:
 **Minor (no action required):** the comparison test asserts `AttributeError` from `None.decode()`. That pins a crash's
 type, not a designed refusal. It is loud, which is the point, but a later tidy-up of `compare` could turn it into a
 silent `None`. This is acceptable for now because the writer-side test is now the main protection.
+
+## Addendum 3: code round 2, c05a1d7: PASS
+
+Reviewed `c05a1d7d022d7dd88770ff1287f47b9460367015` (`story/R1c-code-r2`), the SHA routed as decisive. The branch moved
+on to `60ab2d8` after routing. I reviewed that delta too (below).
+
+**Gates on c05a1d7:**
+- Suite: 522 passed, 3 runs out of 3, `__pycache__` cleared.
+- ruff, imports (390 files) and size (3 passed): clean.
+
+The production diff from 1381a8e is one line: Drive's `max_total_seconds=float("inf")` (`settings.py:56`).
+
+**Finding 1, closed.** My probe at c05a1d7 now gives 5 tries at 60, 100, 110 and 200 s attempts with Retry-After 300,
+and 5 tries with no header.
+- (a) Only `drive` changed. A plant giving NSE an infinite total is caught. At 60ab2d8, `nse_json`'s 60 s is pinned too.
+- (b) It is `inf`, not a finite number. Plants of 900 and of 1e6 are both caught.
+- (c) A fake-clock test with 1000 s attempts asserts 5 tries and four waits of 120 s.
+- (d) The 780 s test no longer pins a limit; it now asserts the limit is `inf`.
+
+**Finding 2, still closed.** The plant (`complete` ignores the save error) is caught. Judge #2's S3 plant (the
+`RAW_FILE_SAVED=False` line made `pass`) is caught too.
+
+**Finding 3, closed.** The new test runs the real `IntradayRecorder._take` over a Drive that drops after the create, then
+`Settlement.settle`. The result is a `DRIVE_WRITE` failure and one `failed` row naming no Drive copy. My plant (swallow
+the error, return taken with `path=None`) is caught.
+
+**Finding 4, still closed.** The plant (re-send `ConnectionError` not retried) is caught.
+
+**Earlier plants, all caught:** the 401 re-sign repeated, the cap removed, the ceiling 100, and the receipt written
+before the Drive put. That is 11 of 11 plants at this SHA.
+
+**Story text (one functionality, one document):** the two-readers chain is right in substance. At c05a1d7 its line
+references are off by one or two:
+
+| Cited | Actual |
+|---|---|
+| `recorder.py:258-259` (the raw-save error is a failure) | `260-262` |
+| `recorder.py:261-263` (`complete`) | `263` |
+| `drive_only_store.py:48-62` | `49-63` |
+
+60ab2d8 corrects the first two and gives `49-62`; the method's last line is 63, so that is a nit. Not blocking: every
+citation lands on or next to the code it names, and the reasoning it states is true (I traced it).
+
+**60ab2d8 delta (reviewed):** story text, plus one test assertion (`nse_json` limit 60 s). `fno/` is identical, and 522
+tests pass. Either SHA is acceptable to me; the orchestrator picks the one that merges. Pushing after a SHA is routed
+breaks the freeze rule; the orchestrator should note that, but it changes no verdict here.
+
+**Hard lines:**
+- No orders.
+- No secrets in the diff.
+- No Groww call: every plant and probe used fakes.
+- Write-once is untouched: no put or conflict logic changed.
+- NSE retry numbers are unchanged.
+
+**Verdict: PASS (strong evidence: gates run, probe re-run, 11 plants caught).**
+
+## Addendum 4: 60ab2d8, the routed round-2 SHA: PASS
+
+The orchestrator corrected the routed SHA to `60ab2d8b989763d2c6a86c067299fd2d29de1126`. `fno/` is byte-identical to
+c05a1d7 (`git diff --quiet`), so the code review, gates and 11 plants of Addendum 3 carry over. At 60ab2d8: 522 passed.
+The delta is the story's line numbers plus one test assertion pinning `nse_json`'s 60 s limit.
+
+I checked each corrected citation against the code at 60ab2d8:
+
+| Citation | Code at that line | Result |
+|---|---|---|
+| `recorder.py:260-262` | the save, then `failures.append(raw_file_error)` | right |
+| `recorder.py:263` | `complete = ... not failures ...` | right |
+| `recorder.py:273-274` | `meta[RAW_FILE_SAVED] = False` | right |
+| `recorder.py:284-286` and `:285-286` | the sidecar put, then the marker put only if `complete` | right |
+| `compare.py:40` | the direct sidecar read | right |
+| `drive_session.py:49` | the per-call `signed_in_again` flag | right |
+| `drive_session.py:54/56/57` | the re-sign check, the flag set, the re-send | right |
+
+Nits, not blocking:
+- `drive_only_store.py:49-62` stops one line short of the method's `return data` at `:63`.
+- `recorder.py:185` names the `if` whose marker put is at `:186`.
+- The worst-case section's `drive_session.py:41-62` is an approximate span of `request`.
+
+Each lands on or next to the code it names, and the reasoning it supports is true.
+
+**Verdict on 60ab2d8: PASS (strong evidence).**

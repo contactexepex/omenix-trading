@@ -124,8 +124,8 @@ def test_settings_refuse_a_cap_below_twice_the_largest_floor_and_empty_or_bad_wa
         RetrySettings(waits=(0.0,), cap_seconds=10.0, retry_after_ceiling_seconds=1.0, max_total_seconds=1.0)
 
 
-def test_nse_jitter_is_a_quarter_and_the_others_double():
-    assert settings_for("nse").retry.jitter == 0.25 and settings_for("drive").retry.jitter == 1.0
+def test_nse_and_drive_jitter_is_a_quarter():
+    assert settings_for("nse").retry.jitter == 0.25 and settings_for("drive").retry.jitter == 0.25
 
 
 def test_jitter_scales_the_random_part_and_a_cap_below_the_longest_jittered_wait_is_refused():
