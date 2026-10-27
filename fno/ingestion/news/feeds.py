@@ -88,7 +88,7 @@ class PrivateFeedLists:
         SHA-256 each used version had when it was used; a version whose file now differs was edited in place, is skipped
         (never silently) and the next older good one is used instead."""
         used = used or {}
-        versions = {int(m.group(1)): n for n in self.store.checksums(FEEDS_FOLDER) if (m := VERSION_NAME.match(n))}
+        versions = self._versions()
         if not versions:
             raise FeedListError(codes.FEED_LIST_MISSING)
         if max(versions) < lowest_version:
@@ -104,3 +104,24 @@ class PrivateFeedLists:
             found = parse_feed_list(data, version)
             return FeedList(found.version, found.feeds, found.sha256, tuple(damaged))
         raise FeedListError(codes.FEED_LIST_DAMAGED)
+
+    def kinds_ever_listed(self) -> dict[str, str]:
+        """Feed id -> kind over every valid version, so a feed retired from the newest list still has its kind and its
+        staged polls stay promotable. A version that cannot be read is skipped; one id given two kinds stops the run
+        (changing a kind would give existing items new keys)."""
+        kinds: dict[str, str] = {}
+        for version, name in sorted(self._versions().items()):
+            data = self.store.get(f"{FEEDS_FOLDER}/{name}")
+            try:
+                listed = parse_feed_list(data, version) if data is not None else None
+            except FeedListError:
+                continue
+            for feed in listed.feeds if listed else ():
+                if kinds.setdefault(feed.feed_id, feed.kind) != feed.kind:
+                    raise FeedListError(codes.FEED_KIND_CHANGED)
+        if not kinds:
+            raise FeedListError(codes.FEED_LIST_MISSING)
+        return kinds
+
+    def _versions(self) -> dict[int, str]:
+        return {int(m.group(1)): n for n in self.store.checksums(FEEDS_FOLDER) if (m := VERSION_NAME.match(n))}

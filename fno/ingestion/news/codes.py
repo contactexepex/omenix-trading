@@ -14,6 +14,7 @@ UNEXPECTED = "unexpected_error"  # anything else; only the exception class is ev
 FEED_LIST_MISSING = "feed_list_missing"
 FEED_LIST_INVALID = "feed_list_invalid"
 FEED_LIST_ROLLED_BACK = "feed_list_rolled_back"  # the newest version is older than one already used
+FEED_KIND_CHANGED = "feed_kind_changed"  # two versions of the list give one feed id different kinds: promotion stops
 FEED_LIST_DAMAGED = "feed_list_damaged"  # a version already used has been edited in place; the last good one is used
 
 OK_CODES = (FETCHED, UNCHANGED)
@@ -24,3 +25,14 @@ POLL_TOO_LARGE, UNSAFE_XML = "poll_too_large", "unsafe_xml"
 NOT_A_FEED, NO_ITEMS = "not_a_feed", "no_items"
 ITEM_MISSING_TITLE, ITEM_MISSING_LINK, ITEM_TOO_LONG = "item_missing_title", "item_missing_link", "item_too_long"
 ITEM_UNREADABLE = "item_unreadable"  # a link or time the standard library cannot read: counted, the poll goes on
+# the writer (P2b2): outcomes of promoting a staged poll's articles to the Record
+FEED_UNKNOWN = (
+    "feed_unknown"  # a staged poll whose feed id is not in the feed list: its kind is unknown, it stays staged
+)
+RECORD_FAILED = "record_failed"  # Drive or the manifest would not take an article (only the code is kept)
+RECORD_CONFLICT = (
+    "record_conflict"  # the manifest or the Record holds other bytes for this id, or a revision name collides
+)
+NOT_RECONCILED = "not_reconciled"  # items != recorded + revisions + no-ops + rejected: an item went missing
+MANIFEST_BROKEN = "manifest_broken"  # the news manifest ends in a torn line: nothing is written until it is trimmed
+MANIFEST_ROW_SKIPPED = "manifest_row_skipped"  # rows of the news manifest that are not whole (counted, never ignored)
