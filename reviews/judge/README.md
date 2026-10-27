@@ -132,3 +132,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 119 | NP10 page snippet, code (judge #2) | 1 | PASS (round 2, 886feb8, condition C1; round 1 FAIL cfb87c6) | `judge_119_np10-snippet-judge2.md` |
 | 120 | NP10 page snippet (code, judge #1) | 2 | PASS (round 2, 3793258, runner 269/269; round 1 FAIL cfb87c6) | `judge_120_np10-snippet.md` |
 | 121 | NP9b follow-up, code (judge #2) | 1 | PASS (round 1, a3e5c13) | `judge_121_np9b-followup-judge2.md` |
+| 122 | NP9b follow-up: NBSP cut, matcher source (code, judge #1) | 1 | PASS (round 1, a3e5c13; runner 262/262) | `judge_122_np9b-followup.md` |
