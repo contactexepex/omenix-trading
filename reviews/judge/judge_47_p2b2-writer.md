@@ -158,3 +158,35 @@ This is a silent corruption of a public, append-only file. The fix is still: wri
 
 **Verdict at 321faad: FAIL (round 2 of 2)**, on B alone. Everything else passes. It goes to the orchestrator under the
 two-round rule. My recommendation: fold B (a few lines plus one test), then a bounded re-check of B only.
+
+## Addendum 3: 8d91634 (supersedes 321faad): PASS
+
+The implementer routed `8d91634a0556b6a02ded7e45af8846878528fe68` as the P2b2 round-2 SHA, superseding 321faad.
+Whether it counts as round 2 or as the bounded B re-check I recommended is the orchestrator's call; my verdict is the
+same either way.
+
+**Gates:** 760 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+**B is closed (strong evidence: reproduction and plants).**
+- `NewsManifest` now appends through `CsvRowLog`.
+- My torn-line reproduction gives `skipped: 1`. The next `add` raises `TableFileBroken`, and the file is unchanged:
+  nothing is glued.
+- The gate calls `check_appendable` before any write, and the CLI turns `TableFileBroken` into the code
+  `manifest_broken`, plus an alert and exit 1.
+- Rows that are not whole (missing cells, extra cells, a bad status, a SHA-256 that is not 64 hex characters, a size
+  that is not a number) are skipped and reported as `manifest_row_skipped`. They are never silently dropped.
+
+| Plant | Result |
+|---|---|
+| No check in the gate | caught |
+| No check in `add` | caught |
+| The `CsvRowLog` guard off | caught |
+| Skipped rows not reported | caught |
+| A loose whole-row test | caught |
+| The CLI not catching `TableFileBroken` | caught |
+
+**No regression:** the W1 plant (a revision with no row) is caught, and my W2 retired-feed probe still gives `ok=True`.
+The fixes for sha8 and `kinds_ever_listed` are unchanged since Addendum 2.
+
+**Verdict: PASS (strong evidence).** P2b2 also needs judge #2's PASS before it merges. The owner trims a torn line by
+hand, which is the loud path I asked for.
