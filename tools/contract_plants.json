@@ -1253,5 +1253,15 @@
   "file": "fno/ingestion/news/resolve/wiring.py",
   "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE), build_link_resolver(feeds)",
   "new": "NewsManifest(POLL_LOG_FOLDER), build_link_resolver(feeds)"
+ },
+ {
+  "id": "X10",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_the_news_proof_is_built_with_the_wrapper_index_so_the_cleanup_consults_it",
+   "tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_the_news_proof_cannot_be_built_without_an_index"
+  ],
+  "file": "fno/ingestion/staging_cleanup/wiring.py",
+  "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE)",
+  "new": "NewsManifest(POLL_LOG_FOLDER)"
  }
 ]

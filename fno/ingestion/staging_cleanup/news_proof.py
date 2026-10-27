@@ -39,10 +39,11 @@ class NewsPollProof(PromotedProof):
         kinds: Mapping[str, str],
         planner: ArticlePlanner,
         manifest: NewsManifest,
-        wrappers: NewsManifest | None = None,
+        wrappers: NewsManifest,
     ):
         """`kinds`: feed id -> kind; `planner`: the Record, read only; `manifest`: the checkout's articles manifest;
-        `wrappers`: the wrapper index (NP2d): a Google News article with a link must also have its row there, so a
+        `wrappers`: the wrapper index (NP2d), REQUIRED so the check can never be silently off: a Google News article
+        with a link must also have its row there, so a
         poll is never trashed while its resolve marker is missing (judge 86)."""
         self.kinds, self.planner, self.manifest, self.wrappers = kinds, planner, manifest, wrappers
 
@@ -70,6 +71,6 @@ class NewsPollProof(PromotedProof):
 
     def _indexed(self, article: Article, plan) -> bool:
         """A resolvable article's main file also has its row in the wrapper index (revision files are never indexed)."""
-        if self.wrappers is None or plan.status != RECORDED or not is_resolvable(article):
+        if plan.status != RECORDED or not is_resolvable(article):
             return True
         return self.wrappers.has(article.key, RECORDED, hashlib.sha256(plan.held).hexdigest())

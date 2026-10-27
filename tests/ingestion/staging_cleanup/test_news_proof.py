@@ -119,7 +119,12 @@ def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
         def get(self, path):
             raise OSError("Drive down")
 
-    proof = NewsPollProof(s.kinds, ArticlePlanner(Down(s.drive, "raw")), NewsManifest(s.manifest_folder))
+    proof = NewsPollProof(
+        s.kinds,
+        ArticlePlanner(Down(s.drive, "raw")),
+        NewsManifest(s.manifest_folder),
+        NewsManifest(s.manifest_folder, WRAPPERS_FILE),
+    )
     trash = Trash()
     report = cleanup(s, trash, proof).run([SOURCE])
     assert trash.calls == [] and report.counts["proof_error"] == 1 and not report.ok
