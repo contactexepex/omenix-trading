@@ -91,3 +91,39 @@ passed; contract plants all ok.
   alerts.
 
 **Verdict: FAIL** (round 1, `d636145`). F1 is a one-comparison fix with a test.
+
+## Addendum 1: round 2 on `678259c` (supersedes `1a34bd3`, which has the same code)
+
+`git diff d636145 678259c -- fno .github docs/RUN_LOCATIONS.md`:
+- `_walk` passes Drive's listed MD5 to `_file`;
+- bytes that do not hash to it write no receipt and are reported;
+- a listing error is caught per folder;
+- the workflow has `set -f`, no Slack token, a run-window comment and the wider default `data/circulars`;
+- the story records the owner question.
+
+The `circulars.yml` pause in the range is CP1, already on main (judge 64); it is not part of this change.
+
+**Gates (cleared `__pycache__`):** 1171 passed; ruff check and format clean; imports clean (489 files); code size passed;
+contract plants all ok.
+
+**My Addendum 0 reproductions, re-run:**
+- **F1 fixed.** The short read now writes nothing and reports "not the ones Drive lists". The sync still says "no
+  receipts", so nothing wrong is adopted. A re-run with a good read writes the receipt. The bad read is no longer
+  permanent.
+- **F2 fixed.** A listing error is a problem line naming the folder. My doubled-name store no longer raises.
+
+**Plants (4 of 4 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| MD5 check off | 3 |
+| an empty listed MD5 accepted | 1 |
+| folder error silent | 1 |
+| MD5 mismatch not a problem | 3 |
+
+**F3:** recorded in the story as the owner's question, with the reasoning. The owner's answer, relayed by the
+orchestrator, is "rebuild, no old-repo access". The apply is on hold until then, as the story says. Accepted.
+
+**Workflow notes:** all three are folded in (`set -f`, token removed, run window stated).
+
+**Verdict: PASS** (`678259c`).
