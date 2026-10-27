@@ -27,7 +27,7 @@ def build_news_promotion(env=os.environ) -> NewsGate:
     drive = build_owner_drive(env)
     if drive is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
-    kinds = {f.feed_id: f.kind for f in PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).latest().feeds}
+    kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
     store = DataStore(drive, RAW_AREA, receipt_folder(), WRITER, new_run_id(now_utc()))
     writer = ArticleWriter(AreaStore(drive, RAW_AREA), store, NewsManifest(POLL_LOG_FOLDER))
     return NewsGate(StagingArea(AreaStore(drive, STAGING_AREA)), writer, kinds)

@@ -14,6 +14,7 @@ UNEXPECTED = "unexpected_error"  # anything else; only the exception class is ev
 FEED_LIST_MISSING = "feed_list_missing"
 FEED_LIST_INVALID = "feed_list_invalid"
 FEED_LIST_ROLLED_BACK = "feed_list_rolled_back"  # the newest version is older than one already used
+FEED_KIND_CHANGED = "feed_kind_changed"  # two versions of the list give one feed id different kinds: promotion stops
 FEED_LIST_DAMAGED = "feed_list_damaged"  # a version already used has been edited in place; the last good one is used
 
 OK_CODES = (FETCHED, UNCHANGED)

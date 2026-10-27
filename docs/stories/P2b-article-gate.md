@@ -117,13 +117,17 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   Revisions and no-ops are normal and do not alert. A failed poll stays in Staging and is re-read on every run.
 - **Cost, measured by reasoning:** one Drive read per distinct article key per run (an in-run cache), plus one listing per
   feed per day; the manifest is read once per run and appended to.
-- **Known limit:** each feed's kind comes from the newest feed list, not the one that fetched the poll; changing a feed's kind
-  would give existing items new keys. Do not change a feed's kind; add a new feed id.
+- **Kinds (judge 48 S2):** each feed id's kind is read over EVERY valid version of the feed list (`kinds_ever_listed`), so a
+  feed retired from the newest list keeps its kind and its staged polls stay promotable. An id given two kinds in two versions
+  stops the run with `feed_kind_changed`; an unreadable old version is skipped.
 - **Round 1 (judge 47):** a revision's own manifest row and receipt are now asserted on the first run (W1: a repair on a later
   poll had masked a missing row); a staged feed unknown to the list is reported only for polls inside `--from`..`--to`, so a
-  retired feed stops failing later runs (W2); a revision name collision (same 8 hex characters, other fields) is a
+  retired feed stops failing later runs (W2, with S2 above); a revision name collision (same 8 hex characters, other fields) is a
   `record_conflict`, never a no-op.
-- **Proof:** 25 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
+- **Wiring (judge 48 S1):** `build_news_promotion` itself runs on a recording fake Drive: every write lands under
+  `raw/news/articles|revisions`, every read under `staging/news`, `config/feeds` or `raw/news`, and a second process reads the
+  Record back (all no-ops); plants that swap the writer, the reader or the gate onto the wrong area fail.
+- **Proof:** 29 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
   file-before-row order, the manifest conflict check, the conflict catch, the unknown-feed check, the poll-reject count, and the
   reconciliation sum. The master privacy test runs a marker headline, host, path and query through the article file, manifest,
   receipts, report line and DEBUG logs, including a refused poll.
