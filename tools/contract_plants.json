@@ -424,5 +424,77 @@
   "file": "ops/commit_news_record.sh",
   "old": "python -m fno news repair-batches receipts/_batches || broken=1",
   "new": ":"
+ },
+ {
+  "id": "O1",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        for start in range(max(len(parts) - 1, 0)):\n            outlet = self.outlets.get(\".\".join(parts[start:]))",
+  "new": "        for start in range(len(name)):\n            outlet = self.outlets.get(name[start:])"
+ },
+ {
+  "id": "O2",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    return cleaned if PLAIN_HOST.match(cleaned) else \"\"",
+  "new": "    return cleaned"
+ },
+ {
+  "id": "O3",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return bool(outlet and outlet.fetch)",
+  "new": "        return True"
+ },
+ {
+  "id": "O4",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return outlet.tier if outlet else UNLISTED",
+  "new": "        return outlet.tier if outlet else \"tier2\""
+ },
+ {
+  "id": "O5",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_tier_that_is_not_a_listed_tier_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if tier not in LISTED_TIERS:",
+  "new": "    if False:"
+ },
+ {
+  "id": "O6",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_extractor_omenix_does_not_run_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if any(name not in EXTRACTORS for name in extract):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O7",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_unknown_key_is_refused_wherever_it_is_so_a_typo_is_never_ignored"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    unknown = sorted(str(k) for k in section if k not in allowed)",
+  "new": "    unknown = []"
+ },
+ {
+  "id": "O8",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_news_desk_prefix_decides_opinion_and_an_unknown_path_is_opinion"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return not (path or \"\").startswith(outlet.opinion_unless_path)",
+  "new": "        return False"
  }
 ]

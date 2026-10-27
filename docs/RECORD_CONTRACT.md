@@ -106,6 +106,21 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 | E5 | A staged NSE copy is kept unless the manifest also holds a row with that file's SHA-256 (a stopped promote leaves a Record file with no row; the staged copy is what lets the gate write it later). | `NseCopyProof.promoted`, `ArchiveFingerprints` | `tests/ingestion/staging_cleanup/test_cleanup.py::test_a_record_file_without_a_manifest_row_keeps_the_staged_copy`<br>`tests/ingestion/staging_cleanup/test_cleanup.py::test_a_manifest_row_for_other_bytes_keeps_the_staged_copy` | row check always true | **tested, plant run** |
 | E6 | A proof that cannot decide (Drive down, a damaged index, a bug) never trashes and is never swallowed: the copy is kept, counted as `proof_error`, and the run turns red. | `StagingCleanup._one` | `tests/ingestion/staging_cleanup/test_cleanup.py::test_a_bug_in_a_proof_is_counted_and_turns_the_run_red_never_swallowed`<br>`tests/ingestion/staging_cleanup/test_cleanup.py::test_a_record_that_cannot_be_read_keeps_the_copy_and_turns_the_run_red` | error counted as unproven (silent) | **tested, plant run** |
 
+## News source rules (NP1; the plan is NP0)
+
+The public allowlist `config/news_sources.yaml` and the pure lookups over it. It is the foundation of the tiers and the real source URL that later stories add; these rows pin what it already guarantees.
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| O1 | A host finds a listed outlet only from the right at a dot boundary: `notreuters.com`, `evil-reuters.com` and `reuters.com.evil.example` are unlisted. | `SourceRules.lookup` | `tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted` | suffix match anywhere in the name | **tested, plant run** |
+| O2 | A host that is not a plain lower-case ASCII name (space, port, credentials, path, non-ASCII, address) is unlisted even when it ends in a listed domain. | `plain_host` | `tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted` | no host-shape check | **tested, plant run** |
+| O3 | Only a listed outlet that does not refuse bots may ever be requested; an unlisted host never is, and `fetch: false` is inherited by subdomains. | `SourceRules.may_fetch` | `tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either` | every host fetchable | **tested, plant run** |
+| O4 | An unlisted host has tier `unlisted`, never a listed tier. | `SourceRules.tier_of` | `tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted` | unlisted answers tier2 | **tested, plant run** |
+| O5 | The rules file is refused when an outlet's tier is not primary, tier1 or tier2. | `loader._outlet` | `tests/ingestion/news/sources/test_loader.py::test_a_tier_that_is_not_a_listed_tier_is_refused` | tier not checked | **tested, plant run** |
+| O6 | The rules file is refused when an outlet names an extractor omenix does not run (newspaper4k is not one). | `loader._outlet` | `tests/ingestion/news/sources/test_loader.py::test_an_extractor_omenix_does_not_run_is_refused` | extractor not checked | **tested, plant run** |
+| O7 | The rules file is refused for any key it does not know, at every level, so a typo is never silently ignored. | `loader._only` | `tests/ingestion/news/sources/test_loader.py::test_an_unknown_key_is_refused_wherever_it_is_so_a_typo_is_never_ignored` | unknown keys accepted | **tested, plant run** |
+| O8 | An outlet that marks its news desk by a path prefix has everything else, and an item with no known path, treated as opinion (never an origin). | `SourceRules.is_opinion` | `tests/ingestion/news/sources/test_rules.py::test_a_news_desk_prefix_decides_opinion_and_an_unknown_path_is_opinion` | nothing is opinion | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the
