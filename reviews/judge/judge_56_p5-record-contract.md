@@ -90,3 +90,23 @@ default suite.
 
 None is narrowed. The document only describes. "No credential separation" and "format, not authenticity" are stated
 plainly.
+
+## Addendum 1: round 2, 31796d7: PASS
+
+Reviewed `31796d7495a15a9a5f9f5d8bf56d5ca3640ff6c5`, which changes text and the plant list only
+(`RECORD_CONTRACT.md` +6/-4, `contract_plants.json` +2/-1).
+
+**The required item is closed.** A new "Not guaranteed" bullet says receipts are verified only through `DriveCache`,
+that `data-checks.yml` syncs only `data/vix`, and that the gate, the news writer, the cluster run and the feed list read
+Drive directly, so a file changed behind its receipt is not detected there. The Recovery sentence is narrowed to "only
+where they are checked". Both statements are accurate against the code (Addendum 0, section 3).
+
+**Nits are closed:** P1 now lists `test_finding_str_has_no_value` (re-running P1's plant gives ok), and the news writers'
+"only" now reads "within their packages".
+
+**Gates:** `test_record_contract.py` and `test_code_size.py` pass (9). The record scan applies to the commit.
+
+**A wording nit, not blocking:** the Recovery bullet says "(next bullet)", but the receipts bullet comes *before* it.
+It should say "previous bullet". Fix it whenever the document is next touched.
+
+**Verdict: PASS.** P5 can merge.
