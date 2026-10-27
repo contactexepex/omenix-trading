@@ -1823,7 +1823,7 @@
    "tests/ingestion/news/materiality/test_terms_and_file.py::test_a_term_beyond_the_text_cap_is_not_seen"
   ],
   "file": "fno/ingestion/news/materiality/terms.py",
-  "old": "        text = capped(title)",
+  "old": "        text = without_outlet(capped(title), source)",
   "new": "        text = title or \"\""
  },
  {
