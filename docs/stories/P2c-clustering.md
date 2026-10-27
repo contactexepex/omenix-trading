@@ -62,7 +62,17 @@ this plan only turns them into files and tests. **P2c is a pure function: no I/O
 - **The entity list is a guess** (F&O symbols and indices that the project already holds can seed it; the list lives in code).
 - **Wire-credit outlet counting (corroboration)** is an owner decision (design) and is **not** built in P2c; it is a later field.
 
+## Decision (orchestrator, 27 Oct 2026) and the warning that goes with it
+
+Ship named default constants for the similarity threshold and the window, behind the `Similarity` interface so re-tuning is a
+one-line change, and re-tune from the first week of real polls. **Until then, nothing derived from clusters (corroboration, a
+story count, "how many outlets carried it") may be trusted:** the defaults are reasoning only, tested on invented pairs, which
+proves the code obeys the rule and says nothing about whether the threshold is right for real news. The same warning is in the
+constants' docstring. The hard guards (no merge on an entity alone, no chaining) bound the damage of a wrong threshold to
+"too many or too few clusters", never to a lost or hidden article. Corroboration and wire-credit counting stay out (owner
+decision). One judge, as for P2b1 (a pure module), after P2b3 merges.
+
 ## Order and gates
 
 P2c, then P2d (the cluster record). Gates: full suite, ruff, imports, numbers, size (350 per file and class), record scan,
-mutation plants for every line above, two judges (it feeds the Record).
+mutation plants for every line above, one judge (a pure module; the Record writer is P2d, with two).
