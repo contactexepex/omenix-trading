@@ -1,6 +1,7 @@
-"""CF1 step 0: today's exit code of every caller that prints the committer's line, for each of the real lines. Written
-BEFORE the change and passing on the unchanged code: the rows marked BUG pin the silent failure (a "NOT committed"
-line leaves the exit code and the alerts as they are). Step 1 flips exactly those rows."""
+"""CF1: every caller that prints the committer's line, for each of the REAL lines. A commit that pushed, and one with
+nothing new to commit, leave every exit code exactly as it was (no live run turns red). A "NOT committed" line now
+ends the run at least red with exactly one alert. Step 0 of the story pinned the old, silent behaviour on the
+unchanged code; this file keeps the good-commit rows and flips only the failed-commit rows."""
 
 from __future__ import annotations
 
@@ -69,9 +70,10 @@ def test_librarian_a_good_commit_keeps_the_fill_exit_code(lines, line):
     assert librarian(getattr(lines, line), stopped=True)[0] == 1
 
 
-def test_librarian_BUG_a_failed_commit_changes_nothing_in_the_finished_or_the_stopped_run(lines):
-    assert librarian(lines.failed) == (0, [])  # BUG: green, no alert
-    assert librarian(lines.failed, stopped=True)[0] == 1 and librarian(lines.failed, complete=False)[0] == 1
+def test_librarian_a_failed_commit_is_red_with_one_alert_in_the_finished_and_the_stopped_run(lines):
+    for kwargs in ({}, {"stopped": True}, {"complete": False}):
+        code, sent = librarian(lines.failed, **kwargs)
+        assert code == 1 and len(sent) == 1 and "NOT committed" in sent[0] and "data-librarian ds" in sent[0]
 
 
 # ---- data-snapshot ------------------------------------------------------------------------------------------------
@@ -97,9 +99,10 @@ def test_snapshot_a_good_commit_keeps_the_exit_code(monkeypatch, lines, line):
     assert snapshot(monkeypatch, getattr(lines, line), error=ValueError("bad"))[0] == 1
 
 
-def test_snapshot_BUG_a_failed_commit_changes_nothing(monkeypatch, lines):
-    assert snapshot(monkeypatch, lines.failed) == (0, [])  # BUG: green, no alert
-    assert snapshot(monkeypatch, lines.failed, error=ValueError("bad"))[0] == 1
+def test_snapshot_a_failed_commit_is_red_with_one_alert(monkeypatch, lines):
+    for error in (None, ValueError("bad")):
+        code, sent = snapshot(monkeypatch, lines.failed, error=error)
+        assert code == 1 and len(sent) == 1 and "data-snapshot ds" in sent[0]
 
 
 # ---- data-revisions sweep ------------------------------------------------------------------------------------------
@@ -131,9 +134,10 @@ def test_revisions_a_good_commit_keeps_the_exit_code(monkeypatch, lines, line):
     assert revisions(monkeypatch, getattr(lines, line), stopped="NSE down")[0] == 1
 
 
-def test_revisions_BUG_a_failed_commit_changes_nothing(monkeypatch, lines):
-    assert revisions(monkeypatch, lines.failed) == (0, [])  # BUG: green, no alert
-    assert revisions(monkeypatch, lines.failed, stopped="NSE down")[0] == 1
+def test_revisions_a_failed_commit_is_red_with_one_alert(monkeypatch, lines):
+    for stopped in ("", "NSE down"):
+        code, sent = revisions(monkeypatch, lines.failed, stopped=stopped)
+        assert code == 1 and len(sent) == 1 and "data-revisions sweep" in sent[0]
 
 
 # ---- promote -------------------------------------------------------------------------------------------------------
@@ -167,9 +171,13 @@ def test_promote_a_good_commit_keeps_the_exit_code(monkeypatch, lines, line):
     assert code == 1 and len(sent) == 1
 
 
-def test_promote_BUG_a_failed_commit_changes_nothing(monkeypatch, lines):
-    assert promote(monkeypatch, lines.failed) == (0, [])  # BUG: green, no alert
-    assert promote(monkeypatch, lines.failed, rejected=True)[0] == 1
+def test_promote_a_failed_commit_is_red_with_its_own_alert(monkeypatch, lines):
+    code, sent = promote(monkeypatch, lines.failed)
+    assert code == 1 and len(sent) == 1 and "promote participant-oi" in sent[0]
+    code, sent = promote(
+        monkeypatch, lines.failed, rejected=True
+    )  # the rejected-files alert and the commit alert are two problems
+    assert code == 1 and len(sent) == 2
 
 
 # ---- the intraday recorder's report -------------------------------------------------------------------------------
@@ -180,16 +188,20 @@ def test_intraday_a_good_commit_keeps_the_exit_code(lines, line):
     from fno.ingestion.intraday.cli import report
     from fno.ingestion.intraday.recorder import SlotOutcome
 
-    assert report([SlotOutcome("good", "09:30", lines=[getattr(lines, line)])]) == 0
-    assert report([SlotOutcome("failed", "09:30", lines=[getattr(lines, line)])]) == 1
+    alerts = Alerts()
+    assert report([SlotOutcome("good", "09:30", lines=[getattr(lines, line)])], alerts) == 0
+    assert report([SlotOutcome("failed", "09:30", lines=[getattr(lines, line)])], alerts) == 1 and alerts.sent == []
 
 
-def test_intraday_BUG_a_failed_commit_changes_nothing(lines):
+def test_intraday_a_failed_commit_on_any_mark_is_red_with_one_alert(lines):
     from fno.ingestion.intraday.cli import report
     from fno.ingestion.intraday.recorder import SlotOutcome
 
-    assert report([SlotOutcome("good", "09:30", lines=[lines.failed])]) == 0  # BUG: green
-    assert report([SlotOutcome("failed", "09:30", lines=[lines.failed])]) == 1
+    alerts = Alerts()
+    marks = [SlotOutcome("good", "09:30", lines=[lines.pushed]), SlotOutcome("good", "09:45", lines=[lines.failed]),
+             SlotOutcome("good", "10:00", lines=[lines.failed])]  # fmt: skip
+    assert report(marks, alerts) == 1 and len(alerts.sent) == 1  # two failed commits, still one alert per run
+    assert report([SlotOutcome("failed", "09:30", lines=[lines.failed])], alerts) == 1
 
 
 # ---- nsdl-backfill (a hand command) ----------------------------------------------------------------------------------
@@ -218,6 +230,64 @@ def test_nsdl_a_good_commit_keeps_the_exit_code(monkeypatch, lines, line):
     assert nsdl(monkeypatch, getattr(lines, line), failed={date(2019, 1, 31): "x"})[0] == 1
 
 
-def test_nsdl_BUG_a_failed_commit_changes_nothing(monkeypatch, lines):
-    assert nsdl(monkeypatch, lines.failed) == (0, [])  # BUG: green, no alert
-    assert nsdl(monkeypatch, lines.failed, failed={date(2019, 1, 31): "x"})[0] == 1
+def test_nsdl_a_failed_commit_is_red_with_one_alert(monkeypatch, lines):
+    code, sent = nsdl(monkeypatch, lines.failed)
+    assert code == 1 and len(sent) == 1 and "nsdl-backfill" in sent[0]
+    code, sent = nsdl(
+        monkeypatch, lines.failed, failed={date(2019, 1, 31): "x"}
+    )  # the failed months and the commit: two problems
+    assert code == 1 and len(sent) == 2
+
+
+# ---- the two paths that leave early: promote with a refused sign-in, and intraday rv -------------------------
+
+
+def test_promote_with_a_refused_sign_in_is_red_anyway_and_a_failed_commit_adds_its_alert(monkeypatch, lines):
+    from fno.ingestion.cli import build_parser
+    from fno.ingestion.promotion import cli, wiring
+    from fno.ingestion.storage.owner_token import DriveSignInRefused
+
+    def refuse(dataset, lag):
+        raise DriveSignInRefused("expired")
+
+    results = {}
+    for name in ("pushed", "failed"):
+        alerts = Alerts()
+        monkeypatch.setattr(storage_wiring, "build_manifest_recorder", lambda name=name: Recorder(getattr(lines, name)))
+        monkeypatch.setattr(composition, "build_alert_sender", lambda alerts=alerts: alerts)
+        monkeypatch.setattr(wiring, "build_promotion_run", refuse)
+        args = build_parser().parse_args(["promote", "participant-oi", "--from", "2026-10-01"])
+        results[name] = (cli.cmd_promote(args, out=lambda text: None), alerts.sent)
+    assert results["pushed"] == (1, [])
+    assert (
+        results["failed"][0] == 1
+        and len(results["failed"][1]) == 1
+        and "promote participant-oi" in results["failed"][1][0]
+    )
+
+
+def intraday_rv(monkeypatch, settled_lines):
+    from fno.ingestion import composition as comp
+    from fno.ingestion.intraday import cli, wiring
+    from fno.shared import config
+
+    class Recorder:
+        def settle_day(self, day):
+            return settled_lines
+
+    alerts = Alerts()
+    monkeypatch.setattr(config, "load_app_config", lambda path: {})
+    monkeypatch.setattr(comp, "build_alert_sender", lambda: alerts)
+    monkeypatch.setattr(wiring, "build_intraday_recorder", lambda cfg, folder: Recorder())
+    args = Namespace(intraday_cmd="rv", day=None, config=None)
+    return cli.cmd_intraday(args), alerts.sent
+
+
+@pytest.mark.parametrize("line", ["pushed", "nothing"])
+def test_intraday_rv_a_good_commit_stays_green(monkeypatch, lines, line):
+    assert intraday_rv(monkeypatch, ["settled", getattr(lines, line)]) == (0, [])
+
+
+def test_intraday_rv_a_failed_commit_is_red_with_one_alert(monkeypatch, lines):
+    code, sent = intraday_rv(monkeypatch, ["settled", lines.failed])
+    assert code == 1 and len(sent) == 1 and "intraday rv" in sent[0]

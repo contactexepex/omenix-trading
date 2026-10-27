@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import subprocess
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 PUSH_ATTEMPTS = 3
@@ -22,6 +22,12 @@ COMMITTED_AS, NOTHING_AS = "{label} committed and pushed ({count} file(s))", "{l
 COMMITTED = COMMITTED_AS.format(label=MANIFEST_LABEL, count="{count}")
 NOTHING = NOTHING_AS.format(label=MANIFEST_LABEL)
 NOT_COMMITTED = "{label} NOT committed: {step} failed: {reason}. Commit {folder}/ by hand"
+# the words that tell a failed commit from a pushed one and from "nothing new to commit", read from the template above
+NOT_COMMITTED_MARK = NOT_COMMITTED.partition("{label}")[2].partition(":")[0]
+COMMIT_FAILED_ALERT = (
+    "Omenix F&O {what}: the manifest rows were NOT committed or pushed (the run log has the reason); "
+    "the files are in Drive, commit the manifests by hand"
+)
 NO_HOOKS = "core.hooksPath is not set, so the public-record scan would not run (git config core.hooksPath .githooks)"
 
 
@@ -128,3 +134,19 @@ class GitManifestRecorder(ManifestRecorder):
 def _first_line(result: subprocess.CompletedProcess) -> str:
     text = (result.stderr or result.stdout or "").strip()
     return text.splitlines()[0] if text else f"exit code {result.returncode}"
+
+
+def commit_failed(line: str) -> bool:
+    """True for the committer's "NOT committed" line; False for "committed and pushed" and "nothing new to commit"."""
+    return NOT_COMMITTED_MARK in line
+
+
+def exit_for_commit(lines: Iterable[str], code: int, send_alert: Callable[[str], object], what: str) -> int:
+    """The exit code a command ends with once its manifest commit has run: unchanged when the commit worked or had
+    nothing to do; at least 1, with exactly one #fno-desk alert (codes only, no row), when any line says the
+    rows were NOT committed. Rows that never reached GitHub are lost with the runner, so a green run with a
+    failed commit is a silent failure."""
+    if not any(commit_failed(line) for line in lines):
+        return code
+    send_alert(COMMIT_FAILED_ALERT.format(what=what))
+    return max(code, 1)

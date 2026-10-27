@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from functools import partial
 
-from fno.ingestion.storage.manifest_commit import ManifestRecorder
+from fno.ingestion.storage.manifest_commit import ManifestRecorder, exit_for_commit
 from fno.ingestion.storage.owner_token import DriveSignInRefused
 from fno.ingestion.storage.raw_source import RawSourceUnavailable
 from fno.shared.alerts.sender import AlertSender
@@ -62,18 +62,21 @@ def cmd_data_librarian(args) -> int:
 
 
 def cmd_data_snapshot(args) -> int:
+    from fno.ingestion.composition import build_alert_sender
     from fno.ingestion.storage.wiring import build_manifest_recorder, build_snapshot_taker
     from fno.shared.models import now_ist
 
-    recorder = build_manifest_recorder()
+    recorder, what = build_manifest_recorder(), f"data-snapshot {args.dataset}"
+    code = 1
     try:
         print(build_snapshot_taker(args.dataset).take(args.day or now_ist().date()))
-        return 0
+        code = 0
     except (RawSourceUnavailable, ValueError) as exc:
         print(f"NOT archived: {exc}")
-        return 1
     finally:
-        print(recorder.commit(f"data-snapshot {args.dataset}"))
+        committed = recorder.commit(what)
+        print(committed)
+    return exit_for_commit([committed], code, lambda text: print(build_alert_sender().send(text)), what)
 
 
 def print_now(line: str) -> None:
@@ -84,11 +87,14 @@ def print_now(line: str) -> None:
 def run_librarian(
     build, alerts: AlertSender, recorder: ManifestRecorder, what: str, start: date, end: date, out=print
 ) -> int:
-    """Runs the librarian, then commits the manifest rows it wrote, whether the run finished or stopped."""
+    """Runs the librarian, then commits the manifest rows it wrote, whether the run finished or stopped. A commit that
+    failed ends the run red with one alert (CF1); a crash is red already."""
     try:
-        return _fill(build, alerts, start, end, out)
+        code = _fill(build, alerts, start, end, out)
     finally:
-        out(recorder.commit(what))
+        committed = recorder.commit(what)
+        out(committed)
+    return exit_for_commit([committed], code, lambda text: out(alerts.send(text)), what)
 
 
 def _fill(build, alerts: AlertSender, start: date, end: date, out) -> int:

@@ -49,6 +49,29 @@ were lost, the run was green and silent; the coverage check and receipt repair r
   commit" lines, not strings I invented.
 - **Groww rule:** the intraday recorder is a Groww caller. I run no Groww command by hand and no recorder; the change is exercised by pytest only.
 
+## CF1 as built
+
+- **The definition** (`storage/manifest_commit.py`): `NOT_COMMITTED_MARK`, read from the `NOT_COMMITTED` template (so it cannot drift from the
+  message), `commit_failed(line)` and `exit_for_commit(lines, code, send_alert, what)`. True only for the committer's own "NOT committed"
+  line; False for "committed and pushed", for "nothing new to commit" and for other lines that say "NOT" (the intraday sync's foreign-staged
+  line has its own once-per-run alert and is deliberately not this signal). Tests use the three REAL lines, made by the real committer in a throw-away
+  git repository (`tests/ingestion/commit_failure/real_lines.py`), never a string written by hand.
+- **Callers changed:** `run_librarian` (`data-librarian`), `cmd_data_snapshot`, `data-revisions sweep`, `cmd_promote` (including its refused-sign-in
+  path), `nsdl-backfill`, the intraday `report` and its `rv` path. A crash is red already, so the commit is still made in a `finally` and the
+  signal applies to the normal and the stopped paths. The seven callers that already read the line are untouched; a test pins that each keeps a marker
+  that matches the failure line and neither of the other two.
+- **Live workflows whose exit code can now change, only on a failed commit line:** `flow-history.yml` (`data-librarian`, `data-revisions`),
+  `index-closes.yml` (`data-librarian`, `data-revisions`), `participant-oi-release.yml` (`data-librarian`), `flows-download.yml`
+  (`data-snapshot`). Manual: `pipeline-staging.yml` (`promote`). The intraday recorder runs in Groww routine containers, not workflows; no Groww
+  command was run, the change is exercised by pytest only.
+- **Proof:** per caller, both directions on the real lines: a pushed commit and an empty diff leave the exit code exactly as it was, with no
+  alert; a failed commit gives exit 1 and exactly one alert (promote and nsdl-backfill also keep their own problem alert, so two when both occur;
+  the intraday recorder sends one for a whole run however many marks failed). The guard test (`tests/test_no_masked_pull_push.py`) scans every
+  workflow and `ops/` script and is shown to catch the exact pattern of the P2d F1 finding and to accept the two safe shapes. Plants fail a test for:
+  the mark, "any" turned into "all", the alert removed, the exit code lowered, and the helper bypassed in each of the seven edited paths.
+- **Not done, listed:** swapping the seven already-correct callers to the helper (a later behaviour-preserving refactor); failing a run when the
+  commit itself crashes (it is already red); the Python committer's other callers' own alert wording.
+
 ## Gates
 
 Full suite, ruff, imports, numbers, size, record scan; characterization pins per caller; mutation plants for every line above; two judges.
