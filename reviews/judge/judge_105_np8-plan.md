@@ -51,3 +51,22 @@
 No Groww, no orders, and no term, title, URL or symbol in git, a log or the note.
 
 ## Verdict: FAIL round 1 at d9f227b. B1 (wire the note's receipt and manifest into the workflow) and B2 (one definition of the read cap) required, both text-only. The halt-versus-fallback choice goes to the owner.
+
+## Addendum 1: round 2 at 4907707: PASS
+
+I reviewed `git diff d9f227b 4907707 -- docs/stories/NP8-material-first-reads.md` (82 lines). The other story diffs come from merges of `main`.
+
+**B1 fixed (strong evidence, checked on `main`).**
+- **Paths.** The note gets its own manifest, `read-passes.csv`, and its own receipt folder, `receipts/raw/news/read-passes`.
+- **Commit.** `news-read-pages.yml` already commits through `ops/commit_news_record.sh` (line 72). That script loops over `$MANIFEST ${EXTRA_MANIFESTS}` with the same torn-line guard, and it adds every folder in `$RECEIPTS`. So the planned workflow change (add `EXTRA_MANIFESTS` and the new receipt folder) is enough, and it is lane 1, as the plan says.
+- **Unreceipted check.** `data-cache sync --unreceipted` (`cache_cli.py:17`, `drive_cache.py:67`) works on a prefix, so `raw/news` covers the new folder.
+- **Staging cleanup.** It handles staged polls (`fno/ingestion/staging_cleanup`), not reads, so it does not need to know the new folder.
+- **Contract row.** The planned row covers the note's manifest, receipt and commit.
+
+**B2 fixed.** There is now one definition: 400 Record files in total, split into `SCORE_READS = 300` article reads (ranked) and `RESOLVE_READS = 100` resolution reads. `scored` and the files read are reported. The slice is stated plainly as about five hours at agentic's rate.
+
+**My leaning on the owner question (reasoning only).** The plan now asks the owner whether a broken materiality file should stop the pass or let it read newest first while going red, with stop as the default. I lean the same way as the implementer: read newest first, go red, write no note. That keeps the pin unmoved and loses no page facts. It is the owner's call, and it does not block the plan.
+
+**One point for the code review.** The 100 resolution reads can run out before 80 pages are found when Google News items dominate the ranking. Report it as its own count (for example `resolve_reads_spent`), so a short pass is explained.
+
+**Verdict: PASS round 2 at 4907707.**
