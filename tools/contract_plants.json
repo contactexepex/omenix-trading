@@ -1844,5 +1844,32 @@
   "file": "fno/ingestion/news/view.py",
   "old": "listed=tier != UNLISTED,",
   "new": "listed=True,"
+ },
+ {
+  "id": "T13",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_a_possessive_is_the_company_and_a_plural_word_is_not"
+  ],
+  "file": "fno/ingestion/news/tagging/text.py",
+  "old": "_POSSESSIVE.sub(\"\", match.group().lower())",
+  "new": "match.group().lower()"
+ },
+ {
+  "id": "T14",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does"
+  ],
+  "file": "fno/ingestion/news/tagging/tagger.py",
+  "old": "without_outlet(capped(title), source)",
+  "new": "capped(title)"
+ },
+ {
+  "id": "T15",
+  "tests": [
+   "tests/ingestion/news/tagging/test_tagger.py::test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol"
+  ],
+  "file": "fno/ingestion/news/tagging/dictionary.py",
+  "old": "for p in _candidates(parts)]",
+  "new": "for p in parts if p]"
  }
 ]

@@ -13,6 +13,7 @@ COMPANIES = (
     Company("ZZDE", "Zzdelta"),
     Company("ZZLT", "Zz & Lt Works", aliases=("ZZ&LT",)),
     Company("ZZOM", "Zzomega", exclusions=("Zzomega Hospitality",)),
+    Company("BSE", "Zzexchange Ltd"),  # a symbol equal to an exchange label
     Company("ZZAB", "Zzalpha Bank"),  # a longer name that starts like another company's
 )
 TAGGER = Tagger(NameDictionary(CompanyList(1, COMPANIES)))

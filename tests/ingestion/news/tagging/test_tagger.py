@@ -116,3 +116,23 @@ def test_an_exclusion_that_is_no_longer_safe_is_dropped_not_fatal(bad):
 def test_hits_never_looks_past_the_cap_even_when_called_directly():
     assert TAGGER.hits("x " * (MAX_TEXT // 2) + "Zzdelta rises") == []
     assert [h.symbol for h in TAGGER.hits("Zzdelta rises")] == ["ZZDE"]
+
+
+def test_a_possessive_is_the_company_and_a_plural_word_is_not():
+    assert tag("Zzalpha's profit jumps 20%").primary == ("ZZAL",) and tag("Zzalpha Bank’s profit").primary == ("ZZAB",)
+    assert tag("Zzalpha's, Zzbeta's and Zzdelta's shares rise").confidence == LOW
+    assert tag("Zzalphas rise").symbols == ()
+
+
+def test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does():
+    assert tag("Markets close higher - Zzalpha", None, "Zzalpha").symbols == ()
+    assert tag("Markets close higher | Zzalpha", None, "Zzalpha").symbols == ()
+    assert tag("Markets rally as Zzalpha", None, "Zzalpha").primary == ("ZZAL",)
+    assert tag("Zzbeta Bank profit - Zzalpha", None, "Zzalpha").primary == ("ZZBE",)
+
+
+def test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol():
+    for headline in ("Shares rise (BSE: 500325)", "Shares rise (NSE: 500325)", "Shares rise (ZZDE: BSE)"):
+        assert "BSE" not in tag(headline).symbols, headline
+    assert tag("Shares rise (BSE: ZZDE)").primary == ("ZZDE",)
+    assert tag("Shares of the exchange (BSE) rise").primary == ("BSE",)  # a lone bracketed symbol is still one

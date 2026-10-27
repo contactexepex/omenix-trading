@@ -19,6 +19,8 @@ _DOMAINS = re.compile(  # bounded labels and count: a long run of "a.a.a." is li
 )
 _QUOTES = str.maketrans({"’": "'", "‘": "'", " ": " "})
 _WORD = re.compile(r"[\w&']+")
+_POSSESSIVE = re.compile(r"'s?$")  # "Acme's" and "banks'" are the name, not another word
+_SEPARATORS = " -–—|"
 
 
 def fold(text: str) -> str:
@@ -42,9 +44,26 @@ def capped(title: str | None) -> str:
     return fold(title or "")[:MAX_TEXT]
 
 
+def without_outlet(title: str, source: str | None) -> str:
+    """A title without a trailing " - Outlet" or " | Outlet" naming the source (Google News adds it), so the outlet's
+    own name never tags. Only after a separator: a title that ends in the source's name as a word keeps it."""
+    name = fold(source or "").strip()
+    if name and title.lower().endswith(name.lower()):
+        head = title[: -len(name)]
+        if head.rstrip() != head and head.rstrip().endswith(tuple(_SEPARATORS.strip())):
+            return head.rstrip(_SEPARATORS)
+    return title
+
+
 def words(text: str) -> list[tuple[str, int, int]]:
-    """(lower-case word, start, end): letters, digits, `_`, `&` and an apostrophe, so `L&T` stays whole."""
-    return [(m.group().lower(), m.start(), m.end()) for m in _WORD.finditer(text)]
+    """(lower-case word, start, end): letters, digits, `_`, `&` and an apostrophe, so `L&T` stays whole;
+    a trailing `'s` or `'` is dropped (on names and on text alike), so "Acme's" is "acme"."""
+    found = []
+    for match in _WORD.finditer(text):
+        word = _POSSESSIVE.sub("", match.group().lower())
+        if word:
+            found.append((word, match.start(), match.start() + len(word)))
+    return found
 
 
 def word_tuple(text: str) -> tuple[str, ...]:
