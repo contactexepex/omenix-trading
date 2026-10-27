@@ -63,3 +63,27 @@
   cap and is acceptable.
 
 **Verdict: FAIL** (round 1, `cfb87c6`). B1 is a two-line order fix plus one test and one plant.
+
+## Addendum 1
+
+**Judge 120's quadratic split.** I read judge 120 only after writing my verdict, and I did not find this myself. I
+re-ran it at `cfb87c6`:
+
+| Body | Time in `summary_extract` |
+| --- | --- |
+| `"." * 20000` | 3.96 s |
+| `"a. " * 6666` | 0.006 s |
+
+The finding holds: `_STOP` backtracks over a run of stop characters. I endorse judge 120's B1 and its fix (a
+lookbehind plus a possessive quantifier, with a timed test and a plant).
+
+**Where judge 120 and I disagree.** Judge 120 accepts that `&lt;b&gt;` is stored as the literal text `<b>`, and calls
+it text, never instructions. I keep my B1 for two reasons:
+- the read file's own rule is "no HTML", and the plan's row S10 is "tags and entities stripped";
+- the stored `</p><p>` also defeats the sentence split, so the 3-sentence bound counts the wrong units.
+
+That makes it a correctness defect in write-once content, not a safety one. The fix is the order of two calls.
+
+**Verdict: FAIL** (round 1, `cfb87c6`). Both must be fixed:
+- my B1, unescape before stripping tags;
+- judge 120's B1, the linear split.
