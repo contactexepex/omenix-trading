@@ -117,11 +117,19 @@ def test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too():
     assert rules.may_fetch("open.example") and rules.may_fetch("open-alias.example")
 
 
-def test_an_empty_or_dots_only_label_or_name_names_nothing():
-    for value in (None, "", " ", ".", "..."):
-        assert RULES.domain_of_label(value) is None
-        assert RULES.wire_of_name(value) is None
-        assert not RULES.is_promotional_provider(value)
+def test_an_empty_or_dots_only_label_or_name_names_nothing_even_if_the_rules_were_built_with_one():
+    from fno.ingestion.news.sources.model import Outlet, Promotional, Wire
+    from fno.ingestion.news.sources.rules import SourceRules
+
+    # the loader refuses such a name (see test_loader); the lookups must still never match it if one got in some other way
+    sloppy = SourceRules(
+        {"a.example": Outlet("a.example", "tier1", names=(".",))}, (Wire("W", names=(".",)),), Promotional(providers=(".",))
+    )  # fmt: skip
+    for rules in (RULES, sloppy):
+        for value in (None, "", " ", ".", "..."):
+            assert rules.domain_of_label(value) is None
+            assert rules.wire_of_name(value) is None
+            assert not rules.is_promotional_provider(value)
 
 
 def test_the_news_desk_prefix_must_match_at_a_slash_boundary():

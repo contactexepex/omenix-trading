@@ -125,7 +125,7 @@ The public allowlist `config/news_sources.yaml` and the pure lookups over it. It
 | O11 | A public suffix (`co.in`, `github.io` ...) is refused as an outlet, wire or promotional domain, so no tenant of a shared name becomes an allowlisted outlet. A curated list, not the full Public Suffix List. | `is_public_suffix` | `tests/ingestion/news/sources/test_loader.py::test_a_public_suffix_is_refused_as_an_outlet_a_wire_or_a_promotional_domain` | not checked | **tested, plant run** |
 | O12 | An alias (`same_as`) of an outlet marked `fetch: false` is not fetchable either. | `SourceRules.may_fetch` | `tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too` | alias ignores the main's flag | **tested, plant run** |
 | O13 | Two wires claiming one name or one domain are refused, not last-wins. | `loader._check_wires` | `tests/ingestion/news/sources/test_loader.py::test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins` | wire name collision accepted | **tested, plant run** |
-| O14 | A label or name that is empty once normalised (None, blank, only dots) names no outlet, wire or vendor. | `SourceRules` | `tests/ingestion/news/sources/test_rules.py::test_an_empty_or_dots_only_label_or_name_names_nothing` | empty label looked up | **tested, plant run** |
+| O14 | A label or name that is empty once normalised (None, blank, only dots) names no outlet, wire or vendor. | `SourceRules` | `tests/ingestion/news/sources/test_rules.py::test_an_empty_or_dots_only_label_or_name_names_nothing_even_if_the_rules_were_built_with_one` | empty label looked up | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 
