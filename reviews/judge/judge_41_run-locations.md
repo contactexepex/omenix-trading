@@ -80,3 +80,22 @@ commands" fixes it.
 
 This is a docs-only change: no code, data or service is touched. No secrets: the three known `LICENSE` email findings
 predate this change and are unrelated.
+
+## Addendum 1: round 2, 5f4fd8e: PASS
+
+The `docs/RUN_LOCATIONS.md` diff from a924f6c is +10/-7. I checked it against the files at 5f4fd8e.
+
+1. **The pause-log set: fixed.** `git grep -l commit_pause_log -- .github/workflows` lists 13 files: every one but
+   `data-checks.yml`, so twelve scheduled workflows and `pipeline-staging.yml`. The doc now says exactly that.
+2. **Section 3: fixed.** Only those workflows run `ops/commit_pause_log.sh`, and the sessions commit their own outputs.
+   "None does" (no routine runs the pause-log step) is supported as far as this repository can see. Outside
+   `.github/`, `commit_pause_log` appears only in the R1b2 story, this doc and two tests. No `ops/` or routine document
+   calls it.
+
+**Nits: fixed.** The column is now "Main commands". `flows nsdl-backfill` is right: `flow_history/cli.py:33` adds
+`nsdl-backfill` to the parser that `fno/ingestion/cli.py:167` mounts as `flows`.
+
+**A wording nit, not blocking.** Section 3 says "only the section 1 workflows run `ops/commit_pause_log.sh`".
+`data-checks.yml` is in section 1 and does not. The paragraph directly above says so, so a reader is not misled.
+
+**Verdict: PASS (strong evidence).**
