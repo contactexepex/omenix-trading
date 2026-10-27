@@ -134,3 +134,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 121 | NP9b follow-up, code (judge #2) | 1 | PASS (round 1, a3e5c13) | `judge_121_np9b-followup-judge2.md` |
 | 122 | NP9b follow-up: NBSP cut, matcher source (code, judge #1) | 1 | PASS (round 1, a3e5c13; runner 262/262) | `judge_122_np9b-followup.md` |
 | 123 | NP11 feed provenance, code (judge #2) | 1 | FAIL (round 1, e01cb08) | `judge_123_np11-provenance-judge2.md` |
+| 124 | NP11 feed provenance (code, privacy, judge #1) | 1 | FAIL (round 1, e01cb08; runner 280/280) | `judge_124_np11-provenance.md` |
