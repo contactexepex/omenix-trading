@@ -169,6 +169,31 @@ repository's logs and Drive.
 - **The reference repository.** The design suggests studying `contactexepex/agentic-stock-prediction` for a proven dedup;
   attaching it mints credentials, so it is the owner's decision, and nothing here depends on it.
 
+## P2a as built (fetch into Staging)
+
+- **Code:** `fno/ingestion/news/` (`feeds.py`, `session.py`, `response_check.py`, `fetcher.py`, `snapshot_log.py`, `job.py`,
+  `cli.py`, `wiring.py`), the command `python -m fno news fetch`, and `.github/workflows/news-fetch.yml` with
+  `workflow_dispatch` only (a test fails if a schedule is added).
+- **Feed list (Judge 1's versioning point):** write-once files `feeds/feeds-v<N>.json` in a private `config` area of the Drive
+  folder; the newest by number is used (v10 beats v9); the owner adds a version instead of editing one. A missing, invalid or
+  older-than-already-used list stops the run before any request, with a fixed code. The highest version used is read back from
+  the poll log (feed ids, paths and hashes only). Reasoning only for the choice over reading the list outside the verified
+  cache: one read path, no unverified "config" path, and a bad version leaves the previous one in place.
+- **Session:** `NewsSession`, a subclass of the shared `PacedSession` used by the news fetcher alone: a reject-all cookie
+  policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged.
+- **Answers:** a redirect, or a 200 without a feed root element, is `block_page`; 403/429 is `refused`; both stop the rest of
+  that host for the run, as does `host_paused` from the shared pacer. Other failures are `fetch_failed`. Only the fixed code is
+  kept: never an exception message, a URL or a title.
+- **Staging:** the raw bytes go to `news/<feed id>/<YYYY>/<MM>/<DD>/poll/<stamp>`; an unchanged poll (the same bytes as the newest
+  staged copy) is not stored again, which also slows the growth of Staging. A poll-log row is written only after Staging accepted
+  the bytes.
+- **Not in P2a:** the gate (P2b), clustering (P2c), the cluster record (P2d), the article key, the revision handling and the
+  per-poll reconciliation of items: they need the parsed items.
+- **Proof:** 48 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
+  over a planted marker URL, query, host and headline, the failure paths and DEBUG logging; mutation plants on the cookie policy,
+  redirects, the feed check, the host stop, file-first ordering, the privacy paths, the version rules, the alert and the schedule.
+  One plant survives and is equivalent: `return_ok` returning True changes nothing while `set_ok` stores no cookie.
+
 ## Deferred to the owner's go-live (not done in this build)
 
 A scheduled run of `news-fetch.yml` and of the promotion job; the first real fetch into Staging; the first real promotion of

@@ -14,6 +14,7 @@ from fno.ingestion.flow_history.cli import add_flows_parser
 from fno.ingestion.fo_masters.cli import add_fo_masters_parser
 from fno.ingestion.global_cues.cli import add_global_cues_parser
 from fno.ingestion.intraday.cli import add_intraday_parser
+from fno.ingestion.news.cli import add_news_parser
 from fno.ingestion.pause_memory import attach_pause_memory
 from fno.ingestion.pipeline.cli import add_pipeline_parser
 from fno.ingestion.preopen.cli import add_preopen_parser
@@ -150,6 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_news_parser(sub)
     add_intraday_parser(sub)
     add_participant_oi_parser(sub)
     add_librarian_parser(sub)
