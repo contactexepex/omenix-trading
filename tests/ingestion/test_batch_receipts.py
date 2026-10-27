@@ -361,3 +361,21 @@ def test_the_cache_command_lists_unreceipted_files_only_when_asked(tmp_path, mon
     code = cache_cli.cmd_cache_sync(Namespace(prefix="raw/news/articles", unreceipted=True), out=asked.append)
     assert code == 1 and any("loose.json" in line and "no receipt" in line for line in asked)
     assert not any("loose.json" in line for line in quiet)
+
+
+def test_a_cut_off_line_is_settled_by_a_per_file_receipt_as_written_by_the_repair_command(tmp_path):
+    """Judge 61 F3: `data-repair receipt --apply` writes a per-file receipt; that must clear the problem, or a news
+    sync would stay red until someone edited a committed batch file."""
+    drive, receipts, store = world(tmp_path)
+    store.put("news/articles/1.json", FILES["news/articles/1.json"])
+    torn_path = f"{AREA}/news/articles/b.json"
+    drive.put(torn_path, b"b")
+    batch = batch_files(tmp_path)[0]
+    batch.write_text(
+        batch.read_text() + torn_path + "\t" + "f" * 12
+    )  # a hand-made torn tail (the guard cuts real ones)
+    cache = DriveCache(drive, ReceiptFolder(tmp_path / "receipts"), root=tmp_path / "cache")
+    assert any(torn_path in p for p in cache.sync("raw/news/articles").problems)
+    cache.receipts.write(receipt(torn_path, b"b"))  # exactly what ReceiptRepair.write does: a per-file receipt
+    fresh = DriveCache(drive, ReceiptFolder(tmp_path / "receipts"), root=tmp_path / "cache2")
+    assert fresh.sync("raw/news/articles").problems == []

@@ -45,7 +45,11 @@ class ReceiptFolder:
     def batch_problems(self, prefix: str) -> list[BatchProblem]:
         """What is wrong with the batch files, as far as a sync of `prefix` should hear of it: a damaged line, two
         digests for one path (in batches, or between a batch and a per-file receipt)."""
-        found = [p for p in self.batches.problems() if covers(prefix, p.path)]
+        found = [
+            p
+            for p in self.batches.problems()
+            if covers(prefix, p.path) and not (p.settled_by_a_receipt and p.path and self.read(p.path))
+        ]  # a torn line stops mattering once its file has a valid receipt: in a batch, or per file (a repair)
         for path, batched in self.batches.receipts().items():
             per_file = self.file_for(path)
             if covers(prefix, path) and per_file.is_file() and self.read(path).sha256 != batched.sha256:

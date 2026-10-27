@@ -281,7 +281,8 @@
    "tests/ingestion/test_batch_receipts.py::test_damage_in_a_news_batch_does_not_touch_the_sync_of_an_unrelated_table",
    "tests/ingestion/test_batch_receipts.py::test_news_damage_that_names_a_file_fails_a_news_sync_until_the_file_has_a_valid_receipt",
    "tests/ingestion/test_batch_receipts.py::test_damage_that_names_no_file_is_a_warning_and_the_news_sync_still_completes",
-   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts"
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts",
+   "tests/ingestion/test_batch_receipts.py::test_a_cut_off_line_is_settled_by_a_per_file_receipt_as_written_by_the_repair_command"
   ],
   "file": "fno/ingestion/storage/batch_receipts.py",
   "old": "    wanted = path_parts(prefix)\n    if path is not None:",

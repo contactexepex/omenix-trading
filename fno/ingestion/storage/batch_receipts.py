@@ -134,8 +134,10 @@ class BatchIndex:
         return self._receipts
 
     def problems(self) -> list[BatchProblem]:
-        known = self.receipts()
-        return [p for p in self._problems if not (p.settled_by_a_receipt and p.path in known)]
+        """Every problem found while reading; `ReceiptFolder.batch_problems` drops the ones a valid receipt, in a batch
+        or per file (a repair), has since settled."""
+        self.receipts()
+        return list(self._problems)
 
     def add(self, receipt: Receipt) -> None:
         self.receipts().setdefault(receipt.path, receipt)
