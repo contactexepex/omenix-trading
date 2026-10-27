@@ -682,5 +682,65 @@
   "file": "fno/ingestion/news/article/formats.py",
   "old": "    if type(format_number) is not int or format_number not in FIELDS_OF:",
   "new": "    if format_number not in FIELDS_OF:"
+ },
+ {
+  "id": "L1",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed",
+   "tests/ingestion/news/resolve/test_adapter.py::test_each_link_gets_its_result_in_order_and_a_refused_link_is_never_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return True"
+ },
+ {
+  "id": "L2",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_the_allowed_domains_are_the_registrable_domains_of_the_wrapper_feeds_only",
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_no_wrapper_feed_means_nothing_is_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "    return EgressGuard(registrable_domain(f.host) for f in feeds if f.kind == WRAPPER)",
+  "new": "    return EgressGuard(registrable_domain(f.host) for f in feeds)"
+ },
+ {
+  "id": "L3",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_redirect_to_another_host_is_refused_at_the_hop_by_the_same_hook"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if request.url.scheme != \"https\" or not guard.allows_host(request.url.host):",
+  "new": "        if False:"
+ },
+ {
+  "id": "L4",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_result_that_is_not_a_clean_https_publisher_link_is_a_bad_result",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_url_back_on_the_service_or_not_clean_is_a_bad_result"
+  ],
+  "file": "fno/ingestion/news/resolve/accept.py",
+  "old": "    if not url or guard.allows_host(plain_host(urlsplit(url).hostname)):",
+  "new": "    if not url:"
+ },
+ {
+  "id": "L5",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_library_that_raises_costs_only_its_batch_and_never_the_run",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_failure_the_library_reports_is_a_fixed_code_and_its_message_is_never_kept"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        except Exception:  # noqa: BLE001 - a fixed code per link; the caller counts codes and alerts on a high error share\n            return [Resolved(ERROR) for _ in links]",
+  "new": "        except ZeroDivisionError:\n            return [Resolved(ERROR) for _ in links]"
+ },
+ {
+  "id": "L6",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_wait_between_page_requests_is_never_below_the_floor",
+   "tests/ingestion/news/resolve/test_adapter.py::test_links_go_in_batches_of_ten_in_order"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        self.interval = max(int(interval_seconds), MIN_INTERVAL_SECONDS)",
+  "new": "        self.interval = int(interval_seconds)"
  }
 ]
