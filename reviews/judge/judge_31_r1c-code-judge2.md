@@ -52,3 +52,50 @@ mutation to receipt repair's "no file in Drive" refusal survives the full suite.
    with two files (`SEVERAL`), which is also untested by my grep. Proof wanted: plant R4 above is caught.
 
 No other finding. Round 2 needs only these tests; I will re-run the gates and plant R4 again.
+
+## Addendum 1: the orchestrator's checks on 1381a8e (still FAIL, round 1; findings S2 and S3 added)
+
+The orchestrator asked for more planted checks and a view on the one stated behaviour delta. These are all on
+`1381a8e`; every file was restored and `__pycache__` cleared after each plant.
+
+| Check | Result |
+|---|---|
+| Library `retry_after_ceiling` 600 -> 120 (X1) | caught (1 failed) |
+| `RetryPolicy` and the NSE settings unchanged vs `main` | MET: `git diff origin/main 1381a8e -- fno/shared/` shows only the `drive` entry of `settings.py`; `retry.py` and `nse_pacer.py` are unchanged |
+| Drive cap as ruled | MET: the classifier clamps to `DRIVE_RETRY_AFTER_CAP_SECONDS = 120.0`; the `drive` ceiling is 600 s; no `RetryPolicy` edit |
+| 401 counted as a retry (X2) | caught (5 failed) |
+| 401 re-signed on every attempt (X3) | caught (1 failed) |
+| 409 not accepted (D4) | caught |
+| Row before file, per writer | W1 manifest row first, W2 revision index row first, W3 global-cue log row first, W4 candle manifest row first, W5 filing manifest row first (put moved after `record`), W6 quote save error swallowed: **all caught**; the data store (R3) and snapshot (R5) as before |
+| Reader-side sidecar tests | present: not saved -> `None` (`test_drive_resilience.py:306`), missing -> `RawQuoteMissing` (`:311`), hash mismatch -> `RawQuoteHashMismatch` (`:319`) |
+| Drive characterization | MET: unchanged except the one zero-jitter policy injection (no assertion changed) |
+
+**The 401 delta, my view: accept it, but it must be pinned (S2).** Today (`main`'s `drive_session.py`) the re-send
+after a 401 sits outside the `try`, so a `ConnectionError` there propagates at once. In `1381a8e` it is inside the
+attempt and is retried like every other dropped connection. I would not keep the old behaviour: it is an accident of
+where the line sat, not a rule. Retrying a dropped connection is exactly what the loop does for every other send, and a
+create is retried under its reserved ID, which the existing comment and the characterization test
+`test_a_create_retried_after_a_dropped_connection_yields_exactly_one_file` show is safe. It makes more attempts, never
+fewer. Reproduced on `1381a8e` with a scripted session (scratch script, not committed):
+- 401, then `ConnectionError`, then 200: returns 200 after 3 sends and one wait of about 2 s (today it raises).
+- 401, then 401: raises `HTTPError` after 2 sends with no wait. **It cannot spin:** `signed_in_again` is set once per
+  `request()` call, not per attempt, so there is at most one re-sign per call (stricter than "once per attempt"), and a
+  second 401 is classified OK and not in `accept`, so it is raised.
+- A 401 on a later attempt, after the call's one re-sign, is raised. That is the same as today, which also re-signs
+  once per call.
+
+## Findings added
+
+2. **S2 (should fix, tests only): the 401 delta has no test.** `git grep` finds no test that sends a 401 and then a
+   `ConnectionError`. Add one: 401, `ConnectionError`, 200 returns 200 with sends = 3 and waits = [2]. Also add a
+   test that a persistent 401 is raised after exactly 2 sends with no wait, so the no-spin rule is pinned.
+3. **S3 (should fix, tests only): the writer's `RAW_FILE_SAVED = False` flag in the sidecar is untested.** Plant W6b
+   (`recorder.py`: `meta[RAW_FILE_SAVED] = False` replaced by `pass`) leaves all 511 tests green.
+   `test_quote_writer_marks_the_sidecar_not_saved_when_the_drive_save_fails` checks only `_save_quote_file`'s return
+   value, never the sidecar that is written. Without the flag, the reader's "not saved -> `None`" branch can never be
+   reached for that snapshot: the reader goes to Drive and raises `RawQuoteMissing`. The test the orchestrator listed
+   (failed save -> no canonical marker) does not catch this either. Add a recorder-level test: a failed Drive save
+   writes a sidecar with `RAW_FILE_SAVED` false, and reading that snapshot returns `None`.
+
+S1 stands. All three are tests only, so they can go into the one superseding SHA, where my plants R4, W6b and the 401
+delta plants carry forward.
