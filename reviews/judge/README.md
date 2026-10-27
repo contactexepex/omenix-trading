@@ -109,3 +109,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 96 | NP6 tiered clustering plan, plan doc (judge #2) | 1 | PASS (round 2, e5e0d10, condition C1 for NP6a code; round 1 FAIL 30e3f89) | `judge_96_np6-plan-judge2.md` |
 | 97 | NP6b corroboration read-model, code (judge #2) | 1 | PASS (round 1, e7ff690) | `judge_97_np6b-corroboration-judge2.md` |
 | 98 | NP6b corroboration (code, judge #1) | 1 | PASS (round 1, e7ff690) | `judge_98_np6b-corroboration.md` |
+| 99 | NP6a grouper v2 (code, judge #1) | 1 | PASS (round 1, 7323c3f) | `judge_99_np6a-grouper-v2.md` |
