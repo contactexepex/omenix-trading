@@ -20,9 +20,12 @@ NOT_PACED = {
     "data-checks.yml",
     "news-promote.yml",
     "news-cluster.yml",
+    "news-resolve.yml",
+    "news-probe-outlets.yml",
+    "news-read-pages.yml",
     "rebuild-receipts.yml",
     "staging-cleanup.yml",
-}  # reach Drive only (no paced host)
+}  # no shared pacer: Drive only, except news-resolve, whose resolver keeps its own spacing and stop for the run (NP2b)
 STEP = "bash ops/commit_pause_log.sh"
 
 # the set is explicit: adding or removing a live command is a decision, and it fails here first

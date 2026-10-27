@@ -8,3 +8,7 @@ cryptography>=42        # test certificates for the feed TLS fix (A16h); recent 
 # Edit this file, then run `sh ops/relock.sh`: installs use the hashed requirements.lock (story SEC1).
 # Groww Trade API (market data only): requirements-groww.txt
 xlrd==2.0.2             # NSE's FII derivatives statistics, Excel 97 files (story A23; owner allowed, pinned)
+# News link resolver (story NP2b): Google News redirect links to the publisher's URL, behind the LinkResolver interface; an unofficial
+# Google endpoint, so it can break (NP0 section 2b). selectolax 1.0 removed the module googlenewsdecoder 0.2.1 imports.
+googlenewsdecoder==0.2.1
+selectolax>=0.4.12,<1.0

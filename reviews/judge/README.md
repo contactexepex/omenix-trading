@@ -81,5 +81,28 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 68 | S1b loud proof errors, code (judge #2, sole) | 1 | PASS (cead192) | `judge_68_s1b-loud-proof-errors-judge2.md` |
 | 69 | CP2 re-enable the circulars cron (judge #2, sole) | 1 | PASS (c07e721) | `judge_69_cp2-circulars-cron-on-judge2.md` |
 | 70 | NP0 news port plan (plan doc) | 1 | FAIL (round 1, 0e9401a); PASS (round 2, 6439195) | `judge_70_np0-news-port-plan.md` |
-| 71 | NP1 news source rules (code, judge #1 of 2) | 1 | FAIL (round 1, 1d1bfed); PASS (round 2, aa00a5c then df3fe62; fullmatch condition open) | `judge_71_np1-source-rules.md` |
-| 72 | NP1 news source rules, code (judge #2 of 2) | 2 | PASS (df3fe62; FAIL 1d1bfed) | `judge_72_np1-source-rules-judge2.md` |
+| 71 | NP1 news source rules (code, judge #1 of 2) | 1 | FAIL (round 1, 1d1bfed); PASS (round 2, final d6f28e4; held for owner decision H) | `judge_71_np1-source-rules.md` |
+| 72 | NP1 news source rules, code (judge #2 of 2) | 2 | PASS (d6f28e4, df3fe62; FAIL 1d1bfed) | `judge_72_np1-source-rules-judge2.md` |
+| 73 | NP2a article format 2 (code, judge #1 of 2) | 1 | FAIL (round 1, 20c8c32); PASS (round 2, a72a037) | `judge_73_np2a-article-format-2.md` |
+| 74 | NP2a article format 2, code (judge #2 of 2) | 2 | PASS (a72a037; FAIL 20c8c32) | `judge_74_np2a-article-format-2-judge2.md` |
+| 75 | NP2b link resolver, code (judge #2 of 2) | 2 | PASS (3f2fbb1, 356b149; FAIL 3cc0c62) | `judge_75_np2b-link-resolver-judge2.md` |
+| 76 | NP2b link resolver (code, judge #1 of 2) | 1 | FAIL (round 1, 3cc0c62); PASS (round 2, 356b149) | `judge_76_np2b-link-resolver.md` |
+| 77 | NP3 company list and feed plan, plan doc (judge #2) | 2 | PASS (ec3b34f; FAIL 8459517, eb05a7b) | `judge_77_np3-plan-judge2.md` |
+| 78 | NP3a company list, code (judge #2) | 2 | PASS (0ffad12, 1a1e5d6, c5aeb93; FAIL 6504962) | `judge_78_np3a-company-list-judge2.md` |
+| 79 | NP3a company list (code, judge #1) | 1 | FAIL (round 1, 6504962); PASS (round 2, 1a1e5d6; allow-list grammar) | `judge_79_np3a-company-list.md` |
+| 80 | NP3b feed plan, code (judge #2) | 1 | PASS (4fa33b2, 0d6adbe) | `judge_80_np3b-feed-plan-judge2.md` |
+| 81 | NP3b feed planner (code, judge #1) | 1 | PASS (0d6adbe, then 4fa33b2) | `judge_81_np3b-feed-planner.md` |
+| 82 | NP2c resolve pass (code, judge #1) | 1 | FAIL (round 1, feb5fa9); PASS (round 2, b1917e7) | `judge_82_np2c-resolve-pass.md` |
+| 83 | NP2c resolve pass, code + workflow (judge #2) | 2 | PASS (b1917e7, feb5fa9) | `judge_83_np2c-resolve-pass-judge2.md` |
+| 84 | NP4 page-reads plan, plan doc (judge #2) | 2 | PASS (a12cae7; FAIL c886e5a) | `judge_84_np4-plan-judge2.md` |
+| 85 | NP2d wrapper index, code (judge #2) | 2 | PASS (2ac29df; FAIL dbb4905) | `judge_85_np2d-wrapper-index-judge2.md` |
+| 86 | NP2d wrapper index (code, judge #1) | 1 | PASS (round 1, dbb4905; round 2, 2ac29df; wiring pin to add) | `judge_86_np2d-wrapper-index.md` |
+| 87 | NP4a page fetcher and outlet probe, code (judge #2) | 1 | PASS (40faf61, 3f56dbc) | `judge_87_np4a-page-fetcher-judge2.md` |
+| 88 | NP4a page fetcher (code, judge #1) | 1 | PASS (round 1, 3f56dbc) | `judge_88_np4a-page-fetcher.md` |
+| 89 | NP4b page reads, code (judge #2) | 2 | PASS (98ad64a, 346e78c; FAIL 337f0ea) | `judge_89_np4b-page-reads-judge2.md` |
+| 90 | NP5 tagger and origins plan, plan doc (judge #2) | 2 | PASS (36623b1; FAIL 4a322e9) | `judge_90_np5-plan-judge2.md` |
+| 91 | NP4b page reads (code, judge #1) | 1 | FAIL (round 1, 337f0ea); PASS (346e78c, 98ad64a) | `judge_91_np4b-page-reads.md` |
+| 92 | NP5a tagger, code (judge #2) | 1 | FAIL (round 1, 29d19cf) | `judge_92_np5a-tagger-judge2.md` |
+| 93 | NP5a tagger (code, judge #1) | 1 | FAIL (round 1, 29d19cf); PASS (round 2, ab4acd2) | `judge_93_np5a-tagger.md` |
+| 94 | NP5b origins, promotional, materiality (code, judge #1) | 1 | FAIL (round 1, 691f315); PASS (round 2, fb94003) | `judge_94_np5b-origins-materiality.md` |
+| 95 | NP5b origins, materiality and view, code (judge #2) | 1 | FAIL (round 1, 691f315) | `judge_95_np5b-origins-materiality-judge2.md` |

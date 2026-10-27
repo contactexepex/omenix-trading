@@ -190,7 +190,7 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_running_the_same_range_again_is_all_no_ops_and_writes_nothing_new"
   ],
   "file": "fno/ingestion/news/record/planner.py",
-  "old": "        if _fixed(held) is not None and _fixed(held) == _fixed(data):\n            return Plan(Outcome.NO_OP, path, RECORDED, held)",
+  "old": "        if same_version(held, data):\n            return Plan(Outcome.NO_OP, path, RECORDED, held)",
   "new": "        if False:\n            return Plan(Outcome.NO_OP, path, RECORDED, held)"
  },
  {
@@ -218,7 +218,7 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_a_torn_manifest_line_is_never_glued_onto_and_stops_the_run_before_any_write"
   ],
   "file": "fno/ingestion/news/record/gate.py",
-  "old": "        self.writer.manifest.check_appendable()",
+  "old": "        self.writer.check_appendable()  # a torn manifest stops the run before any write (TableFileBroken)",
   "new": "        pass"
  },
  {
@@ -306,7 +306,7 @@
    "tests/ingestion/news/cluster_record/test_write_and_run.py::test_other_bytes_for_a_closed_window_are_a_conflict_and_nothing_is_overwritten",
    "tests/ingestion/news/cluster_record/test_write_and_run.py::test_the_writer_itself_refuses_to_overwrite_even_if_the_store_would"
   ],
-  "file": "fno/ingestion/news/cluster_record/writer.py",
+  "file": "fno/ingestion/news/write_once.py",
   "old": "        if held is not None and held != data:\n            raise RawFileConflict(f\"{path}: the file exists with other bytes\")",
   "new": "        pass"
  },
@@ -327,8 +327,8 @@
    "tests/ingestion/news/record/test_commit_guard.py::test_a_pull_that_fails_makes_the_step_fail_instead_of_ending_green"
   ],
   "file": "ops/commit_news_record.sh",
-  "old": "if python -m fno news check-manifest \"$(dirname \"$MANIFEST\")\" --file \"$(basename \"$MANIFEST\")\"; then",
-  "new": "if true; then"
+  "old": "  if python -m fno news check-manifest \"$(dirname \"$manifest\")\" --file \"$(basename \"$manifest\")\"; then",
+  "new": "  if true; then"
  },
  {
   "id": "K2",
@@ -424,5 +424,1197 @@
   "file": "ops/commit_news_record.sh",
   "old": "python -m fno news repair-batches receipts/_batches || broken=1",
   "new": ":"
+ },
+ {
+  "id": "O1",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        found = (self.outlets.get(\".\".join(parts[start:])) for start in range(max(len(parts) - 1, 0)))",
+  "new": "        found = (self.outlets.get(plain_host(host)[start:]) for start in range(len(plain_host(host))))"
+ },
+ {
+  "id": "O2",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    return cleaned if PLAIN_HOST.fullmatch(cleaned) else \"\"",
+  "new": "    return cleaned"
+ },
+ {
+  "id": "O3",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return outlet.fetch and (main is None or main.fetch)",
+  "new": "        return main is None or main.fetch"
+ },
+ {
+  "id": "O4",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return outlet.tier if outlet else UNLISTED",
+  "new": "        return outlet.tier if outlet else \"tier2\""
+ },
+ {
+  "id": "O5",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_tier_that_is_not_a_listed_tier_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if tier not in LISTED_TIERS:",
+  "new": "    if False:"
+ },
+ {
+  "id": "O6",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_extractor_omenix_does_not_run_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if any(name not in EXTRACTORS for name in extract):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O7",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_unknown_key_is_refused_wherever_it_is_so_a_typo_is_never_ignored"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    unknown = sorted(str(k) for k in section if k not in allowed)",
+  "new": "    unknown = []"
+ },
+ {
+  "id": "O8",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_news_desk_prefix_decides_opinion_and_an_unknown_path_is_opinion"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return not (path or \"\").startswith(outlet.opinion_unless_path)",
+  "new": "        return False"
+ },
+ {
+  "id": "F1",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_format_1_file_is_still_read_with_empty_source_facts",
+   "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_extra_key_is_refused_so_a_future_field_is_never_silently_dropped",
+   "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_format_a_missing_key_or_text_that_is_not_an_article_is_refused"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "FIELDS_OF = {1: V1_FIELDS, 2: V2_FIELDS}",
+  "new": "FIELDS_OF = {2: V2_FIELDS}"
+ },
+ {
+  "id": "F2",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_format_1_file_and_the_same_article_as_format_2_are_a_no_op_not_a_revision"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return all(first[1][k] == second[1][k] for k in compared)",
+  "new": "    return first[1] == second[1]"
+ },
+ {
+  "id": "F3",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_two_format_2_files_that_differ_in_the_source_domain_are_a_revision",
+   "tests/ingestion/news/record/test_format_compat.py::test_a_same_format_title_difference_is_not_hidden_by_a_missing_title"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return all(first[1][k] == second[1][k] for k in compared)",
+  "new": "    return True"
+ },
+ {
+  "id": "F4",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_source_element_that_is_not_an_https_plain_host_gives_no_domain",
+   "tests/ingestion/news/article/test_source_facts.py::test_a_google_news_item_takes_the_outlet_host_from_its_source_element_and_keeps_its_wrapper_link",
+   "tests/ingestion/news/article/test_source_facts.py::test_a_publisher_item_without_a_usable_https_link_has_no_source_domain"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "        if parts.scheme.lower() != HTTPS or parts.username is not None or parts.password is not None:",
+  "new": "        if parts.username is not None or parts.password is not None:"
+ },
+ {
+  "id": "F5",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_no_judgement_and_no_resolved_url_is_written_into_an_article_file"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "        document = {\"format\": FORMAT, **asdict(self)}",
+  "new": "        document = {\"format\": FORMAT, \"tier\": \"unlisted\", **asdict(self)}"
+ },
+ {
+  "id": "O9",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_make_an_outlet_fetchable"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if key in seen:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O10",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    if not text.isascii():\n        return \"\"\n",
+  "new": ""
+ },
+ {
+  "id": "O11",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_public_suffix_is_refused_as_an_outlet_a_wire_or_a_promotional_domain"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if is_public_suffix(value):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O12",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return outlet.fetch and (main is None or main.fetch)",
+  "new": "        return outlet.fetch"
+ },
+ {
+  "id": "O13",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if claimed.setdefault(\"name:\" + label, wire.name) != wire.name:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O14",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        domain = self._label_domain.get(key) if key else None  # an empty label names nothing",
+  "new": "        domain = self._label_domain.get(key)"
+ },
+ {
+  "id": "F6",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_wrapper_link_that_is_not_a_plain_https_link_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "    wrapper = clean_https_link(link)",
+  "new": "    wrapper = link.strip()"
+ },
+ {
+  "id": "F7",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_changed_redirect_link_is_not_a_new_version_so_a_moving_token_never_makes_revisions"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "UNCOMPARED = frozenset({\"first_seen_at\", \"wrapper_link\"})",
+  "new": "UNCOMPARED = frozenset({\"first_seen_at\"})"
+ },
+ {
+  "id": "F8",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_the_wrapper_key_does_not_depend_on_the_link_or_the_source_facts"
+  ],
+  "file": "fno/ingestion/news/article/keys.py",
+  "old": "            return _digest(\"google-news\", \"guid\", item.guid.strip())",
+  "new": "            return _digest(\"google-news\", \"guid\", item.guid.strip(), item.link)"
+ },
+ {
+  "id": "O15",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_host_with_a_trailing_line_break_is_not_passed_on_by_plain_host_or_outlet_key"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "PLAIN_HOST.fullmatch(cleaned)",
+  "new": "PLAIN_HOST.match(cleaned)"
+ },
+ {
+  "id": "O16",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_domain_with_a_line_break_is_refused_wherever_a_domain_is_named"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "DOMAIN.fullmatch(value)",
+  "new": "DOMAIN.match(value)"
+ },
+ {
+  "id": "F9",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_revision_kept_in_format_1_is_not_written_again_when_the_same_version_is_seen_in_format_2"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "            if kept is not None and same_version(kept, data):",
+  "new": "            if False:"
+ },
+ {
+  "id": "F10",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_same_format_file_missing_a_key_is_not_the_same_version_as_a_whole_one",
+   "tests/ingestion/news/record/test_format_compat.py::test_a_file_with_an_unknown_extra_key_or_a_stub_is_not_the_same_version"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return (format_number, fields) if set(fields) == FIELDS_OF[format_number] else None",
+  "new": "    return (format_number, fields)"
+ },
+ {
+  "id": "F11",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_redirect_link_with_whitespace_a_control_character_a_port_or_credentials_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "    if not text or \"\\\\\" in text or any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in text):",
+  "new": "    if not text:"
+ },
+ {
+  "id": "F12",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_format_must_be_an_integer_we_know_so_true_and_one_point_zero_and_three_are_refused"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    if type(format_number) is not int or format_number not in FIELDS_OF:",
+  "new": "    if format_number not in FIELDS_OF:"
+ },
+ {
+  "id": "F13",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_lagging_listing_gives_no_op_for_the_same_version_and_a_conflict_only_for_a_different_one"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "        if same_version(kept, data):  # the listing lagged behind a file written earlier in this run: the same version\n            return Plan(Outcome.NO_OP, revision, REVISION, kept)\n",
+  "new": ""
+ },
+ {
+  "id": "L1",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed",
+   "tests/ingestion/news/resolve/test_adapter.py::test_each_link_gets_its_result_in_order_and_a_refused_link_is_never_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return True"
+ },
+ {
+  "id": "L2",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_the_allowed_domains_are_the_registrable_domains_of_the_wrapper_feeds_only",
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_no_wrapper_feed_means_nothing_is_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "    return EgressGuard(registrable_domain(f.host) for f in feeds if f.kind == WRAPPER)",
+  "new": "    return EgressGuard(registrable_domain(f.host) for f in feeds)"
+ },
+ {
+  "id": "L3",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_redirect_to_another_host_is_refused_at_the_hop_by_the_same_hook"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
+  "new": "        if False:"
+ },
+ {
+  "id": "L4",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_result_that_is_not_a_clean_https_publisher_link_is_a_bad_result",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_url_back_on_the_service_or_not_clean_is_a_bad_result"
+  ],
+  "file": "fno/ingestion/news/resolve/accept.py",
+  "old": "    if not url or guard.allows_host(plain_host(urlsplit(url).hostname)):",
+  "new": "    if not url:"
+ },
+ {
+  "id": "L5",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_library_that_raises_costs_only_its_batch_and_never_the_run",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_failure_the_library_reports_is_a_fixed_code_and_its_message_is_never_kept"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        except Exception:  # noqa: BLE001 - a fixed code per link; the caller counts codes and alerts on a high error share\n            return [Resolved(ERROR) for _ in links]",
+  "new": "        except ZeroDivisionError:\n            return [Resolved(ERROR) for _ in links]"
+ },
+ {
+  "id": "L6",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_links_go_in_batches_of_ten_in_order"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "BATCH = 10\n",
+  "new": "BATCH = 1000\n"
+ },
+ {
+  "id": "L7",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)"
+ },
+ {
+  "id": "L8",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_plain_failure_is_still_paced_every_request_waits_even_when_the_one_before_failed"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop), lambda request: self.pacer.wait()],",
+  "new": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop)],"
+ },
+ {
+  "id": "L9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_429_stops_the_run",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_redirect_to_the_sorry_page_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "        if response.status_code in PUSHBACK_STATUSES:",
+  "new": "        if False:"
+ },
+ {
+  "id": "L10",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
+  "new": "        if url.scheme != \"https\" or not guard.allows_host(url.host):"
+ },
+ {
+  "id": "L11",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_floor"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "max(spacing, SPACING_SECONDS)",
+  "new": "spacing"
+ },
+ {
+  "id": "L12",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
+  "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
+ },
+ {
+  "id": "L13",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_403_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "PUSHBACK_STATUSES = (429, 503, 403)",
+  "new": "PUSHBACK_STATUSES = (429, 503)"
+ },
+ {
+  "id": "Q1",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "new": ""
+ },
+ {
+  "id": "Q2",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_list_with_a_mistake_is_refused_with_one_fixed_code"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            if owner.setdefault(normalise_label(text), company.symbol) != company.symbol:\n                raise _invalid()",
+  "new": "            owner.setdefault(normalise_label(text), company.symbol)"
+ },
+ {
+  "id": "Q3",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_version_edited_after_it_was_used_is_skipped_for_the_older_good_one"
+  ],
+  "file": "fno/ingestion/news/versioned.py",
+  "old": "            if version in used and digest != used[version]:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Q4",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        raw = legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "        raw = master.get(symbol) or legal.get(symbol) or n500.get(symbol)"
+ },
+ {
+  "id": "Q5",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_without_apply_nothing_is_written_and_the_line_is_counts_only"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if apply:\n        config.put(FIRST_FILE, seed.data)",
+  "new": "    if True:\n        config.put(FIRST_FILE, seed.data)"
+ },
+ {
+  "id": "Q6",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if config.checksums(COMPANIES_FOLDER):\n        raise SeedFailed(codes.COMPANY_LIST_EXISTS)\n",
+  "new": ""
+ },
+ {
+  "id": "Q7",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if normalise_label(name) in taken:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Q8",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or pattern.count(\"?\") > MAX_OPTIONALS\n",
+  "new": ""
+ },
+ {
+  "id": "Q9",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_rows_the_list_checks_would_refuse_are_skipped_and_counted_so_the_seed_still_passes_them"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if not SYMBOL.match(symbol) or not normalise_label(name) or len(name) > MAX_TEXT:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Q10",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "    parse_company_list(data, 1)  # what",
+  "new": "    (lambda *a: None)(data, 1)  # what"
+ },
+ {
+  "id": "Q11",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_when_the_lists_disagree_the_equity_list_wins_over_the_nifty_500_and_that_over_the_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "n500.get(symbol) or legal.get(symbol) or master[symbol]"
+ },
+ {
+  "id": "Q12",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
+  "new": ""
+ },
+ {
+  "id": "D1",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_planned_id_is_keyed_with_the_private_salt_so_a_guessed_name_cannot_be_confirmed_from_the_poll_log"
+  ],
+  "file": "fno/ingestion/news/planning/query_id.py",
+  "old": "    digest = hmac.new(salt.encode(), message, hashlib.sha256).hexdigest()",
+  "new": "    digest = hashlib.sha256(message).hexdigest()"
+ },
+ {
+  "id": "D2",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_the_same_query_has_the_same_id_however_the_list_is_ordered_or_extended",
+   "tests/ingestion/news/planning/test_planner.py::test_case_and_spacing_do_not_make_a_different_query_and_a_repeated_query_is_planned_once"
+  ],
+  "file": "fno/ingestion/news/planning/query_id.py",
+  "old": "    return \" \".join(query.split()).casefold()",
+  "new": "    return query"
+ },
+ {
+  "id": "D3",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_two_different_queries_that_share_an_id_are_refused_and_nothing_is_planned"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        if by_id.setdefault(feed_id, normalise_query(query)) != normalise_query(query):",
+  "new": "        if False:"
+ },
+ {
+  "id": "D4",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_an_id_used_before_with_another_kind_is_refused"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        if kinds_ever.get(entry[\"id\"], entry[\"kind\"]) != entry[\"kind\"]:",
+  "new": "        if False:"
+ },
+ {
+  "id": "D5",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_plan_the_feed_list_checks_would_refuse_is_never_returned"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "        parse_feed_list(data, 1)",
+  "new": "        (lambda *a: None)(data, 1)"
+ },
+ {
+  "id": "D6",
+  "tests": [
+   "tests/ingestion/news/planning/test_planner.py::test_a_query_is_url_encoded_so_a_name_cannot_add_or_change_a_parameter"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "    return discovery.search_url + separator + urlencode(params)",
+  "new": "    return discovery.search_url + separator + f\"{discovery.query_param}={query}\""
+ },
+ {
+  "id": "D7",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_search_hosts_are_paced_1_5_seconds_apart_and_every_other_host_keeps_the_default",
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_nse_spacing_table_is_not_changed_by_the_news_pacer"
+  ],
+  "file": "fno/ingestion/news/pacing.py",
+  "old": "WRAPPER_SPACING_SECONDS = 1.5",
+  "new": "WRAPPER_SPACING_SECONDS = 0.5"
+ },
+ {
+  "id": "D8",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_session_takes_the_pacer_of_the_run_and_the_job_sets_it_before_the_first_request"
+  ],
+  "file": "fno/ingestion/news/job.py",
+  "old": "            self.session.pace_for(feeds)",
+  "new": "            pass"
+ },
+ {
+  "id": "D9",
+  "tests": [
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_a_feed_list_accepts",
+   "tests/ingestion/news/planning/test_cli_and_pacing.py::test_the_ids_it_refuses_a_trailing_line_break_included"
+  ],
+  "file": "fno/ingestion/news/feeds.py",
+  "old": "|q-[0-9a-f]{12})",
+  "new": "|)"
+ },
+ {
+  "id": "X1",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_recorded_wrapper_article_with_a_link_gets_one_row_and_nothing_else_does",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_wrapper_item_without_a_usable_link_is_not_indexed",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_the_row_carries_the_sha_of_the_article_file_the_record_holds"
+  ],
+  "file": "fno/ingestion/news/record/wrapper_index.py",
+  "old": "        if is_resolvable(article):",
+  "new": "        if True:"
+ },
+ {
+  "id": "X2",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_promoting_the_same_poll_again_adds_no_second_row",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_missing_row_is_repaired_by_promoting_the_poll_again"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "            self._mark(article, day, plan.status, plan.held)",
+  "new": "            pass"
+ },
+ {
+  "id": "X3",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_revision_adds_no_row_and_the_first_rows_stay"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        if self.wrappers is not None and status == RECORDED:",
+  "new": "        if self.wrappers is not None:"
+ },
+ {
+  "id": "X4",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_the_gate_decides_exactly_as_before_the_index_existed"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        self._mark(article, day, plan.status, data)\n        return plan.outcome",
+  "new": "        self._mark(article, day, plan.status, data)\n        return Outcome.NO_OP"
+ },
+ {
+  "id": "X5",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_torn_index_stops_the_promotion_before_anything_is_written",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_row_of_the_index_that_is_not_whole_is_reported_and_not_ignored"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "            self.wrappers.check_appendable()",
+  "new": "            pass"
+ },
+ {
+  "id": "X6",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_whole_wrapper_index_is_committed_with_the_articles_manifest",
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_torn_wrapper_index_never_reaches_main_the_good_articles_manifest_does_and_the_run_is_red",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_promote_workflow_names_the_index_as_an_extra_manifest"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "for manifest in $MANIFEST ${EXTRA_MANIFESTS:-}; do",
+  "new": "for manifest in $MANIFEST; do"
+ },
+ {
+  "id": "V1",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_one_resolver_call_per_pass_so_its_stop_and_pacing_are_not_reset",
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_wiring_builds_one_resolver_for_the_whole_run_from_the_private_feed_list"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            answers = self.resolver.resolve([article.wrapper_link for article, _ in pending])",
+  "new": "            answers = [a for article, _ in pending for a in self.resolver.resolve([article.wrapper_link])]"
+ },
+ {
+  "id": "V2",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_the_cap_bounds_the_links_asked_newest_day_first_and_counts_the_rest_as_backlog",
+   "tests/ingestion/news/resolve/test_pass.py::test_the_cap_can_never_be_raised_above_eighty",
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_command_defaults_to_the_probe_and_the_limit_never_exceeds_the_cap"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "self._pending(today, min(cap, CAP), report)",
+  "new": "self._pending(today, cap, report)"
+ },
+ {
+  "id": "V3",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution_file",
+   "tests/ingestion/news/resolve/test_pass.py::test_a_pass_given_the_whole_articles_manifest_still_asks_only_wrapper_articles"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "        if article.kind != WRAPPER or not article.wrapper_link:",
+  "new": "        if False:"
+ },
+ {
+  "id": "V4",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_the_cap_bounds_the_links_asked_newest_day_first_and_counts_the_rest_as_backlog"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "key=lambda kv: (kv[1], kv[0]), reverse=True)",
+  "new": "key=lambda kv: (kv[1], kv[0]), reverse=False)"
+ },
+ {
+  "id": "V5",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_articles_older_than_the_look_back_are_not_asked_and_the_last_day_is_counted_as_expiring"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            if day < oldest:\n                break",
+  "new": "            if False:\n                break"
+ },
+ {
+  "id": "V6",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_articles_older_than_the_look_back_are_not_asked_and_the_last_day_is_counted_as_expiring",
+   "tests/ingestion/news/resolve/test_pass.py::test_a_backlog_left_on_the_last_day_by_the_cap_is_expiring_too",
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_links_about_to_expire_alert_but_do_not_turn_the_run_red"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            if day == oldest:\n                self.unresolved_last_day += 1",
+  "new": "            if False:\n                self.unresolved_last_day += 1"
+ },
+ {
+  "id": "V7",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_the_number_of_article_files_read_in_a_pass_is_bounded"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            elif report.counts[\"examined\"] >= MAX_READS:",
+  "new": "            elif False:"
+ },
+ {
+  "id": "V8",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_a_resolved_article_is_not_asked_again"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            if key in self.writer.manifest.recorded:",
+  "new": "            if False:"
+ },
+ {
+  "id": "V9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_an_unreadable_article_is_counted_red_never_skipped_silently"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "            report.reject(codes.ARTICLE_UNREADABLE)",
+  "new": "            pass"
+ },
+ {
+  "id": "V10",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_a_probe_asks_the_resolver_but_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "        if not apply:",
+  "new": "        if False:"
+ },
+ {
+  "id": "V11",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_a_resolution_file_has_the_url_its_host_and_whether_the_host_is_the_feeds_outlet",
+   "tests/ingestion/news/resolve/test_pass.py::test_the_resolution_file_holds_facts_only_and_no_time_so_the_same_answer_is_the_same_bytes"
+  ],
+  "file": "fno/ingestion/news/resolve/resolution_file.py",
+  "old": "    agrees = bool(claimed) and registrable_domain(host) == registrable_domain(claimed) != \"\"",
+  "new": "    agrees = True"
+ },
+ {
+  "id": "V12",
+  "tests": [
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_workflow_is_dispatch_only_serial_with_the_record_and_never_applies_by_default"
+  ],
+  "file": ".github/workflows/news-resolve.yml",
+  "old": "  group: news-record",
+  "new": "  group: news-resolve"
+ },
+ {
+  "id": "V13",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_a_resolver_that_fails_every_link_is_red_and_alerted_never_a_green_run_while_links_age_out",
+   "tests/ingestion/news/resolve/test_pass.py::test_a_real_batch_with_under_half_resolved_is_red_and_half_or_more_is_not",
+   "tests/ingestion/news/resolve/test_pass.py::test_a_pushed_back_service_leaves_the_links_waiting_but_the_run_is_not_green",
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_a_resolver_that_resolves_nothing_exits_1_and_alerts",
+   "tests/ingestion/news/resolve/test_pass.py::test_one_or_two_dead_links_are_not_a_failing_service_and_do_not_turn_every_pass_red"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "        if nothing or (asked >= FAILING_MIN_ASKED and resolved / asked < FAILING_BELOW_SHARE):",
+  "new": "        if False:"
+ },
+ {
+  "id": "V14",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_articles_the_read_cap_left_unread_are_counted_on_the_last_day_and_alerted",
+   "tests/ingestion/news/resolve/test_pass.py::test_unread_articles_on_a_newer_day_alone_still_alert_without_turning_the_run_red"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "                if day == oldest:  # unread, so unknown: counted as expiring rather than hidden by the read cap",
+  "new": "                if False:  # unread, so unknown: counted as expiring rather than hidden by the read cap"
+ },
+ {
+  "id": "V15",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pass.py::test_a_whole_last_row_with_no_final_newline_stops_the_pass_before_the_resolver_is_asked"
+  ],
+  "file": "fno/ingestion/news/resolve/run.py",
+  "old": "                self.writer.check_ready()",
+  "new": "                pass"
+ },
+ {
+  "id": "V16",
+  "tests": [
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_workflow_commits_only_its_own_manifest_and_receipts_through_the_shared_guard"
+  ],
+  "file": ".github/workflows/news-resolve.yml",
+  "old": "        if: ${{ !inputs.dry_run && inputs.apply }}",
+  "new": "        if: ${{ !inputs.dry_run }}"
+ },
+ {
+  "id": "X7",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_manifest_that_does_not_exist_yet_does_not_stop_the_step_before_it_commits_and_pushes",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_main_manifest_missing_does_not_stop_the_step_either"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "    if [ -e \"$manifest\" ]; then git add -- \"$manifest\"; fi",
+  "new": "    git add -- \"$manifest\""
+ },
+ {
+  "id": "X8",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_wrapper_poll_is_kept_while_its_index_row_is_missing_and_trashed_once_it_exists",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_publisher_poll_needs_no_index_row"
+  ],
+  "file": "fno/ingestion/staging_cleanup/news_proof.py",
+  "old": "            and self._indexed(article, plan)",
+  "new": "            and True"
+ },
+ {
+  "id": "X9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_cli_wiring_workflow.py::test_the_wiring_builds_one_resolver_for_the_whole_run_from_the_private_feed_list",
+   "tests/ingestion/news/resolve/test_pass.py::test_publisher_articles_are_never_read_so_they_cannot_use_up_the_read_cap"
+  ],
+  "file": "fno/ingestion/news/resolve/wiring.py",
+  "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE), build_link_resolver(feeds)",
+  "new": "NewsManifest(POLL_LOG_FOLDER), build_link_resolver(feeds)"
+ },
+ {
+  "id": "X10",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_the_news_proof_is_built_with_the_wrapper_index_so_the_cleanup_consults_it",
+   "tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_the_news_proof_cannot_be_built_without_an_index"
+  ],
+  "file": "fno/ingestion/staging_cleanup/wiring.py",
+  "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE)",
+  "new": "NewsManifest(POLL_LOG_FOLDER)"
+ },
+ {
+  "id": "H1",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_url_that_is_not_plain_https_is_refused_before_any_request",
+   "tests/ingestion/news/pages/test_fetcher.py::test_only_listed_outlets_that_allow_automated_reads_are_fetched"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        if not clean or not host:",
+  "new": "        if not host:"
+ },
+ {
+  "id": "H2",
+  "tests": [
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_host_is_fetchable_only_when_every_listed_domain_it_sits_under_allows_it",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_the_shipped_allowlist_keeps_its_fetchable_set_under_the_stricter_rule"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return bool(listed) and all(self._allows_fetch(outlet) for outlet in listed)",
+  "new": "        return bool(listed) and self._allows_fetch(listed[0])"
+ },
+ {
+  "id": "H3",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused",
+   "tests/ingestion/news/pages/test_address.py::test_a_name_is_reachable_only_when_every_address_it_resolves_to_is_global",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_name_that_resolves_to_a_non_global_address_is_refused_before_any_request"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    return ip.is_global and not ip.is_multicast  # Python calls some multicast ranges global",
+  "new": "    return not ip.is_private"
+ },
+ {
+  "id": "H4",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_hop_that_leaves_the_rules_is_a_refused_redirect_and_is_never_requested",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_hop_to_an_address_that_is_not_global_is_refused",
+   "tests/ingestion/news/pages/test_fetcher.py::test_too_many_hops_and_a_redirect_without_a_location_are_refused"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        for hop in range(MAX_HOPS + 1):",
+  "new": "        for hop in range(MAX_HOPS * 1000):"
+ },
+ {
+  "id": "H5",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_body_over_the_cap_is_too_large_and_nothing_is_kept",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_cap_counts_decoded_bytes_so_a_small_gzip_body_that_inflates_is_too_large"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                if size > limit:",
+  "new": "                if False:"
+ },
+ {
+  "id": "H6",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_listed_page_is_fetched_after_its_robots_txt_and_spaced_from_it",
+   "tests/ingestion/news/pages/test_fetcher.py::test_requests_are_spaced_across_hosts_not_per_host"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        self.spacer.wait()",
+  "new": "        pass"
+ },
+ {
+  "id": "H7",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_refusal_stops_that_host_for_the_run_and_only_that_host",
+   "tests/ingestion/news/pages/test_fetcher.py::test_other_errors_do_not_stop_the_host"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                if response.status_code in STOP_STATUSES:\n                    self.stopped.add(host)",
+  "new": "                if response.status_code in STOP_STATUSES:\n                    pass"
+ },
+ {
+  "id": "H8",
+  "tests": [
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_path_robots_txt_disallows_is_not_requested",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_server_error_means_the_hosts_pages_are_not_read_this_run",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_robots_txt_is_read_once_per_host_per_run"
+  ],
+  "file": "fno/ingestion/news/pages/robots.py",
+  "old": "        if rules == UNREADABLE:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H9",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_only_html_is_accepted"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        if kind not in accept:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H10",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_page_never_shows_its_url_or_body_in_its_repr",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_network_error_is_a_fixed_code_and_the_message_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/pages/model.py",
+  "old": "    body: bytes = field(default=b\"\", repr=False)",
+  "new": "    body: bytes = b\"\""
+ },
+ {
+  "id": "H11",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_asks_each_fetchable_outlet_front_page_once_and_leaves_the_refusing_ones_alone",
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_workflow_is_dispatch_only_read_only_and_holds_no_secret"
+  ],
+  "file": "fno/ingestion/news/pages/probe.py",
+  "old": "        if refuses and not include_refusing:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H12",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_log_so_far",
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_job_timeout_covers_the_worst_case_of_every_request_timing_out"
+  ],
+  "file": "fno/ingestion/news/pages/probe.py",
+  "old": "        if on_result is not None:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H13",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"::/96\",  # IPv4-compatible (deprecated; embeds an IPv4 address): ::127.0.0.1\n",
+  "new": ""
+ },
+ {
+  "id": "H14",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"fec0::/10\",  # deprecated site-local\n",
+  "new": ""
+ },
+ {
+  "id": "H15",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"2001:20::/28\",  # ORCHIDv2 (not routable)\n",
+  "new": ""
+ },
+ {
+  "id": "H16",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_session_takes_no_proxy_or_settings_from_the_environment"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop",
+  "new": "        pass"
+ },
+ {
+  "id": "Y1",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_resolved_google_news_article_is_read_at_its_resolved_url_and_one_read_file_is_written",
+   "tests/ingestion/news/reads/test_pass.py::test_a_google_news_article_that_is_not_resolved_yet_is_not_read_and_nothing_is_requested",
+   "tests/ingestion/news/reads/test_pass.py::test_a_publisher_article_is_read_at_its_own_canonical_link"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            if key not in self.resolved.recorded:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Y2",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_an_article_on_an_outlet_we_may_not_read_makes_no_request"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        elif not self.rules.may_fetch(plain_host(urlsplit(url).hostname)):",
+  "new": "        elif False:"
+ },
+ {
+  "id": "Y3",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_probe_fetches_and_extracts_but_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        if not apply:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Y4",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_at_most_eighty_pages_are_fetched_whatever_limit_is_asked"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "min(pages, PAGES)",
+  "new": "pages"
+ },
+ {
+  "id": "Y5",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_run_stops_at_its_time_budget_and_counts_and_alerts_the_pages_it_did_not_reach"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            if self.clock() - started >= budget:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Y6",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_read_cap_counts_what_it_left_unread_and_alerts"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            elif report.counts[\"examined\"] >= MAX_RECORD_READS:",
+  "new": "            elif False:"
+ },
+ {
+  "id": "Y7",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_newest_day_is_read_first",
+   "tests/ingestion/news/reads/test_pass.py::test_an_article_already_read_is_not_fetched_again"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "key=lambda kv: (kv[1], kv[0]), reverse=True)",
+  "new": "key=lambda kv: (kv[1], kv[0]), reverse=False)"
+ },
+ {
+  "id": "Y8",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_reader_that_gets_nothing_is_red_and_alerted_but_robots_and_stops_are_not_faults",
+   "tests/ingestion/news/reads/test_pass.py::test_under_half_of_a_batch_of_ten_read_is_red_and_half_is_not",
+   "tests/ingestion/news/reads/test_pass.py::test_one_or_two_failed_pages_are_not_a_failing_reader"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        if (faults and ok == 0 and faults >= NOTHING_OK_MIN_ASKED) or (",
+  "new": "        if False and (faults and ok == 0 and faults >= NOTHING_OK_MIN_ASKED) or ("
+ },
+ {
+  "id": "Y9",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_torn_reads_manifest_stops_the_pass_before_any_request"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "                self.writer.check_ready()",
+  "new": "                pass"
+ },
+ {
+  "id": "Y10",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_that_could_carry_a_body_is_refused",
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_round_trips_holds_facts_only_and_is_deterministic",
+   "tests/ingestion/news/reads/test_pass.py::test_the_read_file_holds_no_body_and_the_line_holds_no_link_key_or_host"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "        if len(data) > MAX_BYTES:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Y11",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_page_marked_not_free_is_paywalled",
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_the_access_outcome"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), not free_to_read(node),",
+  "new": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), False,"
+ },
+ {
+  "id": "Y12",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_deeply_nested_or_huge_document_is_bounded_not_followed"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "            if depth < MAX_DEPTH and \"@graph\" in node:",
+  "new": "            if \"@graph\" in node:"
+ },
+ {
+  "id": "Y13",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_workflow_is_dispatch_only_serial_with_the_record_and_never_applies_by_default",
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_workflow_commits_only_its_own_manifest_and_receipts_and_only_with_apply"
+  ],
+  "file": ".github/workflows/news-read-pages.yml",
+  "old": "        if: ${{ !inputs.dry_run && inputs.apply }}",
+  "new": "        if: ${{ !inputs.dry_run }}"
+ },
+ {
+  "id": "H17",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_job_does_not_buffer_its_output_so_a_hard_kill_keeps_the_lines_already_printed"
+  ],
+  "file": ".github/workflows/news-probe-outlets.yml",
+  "old": "      PYTHONUNBUFFERED: \"1\"",
+  "new": "      PYTHONUNBUFFERED_OFF: \"1\""
+ },
+ {
+  "id": "Y14",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_page_whose_json_ld_nests_past_what_the_parser_accepts_gives_no_facts_and_raises_nothing",
+   "tests/ingestion/news/reads/test_pass.py::test_a_page_that_makes_the_extractor_fail_is_counted_and_the_run_goes_on"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "        except (ValueError, RecursionError):  # not JSON, or nested past what the parser accepts: this block is skipped",
+  "new": "        except ValueError:  # not JSON, or nested past what the parser accepts: this block is skipped"
+ },
+ {
+  "id": "Y15",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_server_that_drips_bytes_is_cut_off_at_the_total_deadline_not_at_the_per_read_timeout",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_deadline_covers_robots_txt_and_the_hops_together",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_silent_host_is_a_timeout_and_stops_the_host",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_body_is_read_as_it_arrives_through_the_real_library_so_the_deadline_is_checked_between_drips"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                if self._left() <= 0:\n                    return Page(model.TIMEOUT, url)",
+  "new": "                if False:\n                    return Page(model.TIMEOUT, url)"
+ },
+ {
+  "id": "Y16",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_each_fetch_is_given_the_time_the_run_has_left",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_fetch_never_runs_longer_than_the_most_a_fetch_may_take",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_requests_own_timeout_is_the_smaller_of_its_limit_and_the_time_left"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        page = self.fetcher.fetch(url, max(1.0, budget_left))",
+  "new": "        page = self.fetcher.fetch(url)"
+ },
+ {
+  "id": "Y17",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_the_depth_limit_holds_for_lists_as_well_as_graphs"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "        if isinstance(node, list) and depth < MAX_DEPTH:",
+  "new": "        if isinstance(node, list):"
+ },
+ {
+  "id": "Y18",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_five_long_names_in_a_three_byte_script_still_fit_the_read_file"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "ensure_ascii=False).encode(\"utf-8\")",
+  "new": "ensure_ascii=True).encode(\"ascii\")"
+ },
+ {
+  "id": "Y19",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_loading_the_command_line_does_not_load_the_html_parser"
+  ],
+  "file": "fno/ingestion/news/reads/cli.py",
+  "old": "from fno.ingestion.news.reads.limits import PAGES",
+  "new": "from fno.ingestion.news.reads.run import PAGES"
  }
 ]

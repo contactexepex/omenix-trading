@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 import yaml
 
 from fno.ingestion.staging_cleanup import wiring
@@ -43,6 +44,17 @@ def test_nse_copies_and_news_polls_each_have_their_own_proof_and_nothing_else_is
     proofs = built(monkeypatch, tmp_path, apply=True).proofs
     assert isinstance(proofs["nse"], NseCopyProof) and isinstance(proofs["news"], NewsPollProof)
     assert proofs["news"].kinds == KINDS and set(proofs) == {"nse", "news"}
+
+
+def test_the_news_proof_is_built_with_the_wrapper_index_so_the_cleanup_consults_it(monkeypatch, tmp_path):
+    """judges 85, 86: without this, the S1 index-row check could be silently off in production."""
+    proof = built(monkeypatch, tmp_path, apply=True).proofs["news"]
+    assert proof.wrappers.log.path.name == "wrappers.csv" and proof.manifest.log.path.name == "articles.csv"
+
+
+def test_the_news_proof_cannot_be_built_without_an_index():
+    with pytest.raises(TypeError):
+        NewsPollProof(KINDS, None, None)  # the index is required: a missing one must not turn the check off
 
 
 def test_the_proof_reads_the_record_area_and_the_staging_area_is_a_different_one(monkeypatch, tmp_path):

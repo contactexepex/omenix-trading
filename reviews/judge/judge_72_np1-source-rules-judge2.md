@@ -149,3 +149,18 @@ passed; contract plants all ok. Largest file: `loader.py`, 204 lines.
   hosts.
 
 **Verdict: PASS** (`df3fe62`).
+
+## Addendum 2: final SHA `d6f28e4` (= `df3fe62` + judge #1's `fullmatch` change)
+
+`git diff df3fe62 d6f28e4 -- fno` changes three lines, and nothing else in the code:
+- `DOMAIN.match` becomes `fullmatch` (`loader.py:77`);
+- `PLAIN_HOST.match` becomes `fullmatch` (`rules.py:28`);
+- `LABEL_IS_A_HOST.match` becomes `fullmatch` (`rules.py:93`).
+
+Tests, rows O15-O16, their plants and the story text are added. The change is correct: `$` also matches before a
+trailing `\n`, so `match` let `reuters.com\n` through. I missed that in round 1.
+
+**Gates (cleared `__pycache__`):** 1316 passed; ruff clean; imports clean; contract plants all ok. My plant reverting
+`PLAIN_HOST` to `match` fails 2 tests.
+
+**Verdict: PASS** (`d6f28e4`, final).

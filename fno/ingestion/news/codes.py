@@ -54,3 +54,34 @@ WINDOW_IN_FUTURE = (
 PREVIOUS_UNREADABLE = (
     "previous_unreadable"  # the earlier run's cluster file is damaged: the replaced ids cannot be named
 )
+# the company list (NP3a): fixed codes; the list is the owner's private content, so no code carries a symbol or a name
+COMPANY_LIST_MISSING = "company_list_missing"
+COMPANY_LIST_INVALID = "company_list_invalid"
+COMPANY_LIST_ROLLED_BACK = "company_list_rolled_back"
+COMPANY_LIST_DAMAGED = "company_list_damaged"
+COMPANY_LIST_EXISTS = "company_list_exists"  # a seed is never written over an existing list
+SEED_SOURCE_MISSING = "seed_source_missing"  # the archived NSE list the seed is built from could not be read
+# the feed plan (NP3b): fixed codes; the discovery file and the plan are the owner's private content
+DISCOVERY_MISSING = "discovery_missing"
+DISCOVERY_INVALID = "discovery_invalid"
+DISCOVERY_ROLLED_BACK = "discovery_rolled_back"
+DISCOVERY_DAMAGED = "discovery_damaged"
+FEED_PLAN_COLLISION = "feed_plan_collision"  # two different queries hash to one feed id: nothing is written
+FEED_PLAN_KIND_CONFLICT = (
+    "feed_plan_kind_conflict"  # a planned id was used before with another kind: nothing is written
+)
+FEED_PLAN_INVALID = "feed_plan_invalid"  # the plan's own bytes fail the feed list checks (too many feeds, a bad URL)
+# the resolve pass (NP2c)
+RESOLVER_FAILING = (
+    "resolver_failing"  # the resolver resolved nothing (or under half of a real batch): loud, never green
+)
+RESOLUTION_CONFLICT = "resolution_conflict"  # the resolution file exists with other bytes: nothing is overwritten
+RESOLUTION_WRITE_FAILED = (
+    "resolution_write_failed"  # Drive or the manifest would not take the file (only the code kept)
+)
+# the page-read pass (NP4b)
+READER_FAILING = (
+    "reader_failing"  # the pages asked for were refused, blocked or failed (nothing of three or more, or under half)
+)
+READ_CONFLICT = "read_conflict"  # the read file exists with other bytes: nothing is overwritten
+READ_WRITE_FAILED = "read_write_failed"  # Drive or the manifest would not take the file (only the code is kept)

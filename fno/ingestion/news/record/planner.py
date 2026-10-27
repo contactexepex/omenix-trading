@@ -13,16 +13,15 @@ One definition of the rule, read only:
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass
 from enum import Enum
 
 from fno.ingestion.news.article.article_file import Article
+from fno.ingestion.news.article.formats import fixed_bytes, same_version
 from fno.ingestion.news.record.manifest import RECORDED, REVISION
 from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
 
 ARTICLES, REVISIONS = "news/articles", "news/revisions"
-UNCOMPARED = ("first_seen_at", "format")
 
 
 class Outcome(Enum):
@@ -33,14 +32,6 @@ class Outcome(Enum):
 
 def article_path(key: str) -> str:
     return f"{ARTICLES}/{key[:2]}/{key}.json"
-
-
-def _fixed(data: bytes) -> bytes | None:
-    try:
-        document = json.loads(data)
-        return json.dumps({k: v for k, v in document.items() if k not in UNCOMPARED}, sort_keys=True).encode()
-    except (ValueError, AttributeError):
-        return None  # a damaged held file differs from every article
 
 
 @dataclass(frozen=True)
@@ -62,16 +53,20 @@ class ArticlePlanner:
         held = self._held(path)
         if held is None:
             return Plan(Outcome.RECORDED, path, RECORDED, None)
-        if _fixed(held) is not None and _fixed(held) == _fixed(data):
+        if same_version(held, data):
             return Plan(Outcome.NO_OP, path, RECORDED, held)
-        sha8 = hashlib.sha256(_fixed(data) or b"").hexdigest()[:8]
-        revision = f"{REVISIONS}/{article.key[:2]}/{article.key}/{sha8}.json"
+        folder = f"{REVISIONS}/{article.key[:2]}/{article.key}"
+        for name in sorted(self.reader.checksums(folder)):  # a version kept under another format's name is still kept
+            kept = self._held(f"{folder}/{name}")
+            if kept is not None and same_version(kept, data):
+                return Plan(Outcome.NO_OP, f"{folder}/{name}", REVISION, kept)
+        revision = f"{folder}/{hashlib.sha256(fixed_bytes(data) or b'').hexdigest()[:8]}.json"
         kept = self._held(revision)
         if kept is None:
             return Plan(Outcome.REVISION, revision, REVISION, None)
-        if _fixed(kept) != _fixed(data):  # the same 8 hex characters for two versions: never called a no-op
-            raise RawFileConflict(f"{revision}: revision name collision")
-        return Plan(Outcome.NO_OP, revision, REVISION, kept)
+        if same_version(kept, data):  # the listing lagged behind a file written earlier in this run: the same version
+            return Plan(Outcome.NO_OP, revision, REVISION, kept)
+        raise RawFileConflict(f"{revision}: revision name collision")  # the same 8 hex characters for two versions
 
     def _held(self, path: str) -> bytes | None:
         if path not in self.held:

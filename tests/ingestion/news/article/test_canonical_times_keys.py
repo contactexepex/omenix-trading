@@ -142,10 +142,12 @@ def test_a_changed_title_or_summary_changes_the_fixed_fields_so_it_is_a_revision
     assert a.fixed_fields() != build_article(PUBLISHER, item(summary="s2"), SEEN_AT).fixed_fields()
 
 
-def test_a_wrapper_article_holds_no_url_and_an_item_without_a_time_is_kept_as_seen():
+def test_a_wrapper_article_holds_no_canonical_url_and_an_item_without_a_time_is_kept_as_seen():
     wrapper = build_article(WRAPPER, item(link="https://wrapper.example/redirect?x=1", guid="g", published=""), SEEN_AT)
     assert wrapper.canonical_url == "" and wrapper.time_source == SEEN and wrapper.published_at == ""
-    assert b"redirect" not in wrapper.to_bytes()
+    # NP2a reverses the P2 ruling that the redirect link is thrown away: it is kept as `wrapper_link` only, never as the
+    # article's URL, so that it can be resolved later (NP0 section 2b)
+    assert wrapper.wrapper_link == "https://wrapper.example/redirect?x=1"
 
 
 @pytest.mark.parametrize("text", ["00010101T000000+0500", "99991231T235959-0500"])
