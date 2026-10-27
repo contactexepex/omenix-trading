@@ -1,9 +1,10 @@
-"""P2c: precision and recall of the default threshold on 16 INVENTED headline pairs (8 the same story, 8 not).
+"""P2c: precision and recall of the default threshold on 17 INVENTED headline pairs (8 the same story, 9 not).
 
 This measures what the rule does to pairs I wrote myself. It is NOT evidence about real news and the pairs are too few
 to tune on; the numbers are pinned so a change to the threshold, the shingles or the entity step shows up as a visible
-change. The defaults under-merge short rewordings (recall below 1) and merge nothing they should not (precision 1): the
-safe direction, since an unmerged duplicate is still a kept article."""
+change. The defaults under-merge short rewordings (recall below 1) and cannot tell a
+one-word reversal ("high" against "low") from a rewording, so they merge that pair: lexical similarity has no sense of
+meaning. Both errors distort a story count and a corroboration count."""
 
 from __future__ import annotations
 
@@ -32,6 +33,10 @@ DIFFERENT_STORIES = [
     ("Rupee falls to record low against dollar", "Rupee gains against dollar on foreign inflows"),
     ("Oil prices surge after Opec cuts output", "Oil marketing companies cut fuel prices in Delhi"),
     ("Infosys raises revenue guidance for FY27", "Infosys appoints new chief financial officer"),
+    (
+        "Nifty closes at record high",
+        "Nifty closes at record low",
+    ),  # a known false positive: one opposite word (judge 52)
 ]
 
 
@@ -39,7 +44,7 @@ def merged(first: str, second: str) -> bool:
     return len(cluster_articles([art("a", first, at(5)), art("b", second, at(4))], AS_OF).clusters) == 1
 
 
-def test_the_default_threshold_on_invented_pairs_has_precision_1_and_recall_5_of_8():
+def test_the_default_threshold_on_invented_pairs_has_precision_5_of_6_and_recall_5_of_8():
     true_positive = sum(merged(*pair) for pair in SAME_STORY)
     false_positive = sum(merged(*pair) for pair in DIFFERENT_STORIES)
-    assert (true_positive, len(SAME_STORY) - true_positive, false_positive) == (5, 3, 0)
+    assert (true_positive, len(SAME_STORY) - true_positive, false_positive) == (5, 3, 1)

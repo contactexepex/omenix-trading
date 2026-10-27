@@ -75,8 +75,9 @@ this plan only turns them into files and tests. **P2c is a pure function: no I/O
 ## Decision (orchestrator, 27 Oct 2026) and the warning that goes with it
 
 Ship named default constants for the similarity threshold and the window, behind the `Similarity` interface so re-tuning is a
-one-line change, and re-tune from the first week of real polls. **Until then, nothing derived from clusters (corroboration, a
-story count, "how many outlets carried it") may be trusted:** the defaults are reasoning only, tested on invented pairs, which
+one-line change, and re-tune from the first week of real polls. **Until then, neither a story count nor a corroboration
+count may be trusted, in either direction:** under-merging inflates the story count and deflates each story's corroboration (its
+outlets are split over the pieces), and over-merging does the reverse. The defaults are reasoning only, tested on invented pairs, which
 proves the code obeys the rule and says nothing about whether the threshold is right for real news. The same warning is in the
 constants' docstring. The hard guards (no merge on an entity alone, no chaining) bound the damage of a wrong threshold to
 "too many or too few clusters", never to a lost or hidden article. Corroboration and wire-credit counting stay out (owner
@@ -95,11 +96,12 @@ decision). One judge, as for P2b1 (a pure module), after P2b3 merges.
 - **Decisions made while building:** a repeated key is one article and its EARLIEST sighting is kept (as the Record keeps the
   first file); an article first seen after the run's end waits for a later run; the redundant `first seen <= as_of` check was
   removed because the effective time is never earlier than the first-seen time.
-- **Measured, on invented pairs only (test_labelled_pairs.py):** 16 pairs I wrote (8 the same story, 8 not): precision 5 of 5,
+- **Measured, on invented pairs only (test_labelled_pairs.py):** 17 pairs I wrote (8 the same story, 9 not). Precision 5 of 6 and
   recall 5 of 8. The defaults under-merge short rewordings ("wins" against "bags", "a record low" against "record low") and
-  merge nothing they should not. That is the safe direction (an unmerged duplicate is still a kept article), but it means a
-  story count from these clusters is an OVERCOUNT until the threshold is re-tuned. I did not tune on my own 16 pairs: that would
-  fit the numbers to my own invention. Reasoning only; no real news is behind any of it.
+  cannot tell a one-word reversal from a rewording: a hard near-miss added on Judge 1's request ("Nifty closes at record high"
+  against "record low") MERGES. Under-merging inflates a story count and deflates each story's corroboration; the false merge
+  does the reverse; so neither number is trustworthy until the threshold is re-tuned on real data. I did not tune on my own
+  pairs: that would fit the numbers to my own invention. Reasoning only; no real news is behind any of it.
 - **Proof:** 31 tests; plants fail a test for stage 1, the title stage and the outlet trim, an entity merging alone, the entity
   bar, the match window, chaining, the two-anchor choice, the assignment order, the id hash, `previous_cluster_ids`, the window
   edges and the effective time, the earliest-sighting rule, the repeated-key count, a dropped article, and input order.

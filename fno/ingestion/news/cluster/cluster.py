@@ -51,7 +51,9 @@ class Clustering:
 def cluster_articles(articles: Iterable[Article], as_of: datetime, previous: Sequence[Cluster] = (),
                      similarity: Similarity | None = None) -> Clustering:  # fmt: skip
     """`previous`: the run before's clusters, to name replaced ids; `similarity`: the measure (Jaccard by default)."""
-    given = sorted(articles, key=lambda a: (a.first_seen_at, a.key))
+    given = sorted(
+        articles, key=lambda a: (a.first_seen_at, a.key, a.to_bytes())
+    )  # a full tie-break: input order never decides
     distinct: dict[str, Article] = {}
     for article in given:
         distinct.setdefault(article.key, article)  # a repeated key is the same article: its earliest sighting is kept

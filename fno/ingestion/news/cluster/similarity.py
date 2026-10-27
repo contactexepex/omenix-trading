@@ -3,8 +3,10 @@
 **The numbers below are defaults, not findings.** No real news has been collected yet (the first real fetch is the
 owner's go-live), so the threshold and the entity step are reasoning only, tested on invented pairs: that proves the
 code obeys the rule and says nothing about whether the threshold is right for real news. Until they are re-tuned from
-the first week of real polls, nothing derived from clusters (corroboration, a story count, "how many outlets carried
-it") may be trusted.
+the first week of real polls, neither a story count nor a corroboration count from clusters may be trusted: splitting
+one story into several clusters inflates the story count AND deflates each story's corroboration (its outlets are
+spread over the pieces), and merging two different stories does the reverse. Lexical similarity cannot tell "record
+high" from "record low".
 """
 
 from __future__ import annotations

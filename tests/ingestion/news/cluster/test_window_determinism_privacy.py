@@ -119,3 +119,12 @@ def test_a_repeated_key_keeps_its_earliest_sighting_as_the_record_does():
     again = art("k", words(1, 8), at(60), seen=at(1))  # the same article seen again: must not bring it back
     result = cluster_articles([again, early], AS_OF)
     assert result.clusters == () and result.outside_window == 1 and result.repeated_keys == 1
+
+
+def test_two_sightings_of_one_key_with_the_same_time_but_other_text_give_the_same_result_in_either_order():
+    """judge 52 C1: equal times tie the earliest-sighting rule; the text breaks the tie, never the input order."""
+    x1 = art("x", "Nifty rally lifts IT stocks today", at(5))
+    x2 = dataclasses.replace(x1, title="Completely different headline about oil prices today")
+    y = art("y", "Nifty rally lifts IT stocks today", at(4))
+    assert cluster_articles([x1, x2, y], AS_OF) == cluster_articles([x2, x1, y], AS_OF)
+    assert cluster_articles([x1, x2, y], AS_OF) == cluster_articles([y, x2, x1], AS_OF)
