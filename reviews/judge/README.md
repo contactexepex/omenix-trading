@@ -62,3 +62,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 49 | P2b3 news manifest commit guard, code (judge #2) | 1 | PASS (08a55f5) | `judge_49_p2b3-guard-judge2.md` |
 | 50 | P2b3 news-promote commit guard (code) | 1 | PASS (60d3f1b; carries to 08a55f5) | `judge_50_p2b3-commit-guard.md` |
 | 51 | P2a2 news-fetch failure alert (workflow) | 1 | PASS (11b25db) | `judge_51_p2a2-fetch-alert.md` |
+| 52 | P2c news clustering (code) | 1 | FAIL (round 1, bab61e3) | `judge_52_p2c-clustering.md` |
