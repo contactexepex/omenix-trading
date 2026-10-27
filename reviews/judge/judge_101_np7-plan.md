@@ -34,3 +34,31 @@
 - The privacy line holds: view files live in the private Drive; logs and codes carry no titles or URLs.
 
 ## Verdict: FAIL round 1 at f69aef7. B1 (pin the list's SHA-256, not just its number) and B2 (the full enabling order) required; (1) the code version and (4) the cost statement recommended.
+
+## Addendum 1: round 2 at 6eb4f1d: PASS
+
+Reviewed `git diff f69aef7 6eb4f1d`. The implementer's message said "@ HEAD", so I recorded the branch tip, 6eb4f1d. The only non-judge change is the story file (115 lines, under the 500-line limit). It is a plan document, so no code gates apply.
+
+**B1 fixed (strong evidence, checked against `news/versioned.py` on `main`).**
+- The version 2 cluster file records `companies_sha256`. The next run passes `lowest_version` and `used={companies_version: companies_sha256}`.
+- A list edited in place now stops the run with `company_list_damaged`; an older list stops it with `company_list_rolled_back`.
+- The plan also refuses when `Picked.damaged` is non-empty, instead of quietly falling back to an older version. That field exists (`versioned.py:34`), so the refusal is buildable as written.
+- `materiality_sha256` gets the same treatment.
+- **Format 2 changes before first use (strong evidence).** On `main`, no receipt or manifest names `clusters/2/`, and `news-cluster.yml` still defaults to algorithm 1. Z15 and the parser change with it.
+
+**B2 fixed (strong evidence).** The order is complete:
+- fetch → promote → resolve → read-pages → cluster (algorithm 2) → views → staging cleanup;
+- staging cleanup runs report-only first;
+- each step is enabled one at a time with its first run watched.
+
+The gate list now includes the scheduled `data-cache sync --unreceipted raw/news` check (judge 62 F-a).
+
+**Recommended 1, the code version: accepted (reasoning only).**
+- The hash-guarded `view_rules_version` constant is better than a git SHA. A git SHA would make a re-run of a closed window after an unrelated deploy a write-once conflict; that reasoning is correct.
+- **Condition for NP7a's code review (not for this plan):** the hashed module list must be explicit and must cover every module that changes view output (tagger, origins, materiality, view builder). A plant that edits each one must fail the guard test.
+
+**Recommended 2, which clusters: accepted.** It is now an owner decision with three options and the cost stated. Under options A and B, an empty company list stops the view command (`company_list_missing`), and `clusters_dropped` is counted in the header. Nothing is lost silently.
+
+**Hard lines.** None of these steps calls Groww. No orders. View files and lists stay in the private Drive.
+
+**Verdict: PASS round 2 at 6eb4f1d.** The owner still has to choose A, B or C before NP7a.
