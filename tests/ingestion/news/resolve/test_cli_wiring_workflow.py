@@ -80,7 +80,7 @@ def test_links_about_to_expire_alert_but_do_not_turn_the_run_red(tmp_path, monke
 def test_a_resolver_that_resolves_nothing_exits_1_and_alerts(tmp_path, monkeypatch):
     world = World(tmp_path, FakeResolver({}))
     world.resolver.default = Resolved(DECODE_FAILED)
-    world.add(wrapper_item(1), wrapper_item(2))
+    world.add(wrapper_item(1), wrapper_item(2), wrapper_item(3))
     command = Command(monkeypatch, world)
     assert command.run(apply=True) == 1 and len(command.alerts) == 1 and codes.RESOLVER_FAILING in command.lines[0]
 

@@ -28,7 +28,11 @@ from fno.ingestion.storage.row_log import TableFileBroken
 LOOKBACK_DAYS = 3
 CAP = 80  # links per pass: about 53 a pass are needed to keep up with ~1,280 a day at 1.5 s apart
 MAX_READS = 600  # article files read per pass
-FAILING_MIN_ASKED, FAILING_BELOW_SHARE = 10, 0.5  # a batch this big with fewer than half resolved is a failing service
+FAILING_MIN_ASKED, FAILING_BELOW_SHARE, NOTHING_RESOLVED_MIN_ASKED = (
+    10,
+    0.5,
+    3,
+)  # a batch this big with fewer than half resolved is a failing service
 
 
 class ResolvePass:
@@ -57,10 +61,13 @@ class ResolvePass:
 
     @staticmethod
     def _check_service(asked: int, report: ResolveReport) -> None:
-        """A resolver that resolves nothing, or fewer than half of a real batch, is loud (red and alerted): a broken
+        """A resolver that resolves nothing of three or more links, or fewer than half of a real batch, is loud (red and alerted): a broken
         decoder, a blocked runner or a service pushing back must never finish green while links age out unresolved."""
         resolved = report.results[RESOLVED]
-        if resolved == 0 or (asked >= FAILING_MIN_ASKED and resolved / asked < FAILING_BELOW_SHARE):
+        nothing = (
+            resolved == 0 and asked >= NOTHING_RESOLVED_MIN_ASKED
+        )  # one or two dead links are not a failing service
+        if nothing or (asked >= FAILING_MIN_ASKED and resolved / asked < FAILING_BELOW_SHARE):
             report.reject(codes.RESOLVER_FAILING)
 
     def _ready(self, report: ResolveReport, apply: bool) -> bool:

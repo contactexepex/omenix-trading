@@ -77,12 +77,12 @@ def test_a_failed_link_writes_nothing_and_is_tried_again_on_the_next_pass(tmp_pa
 
 def test_a_pushed_back_service_leaves_the_links_waiting_but_the_run_is_not_green(tmp_path):
     world = World(tmp_path)
-    world.add(wrapper_item(1), wrapper_item(2))
+    world.add(wrapper_item(1), wrapper_item(2), wrapper_item(3))
     world.resolver.answers = {
-        f"https://wrap.svc.example/rss/articles/CBMi000{n}?oc=5": Resolved(PAUSED) for n in (1, 2)
+        f"https://wrap.svc.example/rss/articles/CBMi000{n}?oc=5": Resolved(PAUSED) for n in (1, 2, 3)
     }
     report = world.run()
-    assert report.results[PAUSED] == 2 and world.resolution_files() == []
+    assert report.results[PAUSED] == 3 and world.resolution_files() == []
     assert not report.ok and report.rejected[codes.RESOLVER_FAILING] == 1 and report.needs_attention
 
 
@@ -233,3 +233,22 @@ def test_a_whole_last_row_with_no_final_newline_stops_the_pass_before_the_resolv
     report = world.run()
     assert not report.ok and report.rejected[codes.MANIFEST_BROKEN] == 1
     assert world.resolver.calls == [] and world.resolution_files() == []
+
+
+def test_one_or_two_dead_links_are_not_a_failing_service_and_do_not_turn_every_pass_red(tmp_path):
+    """judges 82, 83: a permanently dead link must not make every pass red for three days."""
+    world = World(tmp_path, FakeResolver({}))
+    world.resolver.default = Resolved(DECODE_FAILED)
+    world.add(wrapper_item(1), wrapper_item(2))
+    report = world.run()
+    assert report.ok and report.results[DECODE_FAILED] == 2 and not report.needs_attention
+
+
+def test_unread_articles_on_a_newer_day_alone_still_alert_without_turning_the_run_red(tmp_path, monkeypatch):
+    """judges 82, 83: `unexamined` with no expiring link is alerted by its own clause."""
+    monkeypatch.setattr(run_module, "MAX_READS", 2)
+    world = World(tmp_path)
+    world.add(*[wrapper_item(n) for n in range(1, 5)])
+    report = world.run()
+    assert report.counts["unexamined"] == 2 and report.counts["expiring"] == 0
+    assert report.ok and report.needs_attention
