@@ -71,9 +71,12 @@ were lost, the run was green and silent; the coverage check and receipt repair r
   the mark, "any" turned into "all", the alert removed, the exit code lowered, and the helper bypassed in each of the seven edited paths.
 - **Guard test blind spots closed (judge 55 F1):** a `\` continuation is joined before the scan, and a pair followed by `|| true`, `|| :`,
   `; exit 0` or `; true` is flagged even as the last command; one case each.
-- **Named as uncovered (judge 55 F2, awaiting the orchestrator's ruling):** the intraday sync's FOREIGN_STAGED refusal ("NOT pulled or committed":
-  another writer staged files, so the recorder pulled and committed nothing) still ends green. It is not silent: the sync posts its own alert once per
-  run. Counting it as a failure would change a Groww routine's exit code for a case already alerted; I recommend leaving it named here.
+- **Two cases still end a run without a commit (judge 55 F2, orchestrator ruling):** (1) a crashed commit step, red from its traceback with no
+  commit alert; (2) the intraday sync's FOREIGN_STAGED refusal ("NOT pulled or committed": another writer staged files in the recorder's
+  checkout, so nothing was pulled or committed), which ends **green but alerted**: the sync posts its own #fno-desk alert once per run, so it is
+  surfaced, not silent. Counting it as a failure was considered and rejected: it is already alerted, it would need a second marker beside the
+  helper's one (which today matches only the committer's own line, a property the tests pin), a double alert to manage, and a changed exit code
+  for a Groww routine that cannot be exercised live.
 - **Not done, listed:** swapping the seven already-correct callers to the helper (a later behaviour-preserving refactor); failing a run when the
   commit itself crashes (it is already red); the Python committer's other callers' own alert wording.
 
