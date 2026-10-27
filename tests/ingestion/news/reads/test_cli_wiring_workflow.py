@@ -86,6 +86,12 @@ def test_the_wiring_builds_a_pass_that_reads_the_record_and_writes_only_read_fil
     assert isinstance(built, ReadPass) and built.writer.manifest.log.path.name == "reads.csv"
     assert built.record.area == "raw" and built.wrappers.log.path.name == "wrappers.csv"
     assert built.resolved.log.path.name == "resolved.csv" and built.articles.log.path.name == "articles.csv"
+    # judge 109 B2: production wires the planner and the pass notes, or the materiality file would again do nothing
+    from fno.ingestion.news.reads.pass_note import PassNotes
+    from fno.ingestion.news.reads.plan import ReadPlanner
+
+    assert isinstance(built.planner, ReadPlanner) and isinstance(built.notes, PassNotes)
+    assert built.notes.writer.manifest.log.path.name == "read-passes.csv" and built.planner.notes is built.notes
 
 
 def workflow() -> dict:
@@ -103,7 +109,8 @@ def test_the_workflow_is_dispatch_only_serial_with_the_record_and_never_applies_
 def test_the_workflow_commits_only_its_own_manifest_and_receipts_and_only_with_apply():
     text = (ROOT / ".github/workflows/news-read-pages.yml").read_text()
     assert "MANIFEST: research/data/manifests/news/reads.csv" in text and "ops/commit_news_record.sh" in text
-    assert "RECEIPTS: receipts/raw/news/reads receipts/_batches" in text
+    assert "RECEIPTS: receipts/raw/news/reads receipts/raw/news/read-passes receipts/_batches" in text
+    assert "EXTRA_MANIFESTS: research/data/manifests/news/read-passes.csv" in text  # the pass notes (NP8, judge 105 B1)
     steps = {s.get("name", ""): s for s in workflow()["jobs"]["read"]["steps"]}
     commit = next(s for n, s in steps.items() if n.startswith("Commit the reads manifest"))
     assert "inputs.apply" in commit["if"] and "!inputs.dry_run" in commit["if"]

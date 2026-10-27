@@ -89,6 +89,10 @@ RESOLUTION_WRITE_FAILED = (
 READER_FAILING = (
     "reader_failing"  # the pages asked for were refused, blocked or failed (nothing of three or more, or under half)
 )
+MATERIALITY_UNAVAILABLE = (
+    "materiality_unavailable"  # the store could not be read at all (NP8): the pass reads newest first
+)
+PASS_NOTE_UNREADABLE = "pass_note_unreadable"  # the last read-pass note is damaged: the pin cannot be checked (NP8)
 READ_CONFLICT = "read_conflict"  # the read file exists with other bytes: nothing is overwritten
 READ_WRITE_FAILED = "read_write_failed"  # Drive or the manifest would not take the file (only the code is kept)
 # the materiality terms (NP5b): fixed codes; the file is the owner's private content, so no code carries a term
