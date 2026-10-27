@@ -104,3 +104,39 @@ Both are efficiency, not correctness. No test is needed; a comment in `sweep.py`
 **N1 and N2** are stated in the story.
 
 **Verdict: PASS at fa3b90e (the logic).** I will re-confirm the post-split rebased head (gates and the full runner) before merge.
+
+## Addendum 2: the merge-gating head 423ac92: PASS
+
+423ac92 is fa3b90e plus judge 123's C1 fix plus the post-split `main`. NP11's rows now live in `docs/NEWS_RECORD_CONTRACT.md`. I reviewed `git diff fa3b90e 423ac92 -- fno`. The only NP11 change is in `writer.py` and `sweep.py`:
+- `open_days(report)` now decides day by day;
+- a damaged day is skipped alone and counted once (`_damaged`, using `reported`).
+
+The rest of that diff is NP10 and NP9b coming in from `main`, each already passed (judge 120, judge 122).
+
+**Gates at 423ac92 (locked venv, strong evidence).**
+- 2037 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 302 of 302 `ok`.**
+
+**My round-1 findings are closed and pinned (my own plants against the full suite).**
+
+| Plant | Result |
+|---|---|
+| B1: `all` → `any` in `_recorded_feeds` | 2 failed |
+| B2: `day_of` IST → UTC | 3 failed |
+| B3: `provenance_polls_missing` dropped | 2 failed |
+
+**Judge 123's C1 is fixed in general.**
+- My plant restoring "one damaged day returns no days at all" fails 2 tests.
+- My plant counting a damaged day more than once fails 1 test.
+
+**The stated limit (story, "Judge 123 round 2 (C1) and a stated limit"): an acceptable documented limit, not a blocking silent gap (reasoned from the code).**
+- A poll staged for a day **after** that day already has a file is not swept again. It goes in only through a range pass whose `--from`/`--to` reaches that day.
+- **Why it is not blocking:**
+  - **Nothing is lost.** The cleanup gate (B21) keeps the poll staged until its pairs are recorded.
+  - **It is not silent.** The recall report counts the affected articles as `no_provenance`.
+  - **It touches only the recall-measurement file,** never the archived articles.
+  - **It is rare.** A poll is staged in the same run that fetches it, so it is staged during its own day.
+- **Recommended later, a small lane 1 change:** have the staging cleanup report count polls kept *because of provenance* separately, so a kept poll says why.
+
+**Verdict: PASS at 423ac92**, the merge-gating head.
