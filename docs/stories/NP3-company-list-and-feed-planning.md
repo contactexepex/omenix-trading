@@ -35,7 +35,7 @@ feeds. `news plan-feeds` writes the result as the next `feeds-vN.json` (same sal
 Staging, the gate and the poll log do not change at all**: they read a feed list as today. A new company list changes the plan at the
 next `plan-feeds`, not the code. **Feed ids are stable, derived from content, and never reused (judge 77 F1).** The gate's `kinds_ever_listed` raises
 `FEED_KIND_CHANGED` when one id has two kinds across versions, which stops promotion and the staging cleanup, and staged polls live
-under `<feed id>/`. So a planned feed's id is `q-` plus 8 hex characters of the **HMAC-SHA-256, keyed with the feed list's private salt**, of its kind and
+under `<feed id>/`. So a planned feed's id is `q-` plus 12 hex characters of the **HMAC-SHA-256, keyed with the feed list's private salt**, of its kind and
 its normalised query (judge 77 F5: feed ids are committed publicly in `polls.csv`, so an unsalted hash would let anyone hash a company
 name and confirm the owner watches it; the salt is the same one `snapshot_log.py` relies on). The salt and the normaliser are frozen:
 changing either would change every id. The same query always has the same id, however the list is reordered or extended, and a different query can never take it. The
@@ -43,7 +43,7 @@ binding lives in the id itself (no table to lose). The planner refuses a version
 in which an id already used with another kind appears (the two checks that make a re-plan safe), and a test re-plans the same list in
 another order and with extra companies and asserts every surviving id is unchanged. A second test asserts an id is not reproducible by a plain
 unsalted SHA-256 of the same text and differs under another salt. Manual publisher feeds keep their `feed-NN` ids.
-This needs the id pattern widened to accept `q-<8 hex>` (a P2 change, listed below); the old 999-id lifetime cap goes away.
+This needs the id pattern widened to accept `q-<12 hex>` (a P2 change, listed below); the old 999-id lifetime cap goes away.
 Three small changes to P2 code in all, each behaviour-preserving for the feeds that exist, each with a test: (1) `MAX_FEEDS` raised
 (a config constant; the test that pins the old limit is updated); (2) the feed id pattern accepts the planned form;
 (3) `news/session.py`: `NewsSession` is given the per-run pacer built from the feed list instead of the module's `NEWS_PACER`

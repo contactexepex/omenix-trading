@@ -19,8 +19,8 @@ from fno.ingestion.news.versioned import ErrorCodes, VersionedFiles
 from fno.ingestion.storage.raw_store import RawFileStore
 
 FEEDS_FOLDER = "feeds"
-FEED_ID = re.compile(r"^feed-\d{2,3}$")
-MAX_FEEDS = 50
+FEED_ID = re.compile(r"\A(?:feed-\d{2,3}|q-[0-9a-f]{12})\Z")  # a listed feed, or a planned one (NP3b)
+MAX_FEEDS = 600
 MIN_SALT_LENGTH = 16  # a random salt makes the list's logged SHA-256 useless for confirming a guessed list
 
 
@@ -47,6 +47,7 @@ class FeedList:
     feeds: tuple[FeedEntry, ...]
     sha256: str = ""  # of the file as read, logged with every poll
     damaged: tuple[int, ...] = ()  # newer versions skipped because they were edited after use
+    salt: str = field(default="", repr=False)  # private: planned feed ids are keyed with it (NP3b)
 
 
 def parse_feed_list(data: bytes, version: int) -> FeedList:
@@ -75,7 +76,7 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
     )
     if not valid:
         raise FeedListError(codes.FEED_LIST_INVALID)
-    return FeedList(version, feeds, hashlib.sha256(data).hexdigest())
+    return FeedList(version, feeds, hashlib.sha256(data).hexdigest(), salt=salt)
 
 
 class PrivateFeedLists:
@@ -92,7 +93,7 @@ class PrivateFeedLists:
         (never silently) and the next older good one is used instead."""
         picked = self.files.latest(lowest_version, used)
         found = parse_feed_list(picked.data, picked.version)
-        return FeedList(found.version, found.feeds, found.sha256, picked.damaged)
+        return FeedList(found.version, found.feeds, found.sha256, picked.damaged, found.salt)
 
     def kinds_ever_listed(self) -> dict[str, str]:
         """Feed id -> kind over every valid version, so a feed retired from the newest list still has its kind and its

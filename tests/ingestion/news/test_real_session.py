@@ -118,7 +118,12 @@ def test_the_wired_fetcher_writes_only_under_staging_and_reads_the_feed_list_fro
     put_version(AreaStore(drive, wiring.CONFIG_AREA), 1, FEED_URL)
     drive.saved.clear()
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env: drive)
-    monkeypatch.setattr(wiring, "NewsSession", lambda: Session(**{FEED_URL: Reply()}))
+
+    class PacedFake(Session):
+        def pace_for(self, feeds):  # the real session builds this run's pacer from the feed list (NP3b)
+            pass
+
+    monkeypatch.setattr(wiring, "NewsSession", lambda: PacedFake(**{FEED_URL: Reply()}))
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "repo")
     assert wiring.build_news_fetch({}).run().ok
     assert drive.saved and all(path.startswith("staging/news/") for path in drive.saved)  # never `raw/` (the Record)

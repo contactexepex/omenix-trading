@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from http.cookiejar import CookiePolicy
 
+from fno.ingestion.news.pacing import pacer_for
 from fno.shared.constants import RESEARCH_USER_AGENT
 from fno.shared.http_pacing import PacedSession
 from fno.shared.nse_pacer import NsePacer
@@ -41,6 +42,10 @@ class NewsSession(PacedSession):
         logging.getLogger("urllib3").setLevel(logging.WARNING)
         self.cookies.set_policy(RejectAllCookies())
         self.headers["User-Agent"] = RESEARCH_USER_AGENT  # who we are, plainly (owner rule 50a79a43)
+
+    def pace_for(self, feeds) -> None:
+        """Use this run's pacer, built from the feed list (the search hosts 1.5 s apart)."""
+        self.pacer = pacer_for(feeds)
 
     def request(self, method, url, *args, **kwargs):
         kwargs["allow_redirects"] = False  # a redirect is a block, never followed
