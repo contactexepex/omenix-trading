@@ -131,5 +131,7 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 118 | DEL1 delete unused derivation (code, judge #1) | 1 | PASS (round 1, d3b9f04; runner 251/251) | `judge_118_del1-delete.md` |
 | 119 | NP10 page snippet, code (judge #2) | 1 | PASS (round 2, 886feb8; C1 met d64710e, runner 271/271; round 1 FAIL cfb87c6) | `judge_119_np10-snippet-judge2.md` |
 | 120 | NP10 page snippet (code, judge #1) | 2 | PASS (d64710e, runner 271/271; 3793258 PASS; round 1 FAIL cfb87c6) | `judge_120_np10-snippet.md` |
-| 121 | NP9b follow-up, code (judge #2) | 1 | PASS (round 1, a3e5c13) | `judge_121_np9b-followup-judge2.md` |
-| 122 | NP9b follow-up: NBSP cut, matcher source (code, judge #1) | 1 | PASS (round 1, a3e5c13; runner 262/262) | `judge_122_np9b-followup.md` |
+| 121 | NP9b follow-up, code (judge #2) | 1 | PASS (round 1, a3e5c13; reconciled a0697e3, runner 274/274) | `judge_121_np9b-followup-judge2.md` |
+| 122 | NP9b follow-up: NBSP cut, matcher source (code, judge #1) | 1 | PASS (a0697e3, runner 274/274; a3e5c13 PASS) | `judge_122_np9b-followup.md` |
+| 123 | NP11 feed provenance, code (judge #2) | 1 | FAIL (round 1, e01cb08) | `judge_123_np11-provenance-judge2.md` |
+| 124 | NP11 feed provenance (code, privacy, judge #1) | 1 | FAIL (round 1, e01cb08; runner 280/280) | `judge_124_np11-provenance.md` |

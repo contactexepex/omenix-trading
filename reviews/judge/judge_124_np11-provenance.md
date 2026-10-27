@@ -1,0 +1,63 @@
+# Judge 124: NP11 feed provenance (code, privacy focus), round 1 at e01cb08: FAIL
+
+**Lane 1, two judges; this is judge #1.** Branch `story/NP11-provenance`, frozen SHA e01cb08. I reviewed `git diff origin/main...e01cb08`: 31 files, +1264/−46. That covers:
+- `provenance/` (model, file, index, writer, recall, wiring);
+- the gate and the cleanup proof;
+- the feed-list `scope`, `plan-feeds` and the two workflows;
+- tests and rows B1 to B17.
+
+## Gates (strong evidence)
+In a venv installed from `requirements.lock`:
+- 2015 passed;
+- ruff check is clean, and check_imports is clean;
+- **plant runner: 280 of 280 `ok`.**
+
+## The privacy core holds (strong evidence, read and planted)
+- **The seal.** It is an HMAC of the path keyed with the feed list's salt. The salt must be at least 16 characters (`MIN_SALT_LENGTH`), so it can never be empty or guessable. My plants all fail tests:
+
+| Plant | Result |
+|---|---|
+| seal keyed with a public constant | 1 failed |
+| seal ignoring the path | 1 failed |
+| an empty salt in production wiring | 2 failed |
+| the open day written | 2 failed |
+
+- **What reaches git.**
+  - Manifest ids are `YYYY-MM-DD` or `YYYY-MM-DD-n`, with no feed, key or hash of the pairs.
+  - The receipt carries only the SHA-256 and size of a sealed file.
+- **The recall report** is counts only, with a whitelist test, and its workflow is `contents: read` with no schedule.
+- **Never rewritten.** Writes go through `WriteOnceWriter`, a damaged day is counted and left, and a conflict is counted.
+
+## B1 (required; strong evidence, plant survived the FULL suite): the cleanup gate checks "all", but only "any" is pinned
+- `NewsPollProof._recorded_feeds` requires `all(feed in feeds_of(day, key) for article in articles)`.
+- My plant changing `all` to `any` passes all 2015 tests.
+- With that bug, a poll whose provenance is recorded for one article but not the rest would be trashed, and which feed found the rest would be lost silently. That is exactly what judge 113's and judge 114's B2 exist to stop.
+- **Fix:** a test where a poll has two articles, one pair recorded and one not, and the proof says False; plus this plant as a row.
+
+## B2 (required; strong evidence, plant survived the FULL suite): the IST day is not pinned
+- `day_of` uses IST, by design: the plan's "IST day of the poll" and "the open IST day is skipped".
+- My plant `moment.astimezone(IST).date()` → `moment.date()` (the UTC date) passes all 2015 tests.
+- That one function decides which file a pair goes into, when a day counts as closed, and which day the cleanup proof checks.
+- **Fix:** a test with a poll at 20:00 UTC, which is the next IST day, asserting its day file and its closed or open state; plus a plant.
+
+## B3 (required, built as planned): `provenance_polls_missing` does not exist
+- The plan (round 2, rule 7, row P13) promised the count "`provenance_polls_missing` ... so a day that could not be completed is visible, never silent".
+- `git grep` at e01cb08 finds it only in the story; `codes.py` has `provenance_poll_skipped`, `_unreadable`, `_conflict` and `_failed`. A poll the cleanup keeps because its pairs are missing is today counted only as a generic "not proven promoted".
+- **This matters because of a real timing case (some evidence, reasoned from the code).** `news promote --from/--to` selects polls by their **UTC** staging day, but provenance days are **IST**.
+  - A poll fetched between 18:30 and 24:00 UTC on day D belongs to IST day D+1.
+  - A run that reads UTC day D while IST D+1 is still open skips those pairs.
+  - Only a later run whose `--from` reaches back to UTC day D writes them.
+  - The cleanup gate correctly keeps those polls, so nothing is lost, but without the count the owner cannot see why they stay.
+- **Fix:**
+  - build the count (in the cleanup report, the promote line, or both);
+  - state the `--from` rule in the story: a run must reach back one UTC day to complete the previous IST day;
+  - pin it with a row.
+
+## Notes (not blocking)
+- **N1.** The scope is part of each pair. If a feed later gets a label, re-promoting its still-staged polls writes a supplement with `(feed, broad)` next to the old `(feed, unknown)`. The recall then counts the article as `broad_only` and also adds it to `with_unknown_feed`. That is not wrong, but say it in the recall docstring.
+- **N2.** Promotion now needs `lists.latest()` (for the salt) and fails if the newest feed list is unreadable, where before it only needed `kinds_ever_listed`. That is acceptable, because the fetch needs the list anyway, but state it.
+
+## Hard lines
+No orders, no Groww, no secret. The join stays sealed in private Drive.
+
+## Verdict: FAIL round 1 at e01cb08. B1 (pin "all" in the cleanup gate), B2 (pin the IST day) and B3 (build `provenance_polls_missing` and state the `--from` rule) required; N1 and N2 requested.
