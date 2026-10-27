@@ -125,7 +125,7 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 112 | NP10 page snippet plan, plan doc (judge #2) | 1 | PASS (round 2, 97b6df6; C1 met b3e676a; round 1 FAIL cb7cae9) | `judge_112_np10-plan-judge2.md` |
 | 113 | NP11 feed provenance plan, plan doc (judge #2) | 1 | PASS (round 2, bcd6f4e; round 1 FAIL e050a46) | `judge_113_np11-plan-judge2.md` |
 | 114 | NP11 feed provenance plan (plan doc, privacy, judge #1) | 2 | PASS (round 2, bcd6f4e; round 1 FAIL e050a46) | `judge_114_np11-plan.md` |
-| 115 | NP9 clean stored title, code (judge #2) | 1 | FAIL (round 1, ed90a5c) | `judge_115_np9-clean-title-judge2.md` |
+| 115 | NP9 clean stored title, code (judge #2) | 1 | PASS (round 2, 7406cba; round 1 FAIL ed90a5c) | `judge_115_np9-clean-title-judge2.md` |
 | 116 | NP9 clean stored title (code, judge #1) | 1 | FAIL (round 1, ed90a5c) | `judge_116_np9-clean-title.md` |
 | 117 | DEL1 delete unused derivation, code (judge #2) | 1 | PASS (round 1, d3b9f04) | `judge_117_del1-delete-judge2.md` |
 | 118 | DEL1 delete unused derivation (code, judge #1) | 1 | PASS (round 1, d3b9f04; runner 251/251) | `judge_118_del1-delete.md` |
