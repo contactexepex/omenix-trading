@@ -138,3 +138,27 @@ reproduced).
 just removed, and what remains after the tag strip is inert words, all within the 600-character cap.
 
 **Verdict: PASS** (round 2, `886feb8`), with condition C1 before merge.
+
+## Addendum 3
+
+**C1 check at `d64710e`.** It is `886feb8` plus C1 (`snippet.py`, a test and plant A10) and judge files from main.
+
+**What I checked:**
+- `_TAGS = re.compile(r"</?[A-Za-z!][^<>]*>")`.
+- My reproduction:
+
+  | Body | Snippet |
+  | --- | --- |
+  | "EPS &lt; Rs 5 this year and margin &gt; 10% next." | kept whole |
+  | `&lt;p&gt;A.&lt;/p&gt;&lt;p&gt;B&lt;/p&gt;` | "A. B" |
+  | `&lt;script&gt;x` | "x" |
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2007 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 628 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- **The full plant runner: 271 of 271 `ok`.**
+
+**C1: met. Verdict: PASS** (`d64710e`).

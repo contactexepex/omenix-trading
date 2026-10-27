@@ -129,7 +129,7 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 116 | NP9 clean stored title (code, judge #1) | 2 | PASS (round 2, 7406cba, runner 283/283; NBSP-by-separator follow-up; round 1 FAIL ed90a5c) | `judge_116_np9-clean-title.md` |
 | 117 | DEL1 delete unused derivation, code (judge #2) | 1 | PASS (round 1, d3b9f04) | `judge_117_del1-delete-judge2.md` |
 | 118 | DEL1 delete unused derivation (code, judge #1) | 1 | PASS (round 1, d3b9f04; runner 251/251) | `judge_118_del1-delete.md` |
-| 119 | NP10 page snippet, code (judge #2) | 1 | PASS (round 2, 886feb8, condition C1; round 1 FAIL cfb87c6) | `judge_119_np10-snippet-judge2.md` |
+| 119 | NP10 page snippet, code (judge #2) | 1 | PASS (round 2, 886feb8; C1 met d64710e, runner 271/271; round 1 FAIL cfb87c6) | `judge_119_np10-snippet-judge2.md` |
 | 120 | NP10 page snippet (code, judge #1) | 2 | PASS (round 2, 3793258, runner 269/269; round 1 FAIL cfb87c6) | `judge_120_np10-snippet.md` |
 | 121 | NP9b follow-up, code (judge #2) | 1 | PASS (round 1, a3e5c13) | `judge_121_np9b-followup-judge2.md` |
 | 122 | NP9b follow-up: NBSP cut, matcher source (code, judge #1) | 1 | PASS (round 1, a3e5c13; runner 262/262) | `judge_122_np9b-followup.md` |
