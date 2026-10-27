@@ -2379,5 +2379,42 @@
   "file": "fno/ingestion/news/compare/metrics.py",
   "old": "    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))",
   "new": "    print(dict(seen))\n    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))"
+ },
+ {
+  "id": "J12",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_count_of_the_url_early_warning_shows_under_its_own_name_with_its_own_value"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "url_joins_unlike_title {second.url_joins_unlike_title}",
+  "new": "url_joins_unlike_title {second.url_joins}"
+ },
+ {
+  "id": "J13",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_size_buckets_and_singletons_are_counted_with_distinct_values_and_the_edges_in_the_right_bucket"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "sizes.count(1),",
+  "new": "sizes.count(2),"
+ },
+ {
+  "id": "J14",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_size_buckets_and_singletons_are_counted_with_distinct_values_and_the_edges_in_the_right_bucket"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "(11, 10**9)",
+  "new": "(12, 10**9)"
+ },
+ {
+  "id": "J15",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_count_of_the_url_early_warning_shows_under_its_own_name_with_its_own_value",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_prints_the_six_lines_of_counts"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "manifest_rows_skipped {self.source.skipped_rows}",
+  "new": "manifest_rows_skipped 0"
  }
 ]

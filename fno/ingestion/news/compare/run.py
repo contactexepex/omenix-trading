@@ -48,6 +48,7 @@ class ComparisonRun:
             return report
         first = cluster_articles(found.articles, as_of)
         second = cluster_articles(found.articles, as_of, preparer=inputs.preparer)
+        report.lines.append(f"input: articles {len(found.articles)}, manifest_rows_skipped {self.source.skipped_rows}")
         report.lines += [_shape_line("v1", first), _shape_line("v2", second), _crossing_line(first, second)]
         report.lines.append(
             f"v2 inputs: url_joins {second.url_joins}, url_joins_refused {second.url_joins_refused}, "

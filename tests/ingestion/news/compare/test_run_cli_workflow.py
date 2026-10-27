@@ -3,18 +3,25 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from pathlib import Path
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.cli import cmd_news_compare
-from fno.ingestion.news.cluster_record.grouping import SymbolGrouping
+from fno.ingestion.news.cluster.prepare import Preparer
+from fno.ingestion.news.cluster_record.article_source import Candidates
+from fno.ingestion.news.cluster_record.grouping import GroupingInputs, SymbolGrouping
 from fno.ingestion.news.companies.model import CompanyList
 from fno.ingestion.news.companies.parse import CompanyListError
+from fno.ingestion.news.compare import metrics
 from fno.ingestion.news.compare.run import ComparisonRun
+from fno.ingestion.news.resolve.resolution_file import Resolution
 from fno.ingestion.storage.raw_store import AreaStore
+from tests.ingestion.news.cluster.helpers import art, at, words
 from tests.ingestion.news.cluster_record.helpers import AS_OF
 from tests.ingestion.news.cluster_record.test_version_two_run import Scripted, seeded
-from tests.ingestion.news.tagging.helpers import COMPANIES
+from tests.ingestion.news.compare.test_metrics import clustering
+from tests.ingestion.news.tagging.helpers import COMPANIES, TAGGER
 
 ROOT = Path(__file__).resolve().parents[4]
 
@@ -34,18 +41,28 @@ def manifests(world) -> dict:
     return {p.name: p.read_bytes() for p in world.record.manifest_folder.rglob("*") if p.is_file()}
 
 
-def test_the_comparison_prints_the_five_lines_of_counts(tmp_path):
+def test_the_comparison_prints_the_six_lines_of_counts(tmp_path):
     world = seeded(tmp_path)
     report = comparison(world, Scripted(CompanyList(7, COMPANIES))).run(AS_OF)
     lines = report.line().splitlines()
-    assert report.ok and [line.split(":")[0] for line in lines] == ["v1", "v2", "v1 vs v2", "v2 inputs", "tags"]
-    assert lines[0].startswith("v1: clustered 3, clusters 3") and "singletons" in lines[0] and "sizes 2-2:0" in lines[0]
+    assert report.ok and [line.split(":")[0] for line in lines] == [
+        "input",
+        "v1",
+        "v2",
+        "v1 vs v2",
+        "v2 inputs",
+        "tags",
+    ]
+    assert lines[0] == "input: articles 3, manifest_rows_skipped 0"
     assert (
-        "companies_version 7" in lines[3]
-        and "url_joins_unlike_title 0" in lines[3]
-        and "url_joins_refused 1" in lines[3]
+        lines[1].startswith("v1: clustered 3, clusters 3") and "singletons 3" in lines[1] and "sizes 2-2:0" in lines[1]
     )
-    assert lines[4].startswith("tags: articles 3,")
+    assert (
+        "companies_version 7" in lines[4]
+        and "url_joins_unlike_title 0" in lines[4]
+        and "url_joins_refused 1" in lines[4]
+    )
+    assert lines[5].startswith("tags: articles 3,")
 
 
 def test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story(tmp_path):
@@ -115,9 +132,10 @@ def test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing():
 
 
 LABELS = {
-    "v1", "v2", "vs", "clustered", "clusters", "singletons", "largest", "sizes", "inputs", "tags", "articles", "tagged",
-    "tagged_high", "companies_seen", "url_joins", "url_joins_refused", "url_joins_unlike_title", "companies_version",
-    "resolutions_used", "v2_clusters_merging_v1_clusters", "v1_clusters_split_by_v2",
+    "v1", "v2", "vs", "clustered", "clusters", "singletons", "largest", "sizes", "inputs", "input",
+    "manifest_rows_skipped", "tags", "articles", "tagged", "tagged_high", "companies_seen", "url_joins",
+    "url_joins_refused", "url_joins_unlike_title", "companies_version", "resolutions_used",
+    "v2_clusters_merging_v1_clusters", "v1_clusters_split_by_v2",
 }  # fmt: skip
 NUMBER = re.compile(r"^(?:\d+|\d+-\d+:\d+|>=\d+:\d+)$")
 
@@ -137,9 +155,47 @@ def test_every_word_the_command_prints_is_a_fixed_label_or_a_count(tmp_path, mon
     assert cmd_news_compare(type("A", (), {"as_of": AS_OF})(), out=shown.append) == 0
     printed = capsys.readouterr().out
     text = "\n".join(shown) + "\n" + printed
-    assert len(shown[0].splitlines()) == 5 and printed == ""  # the run itself prints nothing
+    assert len(shown[0].splitlines()) == 6 and printed == ""  # the run itself prints nothing
     assert unexplained_words(text) == []
     assert unexplained_words("v1: clustered 3, largest 64e5aa17c3b94fbc") == [
         "64e5aa17c3b94fbc"
     ]  # the whitelist does bite
     assert unexplained_words("tags: companies_seen ZZAL:3") == ["ZZAL:3"]
+
+
+class InMemory:
+    """A source and a grouping over articles built in memory, so a test can set every count it wants to pin."""
+
+    def __init__(self, articles, resolutions, skipped=0):
+        self.articles, self.resolutions, self.skipped_rows = articles, resolutions, skipped
+
+    def candidates(self, as_of):
+        return Candidates(tuple(self.articles), 0)
+
+    def inputs(self, articles, as_of):
+        return GroupingInputs(Preparer(TAGGER, self.resolutions), 7, len(self.resolutions))
+
+
+def test_every_count_of_the_url_early_warning_shows_under_its_own_name_with_its_own_value():
+    """Judge 107 B1: url_joins and url_joins_unlike_title differ and both are not zero."""
+    url = "https://pub.example/news/story-one"
+    publisher = replace(art("p", words(1, 8), at(6)), canonical_url=url)
+    unlike = art("w1", words(20, 28), at(5), kind="wrapper")  # resolves to the URL, other words
+    alike = art("w2", words(1, 8), at(4), kind="wrapper")  # resolves to the URL, same words
+    resolutions = {key: Resolution(key, url, "pub.example", "pub.example", True) for key in ("w1", "w2")}
+    world = InMemory([publisher, unlike, alike], resolutions, skipped=4)
+    lines = ComparisonRun(world, world).run(AS_OF).line().splitlines()
+    assert lines[0] == "input: articles 3, manifest_rows_skipped 4"
+    assert (
+        lines[4] == "v2 inputs: url_joins 2, url_joins_refused 0, url_joins_unlike_title 1, companies_version 7, "
+        "resolutions_used 2"
+    )
+
+
+def test_the_size_buckets_and_singletons_are_counted_with_distinct_values_and_the_edges_in_the_right_bucket():
+    """Judge 107 B1: one singleton is not three; a cluster of exactly 11 is in the last bucket."""
+    sizes = [1, 1, 1, 2, 3, 5, 6, 6, 6, 10, 11, 12, 20, 11]
+    groups = [tuple(f"k{n}-{i}" for i in range(size)) for n, size in enumerate(sizes)]
+    shape = metrics.shape_of(clustering(*groups))
+    assert (shape.clusters, shape.singletons, shape.largest) == (14, 3, 20)
+    assert shape.sizes == (1, 2, 4, 4) and sum(shape.sizes) + shape.singletons == shape.clusters
