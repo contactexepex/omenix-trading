@@ -182,10 +182,20 @@ repository's logs and Drive.
   version was edited the run stops with the same code before any request.
   **To change the feeds the owner adds a new file** `feeds/feeds-v<N+1>.json` (the next number) in the private `config`
   area; the next run reads it with no halt. Never edit an existing version. The highest version used is read back from
-  the poll log (feed ids, paths and hashes only). Reasoning only for the choice over reading the list outside the verified
-  cache: one read path, no unverified "config" path, and a bad version leaves the previous one in place.
+  the poll log (feed ids, paths and hashes only). The list is read directly from Drive **with no receipt** (it is not a
+  Record file and does not go through the verified cache); its integrity is checked by the SHA-256 logged with each poll.
+  Cases: a first-time invalid version stops the run (`feed_list_invalid`, so a typo is caught at once and the previous list
+  is not silently used); a version edited after use falls back to the last good one and alerts. Reasoning only for adding a
+  version rather than editing: the owner never halts the pipeline and a bad version leaves the previous one in place.
 - **Session:** `NewsSession`, a subclass of the shared `PacedSession` used by the news fetcher alone: a reject-all cookie
-  policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged.
+  policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged. The session
+  also pins the `urllib3` logger to WARNING, because at DEBUG it logs the host and the full request line, query included
+  (judge 44 F1; tested through the real session against a local HTTP server with DEBUG captured).
+- **Hosts stay out of the committed pause log (judge 44 F3).** The shared pacer's committed log and its #fno-desk alerts name
+  the host. The news session therefore has its own pacer (`NEWS_PACER`), never attached to either: a news pause lasts for the
+  run only, with no memory across runs (the workflow is manual). Tested with the real pacer, with a control showing the shared
+  session does write the host. The alternative, declaring the news hosts non-private and using the shared pacer for
+  cross-run memory, is the orchestrator's and owner's call; this is the safe default.
 - **Answers:** a redirect, or a 200 without a feed root element, is `block_page`; 403/429 is `refused`; both stop the rest of
   that host for the run, as does `host_paused` from the shared pacer. Other failures are `fetch_failed`. Only the fixed code is
   kept: never an exception message, a URL or a title.
@@ -194,7 +204,7 @@ repository's logs and Drive.
   the bytes.
 - **Not in P2a:** the gate (P2b), clustering (P2c), the cluster record (P2d), the article key, the revision handling and the
   per-poll reconciliation of items: they need the parsed items.
-- **Proof:** 52 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
+- **Proof:** 55 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
   over a planted marker URL, query, host and headline, the failure paths and DEBUG logging; mutation plants on the cookie policy,
   redirects, the feed check, the host stop, file-first ordering, the privacy paths, the version rules, the alert and the schedule.
   One plant survives and is equivalent: `return_ok` returning True changes nothing while `set_ok` stores no cookie.

@@ -4,10 +4,16 @@ are unchanged: this subclass is used by the news fetcher alone."""
 
 from __future__ import annotations
 
+import logging
 from http.cookiejar import CookiePolicy
 
 from fno.shared.constants import RESEARCH_USER_AGENT
 from fno.shared.http_pacing import PacedSession
+from fno.shared.nse_pacer import NsePacer
+
+# The news pacer is the news session's own: it is never attached to the committed pause log or to the alerts, which
+# would publish the host of a private feed (P2 invariant 1). A pause lasts for the run only.
+NEWS_PACER = NsePacer()
 
 
 class RejectAllCookies(CookiePolicy):
@@ -30,7 +36,9 @@ class RejectAllCookies(CookiePolicy):
 
 class NewsSession(PacedSession):
     def __init__(self, pacer=None):
-        super().__init__(pacer)
+        super().__init__(pacer or NEWS_PACER)
+        # urllib3 logs the host and the full request line, query included, at DEBUG
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
         self.cookies.set_policy(RejectAllCookies())
         self.headers["User-Agent"] = RESEARCH_USER_AGENT  # who we are, plainly (owner rule 50a79a43)
 
