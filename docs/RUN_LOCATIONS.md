@@ -47,6 +47,8 @@ remembered into the next run today.
 | NSDL FPI back-fill (`flows nsdl-backfill`) | by hand, one time (`flow_history/nsdl_backfill.py` docstring) | No schedule. |
 | The dashboard | `exepex/omenix-dashboard`, a different repository | Whether it honours `RAW_FILE_SAVED=False` on a quote sidecar is not checked here (R1c follow-up). |
 
+The cutover steps for every Groww piece above, the live checks to make after 15:35 IST and the measured sign-in count are in [`GROWW_CUTOVER.md`](GROWW_CUTOVER.md).
+
 ## 3. Why this matters to the resilience layer
 
 - The shared library (`fno/shared/resilience/`) is in-process everywhere. Remembering an NSE pause across runs needs the
