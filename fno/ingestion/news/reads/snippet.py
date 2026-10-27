@@ -1,8 +1,8 @@
 """The page snippet (NP10; owner decision E1 = YES, 28 Oct 2026): the first few sentences of the article body, bounded
 and deterministic, stored in its own field of the read file. Never the body: at most `MAX_SENTENCES` sentences and
-`MAX_CHARS` characters. Pure and linear (a run of stops is matched once): the body is cut to `MAX_SCAN` characters before the cleaners run, and the same
-page always gives the same snippet, so a re-read is the same file. Page text is untrusted: it is cleaned, cut and
-stored, never followed."""
+`MAX_CHARS` characters. Pure and linear (a run of stops is matched once): the body is cut to `MAX_SCAN` characters
+before the cleaners run, and the same page always gives the same snippet, so a re-read is the same file. Page text is
+untrusted: it is cleaned, cut and stored, never followed."""
 
 from __future__ import annotations
 
