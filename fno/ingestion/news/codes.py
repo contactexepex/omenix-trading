@@ -79,3 +79,9 @@ RESOLUTION_CONFLICT = "resolution_conflict"  # the resolution file exists with o
 RESOLUTION_WRITE_FAILED = (
     "resolution_write_failed"  # Drive or the manifest would not take the file (only the code kept)
 )
+# the page-read pass (NP4b)
+READER_FAILING = (
+    "reader_failing"  # the pages asked for were refused, blocked or failed (nothing of three or more, or under half)
+)
+READ_CONFLICT = "read_conflict"  # the read file exists with other bytes: nothing is overwritten
+READ_WRITE_FAILED = "read_write_failed"  # Drive or the manifest would not take the file (only the code is kept)
