@@ -69,3 +69,24 @@ All of these hold. The rest of the first report carries over: the code it covers
 
 **Verdict: FAIL** on `5aa0af3`, on F1 and F2. A SHA that adds those two fixes and their tests gets a quick
 re-verify from me.
+
+## Addendum 2: round 2, 2f2355e (PASS)
+
+SHA `2f2355ecd89a234d14ba33895924f5ca79da8dc9`, which contains `5aa0af3`. **Gates** (`__pycache__` cleared): 844
+passed; ruff check and format, imports and size clean.
+
+| Item | Plant | Failed |
+|---|---|---|
+| F1 the pull and push each checked on their own | `&&` put back / the push's failure ignored | 1 / 1 |
+| F2 a future `--as-of` refused with `window_in_future`, an alert and exit 1 | the bound widened by 400 days / the refusal reported as ok | 2 / 1 |
+| Carried: torn manifest staged / the writer's own refusal | as before | 4 / 1 |
+
+**The implementer's disclosed survivor (the pull's failure turned into `|| true`) is acceptable.** With origin
+reachable and unmoved, a pull cannot fail. When origin is unreachable or has moved, the push fails too, either
+unreachable or a non-fast-forward rejection, and the pinned `push || exit 1` catches it. So a green run still always
+means a push happened. Keeping the pull check is a sensible extra defence. The fix also corrects `news-promote.yml`,
+which shares the script: that only makes it stricter.
+
+My judge 54 and Addendum 1 items are all MET.
+
+**Verdict: PASS** (lane 1, code round 2, judge #2). Merging needs judge #1's PASS too.
