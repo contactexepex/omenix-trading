@@ -31,3 +31,19 @@ Rows F22 and F22b pin that the matcher and the version 2 preparer pass `article.
 No orders, no Groww, no secret. No title in any log.
 
 ## Verdict: PASS round 1 at a3e5c13. N1 requested.
+
+## Addendum 1: the reconciled head a0697e3: PASS
+
+a0697e3 is a3e5c13 plus a merge of `main` (NP10, b5787b2) plus my N1.
+
+**The changes.**
+- `text_rules.py` is the same as at a3e5c13.
+- N1 is fixed: `same_as` is no longer listed among the "fields no code here reads", because `may_fetch` uses it.
+- Against `main`, the branch's net change is NP9b alone: 5 files in `fno/`, `tests/` and `tools/`, with F21, F22 and F22b as the only new plants.
+
+**Gates at a0697e3 (locked venv, strong evidence).**
+- 2010 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 274 of 274 `ok`.**
+
+**Verdict: PASS at a0697e3.**
