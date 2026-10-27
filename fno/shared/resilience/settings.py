@@ -53,7 +53,7 @@ DEFAULTS: dict[str, SourceSettings] = {
             waits=(2.0, 8.0, 30.0, 60.0),
             cap_seconds=120.0,
             retry_after_ceiling_seconds=600.0,
-            max_total_seconds=900.0,
+            max_total_seconds=3600.0,  # a backstop far above five slow tries, never a cap on tries (a call makes five)
             jitter=0.25,
         ),  # fmt: skip
         rate=RateSettings(min_spacing_seconds=0.0),
