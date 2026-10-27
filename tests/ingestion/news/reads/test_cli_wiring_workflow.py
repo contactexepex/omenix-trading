@@ -86,6 +86,12 @@ def test_the_wiring_builds_a_pass_that_reads_the_record_and_writes_only_read_fil
     assert isinstance(built, ReadPass) and built.writer.manifest.log.path.name == "reads.csv"
     assert built.record.area == "raw" and built.wrappers.log.path.name == "wrappers.csv"
     assert built.resolved.log.path.name == "resolved.csv" and built.articles.log.path.name == "articles.csv"
+    # judge 109 B2: production wires the planner and the pass notes, or the materiality file would again do nothing
+    from fno.ingestion.news.reads.pass_note import PassNotes
+    from fno.ingestion.news.reads.plan import ReadPlanner
+
+    assert isinstance(built.planner, ReadPlanner) and isinstance(built.notes, PassNotes)
+    assert built.notes.writer.manifest.log.path.name == "read-passes.csv" and built.planner.notes is built.notes
 
 
 def workflow() -> dict:

@@ -68,11 +68,8 @@ class ReadPass:
             queue = MaterialQueue(self.record, self.articles, self.wrappers, self.resolved, self.writer.manifest,
                                   self.rules, plan.order)  # fmt: skip
         report.order = plan.order.name if plan else None
-        todo = (
-            queue.candidates(today, min(pages, PAGES), report)
-            if queue
-            else self._candidates(today, min(pages, PAGES), report)
-        )
+        limit = min(pages, PAGES)  # once, for both ways of choosing: the cap is never exceeded on either
+        todo = queue.candidates(today, limit, report) if queue else self._candidates(today, limit, report)
         material = queue.material_keys if queue else set()
         for number, (key, url) in enumerate(todo):
             if self.clock() - started >= budget:

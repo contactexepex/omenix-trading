@@ -1454,7 +1454,8 @@
  {
   "id": "Y4",
   "tests": [
-   "tests/ingestion/news/reads/test_pass.py::test_at_most_eighty_pages_are_fetched_whatever_limit_is_asked"
+   "tests/ingestion/news/reads/test_pass.py::test_at_most_eighty_pages_are_fetched_whatever_limit_is_asked",
+   "tests/ingestion/news/reads/test_material_first.py::test_the_page_cap_holds_on_the_material_first_path_too"
   ],
   "file": "fno/ingestion/news/reads/run.py",
   "old": "min(pages, PAGES)",
@@ -2601,5 +2602,23 @@
   "file": "fno/ingestion/news/reads/run.py",
   "old": "                if self.notes:\n                    self.notes.check_ready()\n",
   "new": ""
+ },
+ {
+  "id": "M20",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_wiring_builds_a_pass_that_reads_the_record_and_writes_only_read_files"
+  ],
+  "file": "fno/ingestion/news/reads/wiring.py",
+  "old": "        planner,\n        notes,\n    )",
+  "new": "        None,\n        notes,\n    )"
+ },
+ {
+  "id": "M21",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_outlet_name_after_a_separator_never_makes_a_headline_material"
+  ],
+  "file": "fno/ingestion/news/reads/order.py",
+  "old": "self.tagger.tag(article.title, None, article.source)",
+  "new": "self.tagger.tag(article.title, None)"
  }
 ]

@@ -12,6 +12,7 @@ from fno.ingestion.news.companies.model import Company, CompanyList, CompanyList
 from fno.ingestion.news.companies.parse import CompanyListError
 from fno.ingestion.news.materiality.terms import MaterialityError, parse_terms
 from fno.ingestion.news.reads import queue as queue_module
+from fno.ingestion.news.reads import run as run_module
 from fno.ingestion.news.reads.limits import MAX_RECORD_READS, RESOLVE_READS, SCORE_READS
 from fno.ingestion.news.reads.order import MaterialFirst, NewestFirst, Scored
 from fno.ingestion.news.reads.pass_note import FOLDER, PassNote, PassNotes, parse_note, path_id
@@ -351,3 +352,20 @@ def test_a_torn_note_manifest_stops_the_pass_before_any_request(tmp_path):
     (world.record.manifest_folder / "read-passes.csv").write_text("date,article_id,status,sha256,size_bytes\n" + row)
     report = world.read(pages=3)
     assert report.rejected[codes.MANIFEST_BROKEN] == 1 and world.fetcher.asked == [] and world.read_files() == []
+
+
+def test_the_page_cap_holds_on_the_material_first_path_too(tmp_path, monkeypatch):
+    """Judge 109 B1: asking for more pages than the cap fetches at most the cap, whichever way the pages are chosen."""
+    monkeypatch.setattr(run_module, "PAGES", 2)
+    world = Setup(tmp_path)
+    world.mixed()
+    report = world.read(pages=5)
+    assert report.order == "material_first" and report.counts["asked"] == 2
+
+
+def test_the_outlet_name_after_a_separator_never_makes_a_headline_material():
+    """Judge 109 N1: the order hands the article's source to the tagger, as the tagger and the terms do."""
+    order = MaterialFirst(Tagger(NameDictionary(companies())), terms())
+    outlet = Scored("a", "Markets close higher - Zzpub", "Zzpub", "", False)
+    assert order.rank([outlet]) == ([outlet], 0)
+    assert order.rank([Scored("b", "Zzpub names a new chief", "Pub Daily", "", False)])[1] == 1
