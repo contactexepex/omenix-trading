@@ -83,3 +83,8 @@ def test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules
     for order in itertools.permutations(views):
         assert corroborate(order, "rules-1") == first
     assert first.reads_used == 1 and first.rules_version == "rules-1" and corroborate(views).rules_version == ""
+
+
+def test_the_keys_of_a_group_are_sorted_whatever_order_the_views_came_in():
+    result = corroborate([view("b", **READ), view("a", **READ)])
+    assert result.groups[0].keys == ("a", "b")
