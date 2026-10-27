@@ -255,3 +255,15 @@ def test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent(world, m
     report = daily(monkeypatch, DAY + timedelta(days=1))
     assert report.rejected[codes.PROVENANCE_FAILED] == 1 and report.rejected[codes.PROVENANCE_POLLS_MISSING] == 2
     assert day_files(world) == []
+
+
+def test_a_poll_at_2000_utc_belongs_to_the_next_ist_day_and_that_day_closes_by_ist_not_utc(world, monkeypatch):  # noqa: F811
+    """Judge 124 B2: the day of a poll is its IST date; 20:00 UTC on D is 01:30 IST on D+1."""
+    feed_list(world, 1, ("feed-01", BROAD))
+    stage(world, "feed-01", ITEM, POLL_AT.replace(hour=20))
+    # at 18:45 UTC on DAY+1 it is already DAY+2 in IST, so IST day DAY+1 is closed only after 18:30 UTC on DAY+1
+    monkeypatch.setattr(writer, "now_utc", lambda: POLL_AT.replace(hour=12))
+    assert wiring.build_news_promotion().promote(DAY, DAY).ok and day_files(world) == []
+    monkeypatch.setattr(writer, "now_utc", lambda: POLL_AT.replace(day=DAY.day + 1, hour=20))
+    assert wiring.build_news_promotion().promote(DAY, DAY + timedelta(days=1)).ok
+    assert day_files(world) == [f"{DAY + timedelta(days=1)}.json"]

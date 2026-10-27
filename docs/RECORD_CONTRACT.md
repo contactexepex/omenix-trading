@@ -453,6 +453,8 @@ Which feed found which article, kept in sealed files in the private Record only:
 | B18b | An IST day is read from the two UTC days that cover it (a poll at 20:00 UTC belongs to the next IST day). | `ProvenanceSweep.run` | `tests/ingestion/news/provenance/test_provenance.py::test_an_ist_day_is_read_from_the_two_utc_days_that_cover_it` | one UTC day only | **tested, plant run** |
 | B19 | Polls whose pairs could not be recorded on a closed day are counted (`provenance_polls_missing`), never silent. | `ProvenanceWriter.flush` | `tests/ingestion/news/provenance/test_provenance.py::test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent` | missing not counted | **tested, plant run** |
 | B20 | A poll is looked at once per run by its path AND fetch time, so a feed's several polls of one day all count. | `ProvenanceCollector.first_look` | `tests/ingestion/news/provenance/test_provenance.py::test_polls_whose_pairs_could_not_be_recorded_are_counted_not_silent` | later polls of a feed skipped | **tested, plant run** |
+| B21 | A poll of several articles is kept while the feed is recorded for only some of them: every article's pair is needed. | `NewsPollProof._recorded_feeds` | `tests/ingestion/staging_cleanup/test_news_proof.py::test_a_poll_of_two_articles_is_kept_when_the_feed_is_recorded_for_only_one_of_them` | any article suffices | **tested, plant run** |
+| B22 | The day of a poll is its IST date (20:00 UTC is 01:30 IST the next day), and a day is open until IST midnight. | `day_of` | `tests/ingestion/news/provenance/test_provenance.py::test_a_poll_at_2000_utc_belongs_to_the_next_ist_day_and_that_day_closes_by_ist_not_utc` | UTC dates | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

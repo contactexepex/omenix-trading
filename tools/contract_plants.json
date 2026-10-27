@@ -2704,5 +2704,23 @@
   "file": "fno/ingestion/news/provenance/writer.py",
   "old": "identity = f\"{poll.path}@{poll.fetched_at.isoformat()}\"",
   "new": "identity = poll.path"
+ },
+ {
+  "id": "B21",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_poll_of_two_articles_is_kept_when_the_feed_is_recorded_for_only_one_of_them"
+  ],
+  "file": "fno/ingestion/staging_cleanup/news_proof.py",
+  "old": "return all(feed in self.provenance.feeds_of(day, article.key) for article in articles)",
+  "new": "return any(feed in self.provenance.feeds_of(day, article.key) for article in articles)"
+ },
+ {
+  "id": "B22",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_poll_at_2000_utc_belongs_to_the_next_ist_day_and_that_day_closes_by_ist_not_utc"
+  ],
+  "file": "fno/ingestion/news/provenance/model.py",
+  "old": "return moment.astimezone(IST).date()",
+  "new": "return moment.date()"
  }
 ]

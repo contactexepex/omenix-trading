@@ -104,3 +104,14 @@ hand-listed feeds before the first real run if they want them in `broad`/`target
   a file is not swept again. `provenance_polls_missing` now exists (rows B18, B18b, B19, B20).
 - **N1:** relabelling a feed's scope later creates supplements (the buckets union them); a pair keeps the label it was written with.
 - **N2:** the plan correction is recorded above ("As built"): broad Google News queries are labelled broad.
+
+## Judge 124 round 1 (28 Oct)
+
+- **B1:** a poll of several articles needs EVERY article's pair recorded before it can be trashed (row B21: `any` in place of `all` is caught).
+- **B2:** the day of a poll is its IST date and a day closes at IST midnight (row B22).
+- **B3:** `provenance_polls_missing` is built (judge 123 B1 fix, rows B18-B20). The `--from` rule the judge asked to state is gone: the
+  sweep no longer depends on the range, so any `--from` writes provenance for every closed IST day of the last 9 that has no file.
+- **N1 (stated):** a scope label added later puts a second pair for the same feed, for example (feed, broad) beside (feed, unknown), in a
+  supplement; the recall report then counts that article under `broad_only` AND under `with_unknown_feed`.
+- **N2 (stated):** promotion now reads the newest feed list (`latest()`) for the salt as well as every version for kinds and scopes,
+  so a feed list that cannot be used stops promotion earlier than before.

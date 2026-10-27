@@ -248,3 +248,19 @@ def test_a_poll_is_kept_when_only_another_feed_is_recorded_for_its_article(tmp_p
     s.build()
     s.promote()
     assert proof_for(s).promoted(copy) is True
+
+
+def test_a_poll_of_two_articles_is_kept_when_the_feed_is_recorded_for_only_one_of_them(tmp_path):
+    """Judge 124 B1: every article of the poll must have its pair recorded, not just one."""
+    s = Setup(tmp_path, provenance=True)
+    s.stage(rss(rss_item(title="First story", link="https://example.com/first")))
+    assert s.promote().ok
+    later = POLL_AT + timedelta(hours=1)
+    plain = Setup(tmp_path)  # promotes without writing provenance
+    plain.stage(
+        rss(rss_item(title="First story", link="https://example.com/first"),
+            rss_item(title="Second story", link="https://example.com/second")), at=later)  # fmt: skip
+    assert plain.promote().ok
+    path = f"{FEED}/{POLL_AT:%Y/%m/%d}/poll"
+    copy = s.staging.read(SOURCE, path, s.staging.stamps(SOURCE, path)[-1][1])
+    assert len(s.staging.stamps(SOURCE, path)) == 2 and proof_for(s).promoted(copy) is False
