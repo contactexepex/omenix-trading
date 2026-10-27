@@ -65,16 +65,16 @@ clean (537 files); code size passed; contract plants all ok.
 3. **F3 (must fix, privacy): the tests carry real company names and the owner's earlier exclusion patterns,
    contrary to the plan.**
    - The NP3 plan I passed says "fixtures in tests use invented names only" (section 5b).
-   - `tests/ingestion/news/companies/test_parse_and_file.py:67` ships agentic's real exclusions: `Kotak Mahindra\w*`,
-     `Mahindra (?:Lifespaces?|Holidays|Logistics)\w*`, `ITC Hotels`, `L&T (?:Finance|Tech)\w*`. The story calls them
-     "agentic's real exclusions" (line 28).
-   - Exclusions exist only for a company the owner tracks. So these lines, in a public repository, say that the owner
-     follows M&M, ITC and L&T: that is the owner's selection, the very thing NP3 keeps private.
-   - `:35` (TCS, Tata Consultancy Services) and `test_seed_and_cli.py:74` (ABB India, Tata Motors) are real names as
-     well. They are weaker leaks: they do not mark a selection.
-   - Fix: replace all of them with invented names of the same shape, such as `Acme Kotak\w*`, and say in the story that
-     the patterns are of agentic's *shape*.
-   - Note: git history keeps this branch's commits. If the branch is never merged and is deleted, nothing reaches
-     main. That is for the orchestrator.
+   - The parametrized "accepted exclusion" test (`tests/ingestion/news/companies/test_parse_and_file.py`, about lines
+     65-68) ships four of agentic's real exclusion patterns. The story calls them "agentic's real exclusions" (line 28).
+   - Exclusions exist only for a company the owner tracks, so in a public repository those patterns tell anyone which
+     companies the owner follows. That selection is what NP3 keeps private.
+   - Other test lines (`:35`, and `test_seed_and_cli.py:74`) use real listed names as well. They are weaker leaks: they
+     do not mark a selection.
+   - Fix: replace all of them with invented names of the same shape, and say in the story that the patterns are of
+     agentic's *shape*.
+   - Note: git history keeps the branch's commits. If the branch is never merged and is deleted, nothing reaches main.
+   - My own first push of this verdict quoted the patterns. They are removed in the next commit, but they remain in
+     main's history at `f735e94` (disclosed to the orchestrator).
 
 **Verdict: FAIL** (round 1, `6504962`). Each fix is small: one more check, one self-parse, and renamed fixtures.
