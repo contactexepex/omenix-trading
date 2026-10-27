@@ -76,5 +76,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 63 | G1 Groww cutover plan, text (judge #2) | 2 | PASS (15e1dad; FAIL af42b79) | `judge_63_g1-groww-cutover-judge2.md` |
 | 64 | CP1 pause circulars cron (code) | 1 | PASS (round 1, 8297459) | `judge_64_cp1-pause-circulars.md` |
 | 65 | RR1 rebuild receipts, code (judge #2) | 2 | PASS (678259c; FAIL d636145) | `judge_65_rr1-rebuild-receipts-judge2.md` |
-| 66 | S1 staging cleanup (code, judge #1 of 2) | 1 | FAIL (round 1, f41b1df) | `judge_66_s1-staging-cleanup.md` |
+| 66 | S1 staging cleanup (code, judge #1 of 2) | 1 | FAIL (round 1, f41b1df); PASS (round 2, d88f82c; spy test to fix) | `judge_66_s1-staging-cleanup.md` |
 | 67 | S1 staging cleanup, code (judge #2 of 2) | 1 | FAIL (round 1, f41b1df) | `judge_67_s1-staging-cleanup-judge2.md` |
