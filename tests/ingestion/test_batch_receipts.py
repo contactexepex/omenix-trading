@@ -225,6 +225,20 @@ def test_a_write_that_fails_halfway_makes_the_next_append_refuse_instead_of_glui
     assert batch_files(tmp_path)[0].read_bytes() == half
 
 
+def test_a_write_that_makes_no_progress_is_an_error_not_an_endless_loop(tmp_path, monkeypatch):
+    calls = []
+
+    def writes_nothing(descriptor, data):
+        calls.append(1)
+        assert len(calls) < 50, "looped"
+        return 0
+
+    monkeypatch.setattr("fno.ingestion.storage.batch_receipts.os.write", writes_nothing)
+    _, _, store = world(tmp_path)
+    with pytest.raises(BatchBroken):
+        store.put("news/a", b"a")
+
+
 def test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines(tmp_path):
     put_batch(tmp_path, "20261027T120000Z-aaaaaa.tsv", line("raw/news/a") + "raw/news/torn\tabc")
     _, receipts, store = world(tmp_path)

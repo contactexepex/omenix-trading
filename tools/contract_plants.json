@@ -292,7 +292,8 @@
   "tests": [
    "tests/ingestion/test_batch_receipts.py::test_a_write_that_returns_short_is_finished_not_left_half_written",
    "tests/ingestion/test_batch_receipts.py::test_a_write_that_fails_halfway_makes_the_next_append_refuse_instead_of_gluing_onto_it",
-   "tests/ingestion/test_batch_receipts.py::test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines"
+   "tests/ingestion/test_batch_receipts.py::test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines",
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_makes_no_progress_is_an_error_not_an_endless_loop"
   ],
   "file": "fno/ingestion/storage/batch_receipts.py",
   "old": "        if file.exists() and file.stat().st_size and file.read_bytes()[-1:] != b\"\\n\":",
