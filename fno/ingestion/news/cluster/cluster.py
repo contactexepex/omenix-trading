@@ -50,6 +50,7 @@ class Clustering:
     url_joins_refused: int = 0  # version 2: links that identify no story
     companies_version: int = 0  # version 2, set by the run: the company list used, 0 when no list exists at all
     resolutions_used: int = 0  # version 2, set by the run: resolution files read
+    companies_sha256: str = ""  # version 2, set by the run: the SHA-256 of the list bytes used (the next run checks it)
 
     @property
     def clustered(self) -> int:

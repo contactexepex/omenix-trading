@@ -172,3 +172,9 @@ def test_no_exclusion_the_list_accepts_can_run_long_on_a_crafted_headline():
     for text in ("Zzfoo Alpha" + "a" * 50_000, "Zzfoo Alpha " * 4_000):
         re.search(pattern, text)
     assert time.monotonic() - start < 1
+
+
+def test_the_adapter_hands_over_the_sha256_of_the_bytes_it_read(tmp_path):
+    data = file_bytes(company("A", "Only"))
+    listed = PrivateCompanyFile(config(tmp_path, v3=data)).companies()
+    assert listed.version == 3 and listed.sha256 == hashlib.sha256(data).hexdigest()
