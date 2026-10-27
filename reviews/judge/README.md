@@ -136,3 +136,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 123 | NP11 feed provenance, code (judge #2) | 1 | PASS (round 2, fa3b90e; C1 met; gating PASS 24459f1, runner 302/302; round 1 FAIL e01cb08) | `judge_123_np11-provenance-judge2.md` |
 | 124 | NP11 feed provenance (code, privacy, judge #1) | 2 | PASS (24459f1, runner 302/302; 423ac92 and fa3b90e PASS; round 1 FAIL e01cb08) | `judge_124_np11-provenance.md` |
 | 125 | DOC1 contract split, lane-2 audit (judge #2) | 2 | PASS (05cffab) | `judge_125_doc1-split-audit-judge2.md` |
+| 126 | DOC2 docstrings and NP11 Not-guaranteed section (lane 2 audit, judge #1) | 1 | PASS (77926a7, 34b1961 on main) | `judge_126_doc2-docstrings.md` |
