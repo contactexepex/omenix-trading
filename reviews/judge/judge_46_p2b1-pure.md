@@ -105,3 +105,51 @@ but the pin makes that harmless. No other test imports a guarded constant (`TRAC
 ## Hard lines
 
 Pure functions: no I/O, no network, nothing committed. No secrets. No new dependency.
+
+## Addendum 1: round 2, 6ee9b6b: FAIL, two small gaps in the new year check
+
+Reviewed `6ee9b6b1be2436cb7f506c3bb2d8ac06b5bef583`. The branch tip `3707faf` adds one test-only commit, which I also
+ran.
+
+**Gates:** 704 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+**K1 is closed (strong evidence: experiment).**
+- My three inputs now each become one counted `item_unreadable`, and the poll keeps its good items.
+- A wrapper item with a broken link and a valid guid still yields its article (1 article, nothing rejected): a
+  wrapper never uses its link.
+- I fuzzed 200,000 random `https://` strings through `canonical_url`. It never raised anything but `ValueError`, which
+  is caught, so I found no fourth item shape that escapes or aborts the poll.
+- The plant that removes the item catch is caught.
+
+**K2 is closed.** The title, summary and source drop plants are each now caught.
+
+**The year band is not an age check.** 1990 and 2100 keep their time; 1989 and 2101 become `seen` with the item kept; a
+real 2015 item is unaffected in both RFC 3339 and RFC 822 form; `Mon, 01 Jan 0001` becomes `seen` (no longer 2001).
+Nothing is rejected for its time.
+
+### E1 (required): the "equivalent plant" is not equivalent
+
+There *is* an input that passes the year pre-check and overflows: the compact ISO form `00010101T000000+0500`
+(also `99991231T235959-0500`).
+- `YEAR_WORDS` finds no year in it, because the year is not a standalone 4-digit run.
+- `datetime.fromisoformat` accepts it (Python 3.11 and later).
+- `astimezone(UTC)` then raises `OverflowError: date value out of range`. I reproduced it.
+
+So the `OverflowError` clause in `times._read` is load-bearing. The plant removing it **survives all 704 tests** only
+because no test uses this input. Without the clause, the item would be lost as `item_unreadable` instead of kept as
+`seen`.
+
+Fix: a test with `00010101T000000+0500` asserting `(None, "seen")`, and the item kept in `read_poll`. The plant must
+then fail. Correct the story's equivalence note too.
+
+### E2 (required, small): a valid time with 4-digit fractional seconds loses its time
+
+`2026-10-26T10:00:00.1234Z` and `2026-10-26T10:00:00.5000+05:30` are valid RFC 3339, and Python reads both. But
+`YEAR_WORDS` matches `1234` and `5000` as "years". They fall outside the band, so the item gets `time_source=seen`
+and its real published time is dropped from a write-once Record file.
+
+Fix: add `.` to the look-behind (`(?<![+\-:.\d])`), or apply the text scan only to the RFC 822 path, where the
+`0001` → 2001 accident lives. Add a test with `.1234`.
+
+**Verdict at 6ee9b6b: FAIL (round 2).** Both fixes are about a line plus a test each. Under the two-round rule this goes
+to the orchestrator.
