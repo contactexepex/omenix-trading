@@ -123,3 +123,31 @@ should-fix.
   refuse two adjacent open repeats over overlapping classes.** Reasoning only on real summary lengths.
 
 **Verdict: PASS** (`c5aeb93`, final round), with the NP5 condition above.
+
+## Addendum 2: `1a1e5d6` (supersedes `c5aeb93`): exclusions become an allow-list grammar
+
+`git diff c5aeb93 1a1e5d6 -- fno tests`:
+- the refuse-list checks are replaced by `EXCLUSION_GRAMMAR` (`parse.py:26-31`, fullmatch): plain characters or
+  `\.`, optional `x?`, `(?:A|B)` alternatives of plain text with no quantifier after them, and at most one trailing
+  `\w*`; plus at most 4 `?`;
+- a name-order test where the three lists disagree (judge #1's M1).
+
+**Gates** (in the locked venv): 1515 passed; ruff clean; imports clean; code size passed; contract plants all ok. My
+plant that removes the grammar check fails 10 tests.
+
+**Adversarial timing, each on 5,000 characters, with the most that the grammar allows:**
+
+| Pattern | Time |
+|---|---|
+| four groups of overlapping alternatives `(?:a|aa|aaa|aaaa|aaaaa)` then `b` | 0.06 s |
+| two eight-way groups plus `a?a?b` | 0.02 s |
+| `a?a?a?a?aaaa\w*` | 0.00 s |
+
+`.*.*Z` and `\w*\w*!`, which took 25 s before, are refused. **My Addendum 1 condition on NP5 is withdrawn:** the
+grammar bounds the cost whatever the text length.
+
+**Note (not blocking):** `pattern.count("?")` also counts the `?` of each `(?:`, so groups use up the optional budget.
+A pattern with five groups, or four groups and one `x?`, is refused. That errs on the safe side; say so in the story so
+the owner is not surprised.
+
+**Verdict: PASS** (`1a1e5d6`).
