@@ -75,3 +75,107 @@ It runs after Drive accepted the file (`DataStore.put`).
   harmless while the batch-versus-batch conflicts are only ever same-digest.
 
 **Verdict: FAIL** (round 1). Both fixes are small and local to the read side and the commit guard.
+
+## Addendum 1: round 2 on `498151a` (supersedes `e9b98b2`)
+
+Reviewed `git diff c37a381 498151a`, read `batch_receipts.py`, `receipts.py`, `drive_cache.py`, `cache_cli.py`,
+`repair_cli.py`, `receipt_repair.py` and the R2 story section on unreceipted files.
+
+**Gates (cleared `__pycache__`):** full suite 1151 passed; `ruff check fno tests tools ops` clean;
+`tools/check_imports.py` clean (485 files); `tools/contract_plants.py` C1, C2, K1, K2, K3 ok.
+
+**Mutations planted (12 of 12 killed, full suite each, file restored):** `covers` always True (1 failed); the
+PER_FILE_CONFLICT report removed (1); the not-at-line-end `BatchBroken` check removed (2); a CONFLICT marked settled (1);
+the write loop cut to one `os.write` (1); `unreceipted` finding nothing (3); pathless problems sent to `problems` (2);
+the torn line's UNPROVED dropped (4); settlement ignored (1); `_attributed` naming any area (1); batch read before
+per-file (1); the writer not adding to the index (2).
+
+**Round-1 findings, re-run with my own script:**
+- F1(a) fixed: a torn news batch leaves `sync("data/vix")` clean (no problem, no warning); `sync("raw/news")` reports
+  UNPROVED for the named path and TORN as a warning. A damaged line naming a `data/` path, or an undecodable batch
+  file, reaches only syncs around `raw/news` (as a warning), never `data`.
+- F1(b) not done: `ops/commit_news_record.sh` still commits `receipts/_batches` unchecked. I accept that now. A
+  torn file on `main` is a permanent warning, plus one UNPROVED problem until the path is proved. It is never read as
+  a receipt and never silent. The same run's next append raises `BatchBroken`, so the run ends red. It is still
+  worth a guard (see R1 below), but it is not blocking.
+- F2 fixed: a per-file receipt with a different digest from the batch is now reported (`PER_FILE_CONFLICT`), and the
+  sync is incomplete.
+
+**The implementer's four questions:**
+1. A Record file with no or a wrong receipt: a wrong later digest is caught. A torn line settled by a later batch
+   receipt whose digest does not match Drive gives `DAMAGED`, so settlement hides nothing that the Drive check would
+   catch. A file with no receipt is caught only by the opt-in `--unreceipted`, which no workflow runs. The story says
+   so plainly (opt-in).
+2. Damaged lines reaching an unrelated prefix, or crashing: neither reproduced (cases: CRLF, non-news path, bytes that
+   are not UTF-8, a 2-field line).
+3. "Settled" hiding a real problem: not by a batch receipt, as in point 1. **But see F3: a per-file receipt never
+   settles it.**
+4. Append: a half line refuses the next append (`BatchBroken`), and a short write loops. Two writers in one process
+   with separate `ReceiptFolder`s have stale indexes, so the second writer appended a different digest for the same
+   path. It was reported as CONFLICT, and the sync was incomplete. Through `DataStore.put` this cannot happen, because
+   Drive's write-once `put` refuses the different bytes first. Not a finding.
+
+### F3 (must fix): a repaired torn line keeps the news sync red forever
+
+`BatchIndex.problems()` (`fno/ingestion/storage/batch_receipts.py:124`) settles a torn or malformed line only when
+the path has a receipt *in a batch* (`p.path in known`, where `known` is the batch index). The module docstring
+(lines 11-12) promises "until the file has a valid receipt". Reproduced (strong evidence, my script):
+- Drive holds `raw/news/b.json`, and its batch line is torn.
+- A per-file receipt with the correct digest is written through `ReceiptFolder.write`. That is exactly what the
+  documented repair does: `data-repair receipt <path> --apply` goes through `receipt_repair.py:47` to
+  `self.receipts.write`, and the repair allows it because `read()` is None for a torn line.
+- `sync("raw/news")` still reports `raw/news/b.json: ... not proved`, and the sync stays incomplete.
+
+It can never clear later either. `BatchReceiptWriter.write` (`batch_receipts.py:170-174`) finds the per-file
+receipt, returns it, and appends no batch line. So the only way out would be to edit a committed batch file, which
+write-once forbids.
+
+The path to it is realistic: a promote killed mid-append, then the commit guard committing the torn file (F1(b)),
+then the owner running the repair tool the story points to. The cost is fail-closed (a red check, no silent loss),
+but it is permanent and has no legal fix.
+
+Fix: settle against any receipt, for example in `ReceiptFolder.batch_problems`: drop a settled problem when
+`self.read(p.path)` is not None. Then the per-file conflict check still covers a wrong digest. Add a test: a torn
+line, then a per-file repair receipt, gives a clean `sync`.
+
+### Recommendations (not blocking)
+
+- R1: give the commit guard one shared check that refuses a batch file not ending in a new line (F1(b)). It would
+  stop the permanent TORN warning from reaching `main` at all.
+- R2: the story's line "the news writers' reconcile-before-write on the next run also re-saves a missing line" is
+  the implementer's claim. I did not trace it end to end (reasoning only). `DataStore.put` with the same bytes would
+  re-append the line, so it holds if the writer re-puts the file.
+
+**Verdict: FAIL** (round 2, `498151a`). F3 is a one-line read-side fix plus a test. This was the second round, so
+per the round rule the orchestrator or the owner decides next. I am glad to re-check a fix commit if asked.
+
+## Addendum 2: `e919a29` (supersedes `498151a`, sent before Addendum 1 reached the implementer)
+
+`git diff 498151a e919a29`: it adds `cut_torn_tails` (`batch_receipts.py`), `news repair-batches` (`news/cli.py`),
+the guard line `ops/commit_news_record.sh:20`, contract row K4 and four real-git tests. F3's code
+(`batch_receipts.py:124`) is unchanged.
+
+**Gates (cleared `__pycache__`):** 1155 passed; ruff check and ruff format clean; imports clean; code size 3 passed;
+contract plants C1, C2, K1 to K4 ok.
+
+**Mutations (7 of 7 killed):** cut the whole file (2 failed); cut nothing (2); cut not reported (3); cut the last
+whole line too (2); guard failure ignored, `|| true` (2); CLI exit 0 on a cut (2); no alert sent (1).
+
+**F1(b): fixed.** The commit step cuts only the never-valid fragment, commits the whole lines, sends a fixed-text
+alert and ends red. The commit step runs after a failed promote too: `continue-on-error` on the promote step, and
+the same pattern in news-cluster.
+
+**The heal claim (Addendum 1, R2): now checked, strong evidence (code).** Both writers save Drive, then the receipt,
+then the manifest row (`news/record/writer.py:86-88`, `cluster_record/writer.py:43-45`). So a torn receipt means a
+missing manifest row, and the next run over that day saves the same bytes again, which appends a whole line to the
+new run's batch. Until then `data-cache sync --unreceipted` lists the file, as the alert says.
+
+**F3: downgraded to should-fix, not blocking.** It still reproduces at `e919a29`: a torn line is settled only by a
+batch receipt, never by a per-file repair receipt. Its route was a torn batch file committed to `main` and then
+repaired. The guard now closes that route for both news workflows. A torn line that the guard cuts leaves nothing to
+settle, so `data-repair receipt` then gives a clean sync. What is left is a torn or malformed line reaching `main`
+outside the guard: a hand edit, or a hand-run promote committed without the script (reasoning only, not traced).
+The module docstring (lines 11-12, "until the file has a valid receipt") is still not true for per-file receipts.
+The one-line fix from Addendum 1 still applies and should ride the next R2 code push.
+
+**Verdict: PASS** (`e919a29`), with F3 as a should-fix.
