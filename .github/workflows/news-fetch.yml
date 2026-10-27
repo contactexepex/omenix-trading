@@ -63,6 +63,11 @@ jobs:
       - name: Fail the run when the fetch was not clean (the alert was sent by the command)
         if: ${{ steps.fetch.outcome != 'success' && !inputs.dry_run }}
         run: exit 1
+      - name: Alert the desk channel when the job failed (a job that dies before the command runs cannot alert itself)
+        if: ${{ failure() && !inputs.dry_run }} # O10's watcher sees an alert step on every failure
+        run: |
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O news fetch: the job failed (fetch ${{ steps.fetch.outcome }}); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: Commit the pause log (story R1b2; the last step, never fails the run)
         if: ${{ always() && !inputs.dry_run }}
         continue-on-error: true

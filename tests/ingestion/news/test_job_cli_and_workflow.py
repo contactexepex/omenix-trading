@@ -167,3 +167,13 @@ def test_the_commit_step_adds_only_the_poll_log_folder():
         line for line in adds if "commit_pause_log" in line
     ]  # the pause step is a script
     assert document["jobs"]["fetch"]["env"]["POLLS"] == "research/data/manifests/news"
+
+
+def test_the_news_fetch_workflow_alerts_the_desk_channel_when_its_job_fails():
+    """The repo-standard failure step (O10's watcher expects one): a job that dies before the command runs is otherwise
+    silent on #fno-desk. It sits before the pause-log step, which stays last, and carries no secret in its command."""
+    (job,) = yaml.safe_load((ROOT / ".github" / "workflows" / "news-fetch.yml").read_text("utf-8"))["jobs"].values()
+    alert = next(s for s in job["steps"] if s.get("name", "").startswith("Alert the desk channel"))
+    assert alert["if"] == "${{ failure() && !inputs.dry_run }}" and "continue-on-error" not in alert
+    assert "build_alert_sender" in alert["run"] and "${{ secrets." not in alert["run"]
+    assert job["steps"].index(alert) < len(job["steps"]) - 1  # the pause-log step stays last
