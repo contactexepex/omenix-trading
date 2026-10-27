@@ -1925,5 +1925,79 @@
   "file": "fno/ingestion/news/view.py",
   "old": "self.tagger.tag(article.title, article.summary, article.source)",
   "new": "self.tagger.tag(article.title, article.summary)"
+ },
+ {
+  "id": "W7",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_articles_of_one_agency_are_one_origin_whichever_outlet_carries_them",
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_articles_of_one_outlet_are_one_origin_and_an_agency_label_beats_the_outlet"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "if view.wire else",
+  "new": "if False else"
+ },
+ {
+  "id": "W7b",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_the_view_names_the_outlet_key_and_which_fact_proved_the_agency"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "outlet=self.rules.outlet_key(host),",
+  "new": "outlet=host,"
+ },
+ {
+  "id": "W8",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_promotional_an_opinion_and_an_unlisted_article_never_count"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "return view.listed and not view.promotional and not view.opinion",
+  "new": "return view.listed"
+ },
+ {
+  "id": "W9",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_a_countable_article_is_verified_by_a_read_or_by_an_agency_proved_by_more_than_its_title"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "(bool(view.wire) and view.wire_via != TITLE)",
+  "new": "bool(view.wire)"
+ },
+ {
+  "id": "W10",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_each_flag_fires_on_exactly_its_rule_and_in_a_fixed_order"
+  ],
+  "file": "fno/ingestion/news/corroboration/flags.py",
+  "old": "(independent == 1, model.SINGLE_SOURCE)",
+  "new": "(independent <= 1, model.SINGLE_SOURCE)"
+ },
+ {
+  "id": "W10b",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_each_flag_fires_on_exactly_its_rule_and_in_a_fixed_order"
+  ],
+  "file": "fno/ingestion/news/corroboration/flags.py",
+  "old": "(not any(was_read(v) for v in views), model.UNREAD)",
+  "new": "(False, model.UNREAD)"
+ },
+ {
+  "id": "W11",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules_it_came_from"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "for label in sorted(by_label))",
+  "new": "for label in by_label)"
+ },
+ {
+  "id": "W11b",
+  "tests": [
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_the_result_is_the_same_in_any_order_and_carries_the_reads_and_the_rules_it_came_from",
+   "tests/ingestion/news/corroboration/test_origins_and_flags.py::test_articles_of_one_agency_are_one_origin_whichever_outlet_carries_them"
+  ],
+  "file": "fno/ingestion/news/corroboration/origins.py",
+  "old": "tuple(sorted(v.key for v in views))",
+  "new": "tuple(v.key for v in views)"
  }
 ]
