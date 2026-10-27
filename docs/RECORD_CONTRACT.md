@@ -162,7 +162,7 @@ A Google News item is stored with the clean headline: the " - Outlet" Google New
 | F20 | A no-break space folds to a plain space (frozen, with the cut), so it cannot hide the outlet name in a stored title. | `text_rules.fold` | `tests/ingestion/news/article/test_stored_title.py::test_a_no_break_space_folds_to_a_plain_space_so_it_cannot_hide_the_outlet` | entry mapped to itself | **tested, plant run** |
 | F21 | A no-break space beside the separator is cut with it (the separator test and the cut run on folded text of equal length), so the stored title never keeps a stray " -". | `text_rules.without_outlet` | `tests/ingestion/news/article/test_stored_title.py::test_a_no_break_space_beside_the_separator_is_cut_with_it_and_the_headline_keeps_its_own_text` | cut on the unfolded head | **tested, plant run** |
 | F22 | The matcher and the preparer hand the article's source to the title form, so two copies ending in their own outlets compare on the headline. | `Prepared.of`, `Preparer.prepare` | `tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used` | source dropped (matcher) | **tested, plant run** |
-| F22b | Same, in the version 2 preparer. | `Preparer` | `tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used` | source dropped (preparer) | **tested, plant run** |
+| F22b | Same, in the version 2 preparer. | `Preparer` | `tests/ingestion/news/cluster/test_matching.py::test_the_version_two_preparer_also_hands_the_source_to_the_title_form` | source dropped (preparer) | **tested, plant run** |
 
 ## The company list (NP3a)
 

@@ -2498,7 +2498,7 @@
  {
   "id": "F22b",
   "tests": [
-   "tests/ingestion/news/cluster/test_matching.py::test_two_publisher_copies_each_ending_in_its_own_outlet_are_one_story_only_when_the_source_is_used"
+   "tests/ingestion/news/cluster/test_matching.py::test_the_version_two_preparer_also_hands_the_source_to_the_title_form"
   ],
   "file": "fno/ingestion/news/cluster/prepare.py",
   "old": "shingles(title_form(article.title, article.source))",
