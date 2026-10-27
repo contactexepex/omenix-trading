@@ -43,3 +43,34 @@ In a venv installed from `requirements.lock`:
 No orders, no Groww, no secret. No title in any log.
 
 ## Verdict: FAIL round 1 at ed90a5c. B1 required: restore the U+00A0 fold with an escape, a test and a plant.
+
+## Addendum 1: round 2 at 7406cba: PASS, with one stated limit
+
+I reviewed `git diff ed90a5c 7406cba`. It covers the `text_rules.py` escape, judge 115's B1 (`title_form(title, source)` in `cluster/`), tests, and rows F18 to F20.
+
+**Gates (locked venv, strong evidence).**
+- 2030 passed.
+- ruff check is clean, and check_imports is clean.
+- **Plant runner: 283 of 283 `ok`.**
+
+**B1, the regression: fixed (strong evidence, run).**
+- `_QUOTES` now reads `" ": " "`, so `fold("a b") == "a b"`, as on `main`. Tagging and materiality are back to `main`'s behaviour.
+- The implementer also compared every code point against `main`'s `fold` and found no differences; I did not repeat that.
+- F20 and its test pin the fold.
+
+**What is still open (strong evidence, run; a limit, not a regression).**
+- The new test puts the no-break space **inside** the outlet name (`"Daily Ledger"`). That case works.
+- My round-1 case had it **next to the separator**, and it still leaves a tail on the stored title:
+  - `"Rates rise - Outlet"` is stored as `"Rates rise - "`;
+  - `"Rates rise - Outlet"` is stored as `"Rates rise "`.
+- The cause: `head.rstrip(_SEPARATORS)` runs on the original text, and U+00A0 is not in `_SEPARATORS`.
+- **Why I accept it now (reasoning only, with the downstream checks run):**
+  - Downstream is unaffected. `title_form` on that title gives `"rates rise"`, and the tagger path (`capped` then `without_outlet`) gives `"Rates rise"`.
+  - So only the stored text carries a cosmetic tail, and only on titles with a no-break space beside the dash. I believe that is rare in Google News feeds, but it is unmeasured.
+  - Fixing it later records revisions only for those rare items, not for every re-poll.
+  - This is round 2, the last.
+- **Requested follow-up (lane 1, small):** compute the cut index on the folded title and apply it to the original. For example: `cut = len(fold(head).rstrip(_SEPARATORS)); return title[:cut]`. It is length-safe because `fold` maps one character to one. Add a row with both cases, and state in the contract section that re-polls of affected items will record revisions. **Better done before the first real promotion,** while the Record is still empty and the fix costs nothing.
+
+**Judge 115's B1: fixed.** Clustering now cuts only a tail that is the feed's own `source`, so a headline's own " - profit rises" stays. Rows F18 and F19 pin it, including two opposite stories that must stay apart. The Record has no cluster files yet, so changing the title form needs no version bump.
+
+**Verdict: PASS round 2 at 7406cba.** The no-break-space-beside-the-separator limit is stated, and its fix is requested before the first real promotion.
