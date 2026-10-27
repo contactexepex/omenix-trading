@@ -118,3 +118,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 105 | NP8 material-first reads plan (plan doc, judge #1) | 2 | PASS (94e7c2a; round 2 4907707; round 1 FAIL d9f227b) | `judge_105_np8-plan.md` |
 | 106 | NP3c compare clusterings, code (judge #2) | 1 | PASS (round 2, 18527c3, final 9d16261; round 1 FAIL d001816, eb0ac05) | `judge_106_np3c-compare-clusterings-judge2.md` |
 | 107 | NP3c compare clusterings (code, judge #1) | 2 | PASS (round 2, 9d16261; round 1 FAIL eb0ac05) | `judge_107_np3c-compare-clusterings.md` |
+| 108 | NP8 material-first reads (code, judge #1) | 1 | FAIL (round 1, e6aac2a) | `judge_108_np8-material-first-reads.md` |
