@@ -211,3 +211,23 @@ A note, not a finding: the band is applied after UTC conversion. So `1990-01-01T
 gives `seen`. That edge is a few hours wide and harmless.
 
 **Verdict: PASS (strong evidence).** P2b1 is clear to merge at be857dc. The tip ff08a7a adds tests only.
+
+## Addendum 4: the routed SHA is ff08a7a: PASS
+
+The orchestrator corrected the routed SHA to `ff08a7af0c11bbe7967db18d36cedab951185424`.
+
+- `git diff --quiet be857dc ff08a7a -- fno` is true: the code is identical. The delta is +34 lines of tests: the edge
+  pins and the fraction pins.
+- Gates: 724 passed, 2 runs out of 2. ruff, imports and size are clean.
+- The order, re-confirmed in the code: `astimezone` runs inside `_read`, then the year check runs in `parse_time`. So the
+  clause is load-bearing, and the note matches.
+
+| Plant | Result |
+|---|---|
+| Overflow clause removed | caught |
+| Scan applied to every path | caught |
+| Parsed-year check removed | caught |
+
+The implementer's retraction of the equivalent-plant claim is correct.
+
+**Verdict: PASS.** Addendum 3's findings carry over unchanged. P2b1 is clear to merge at ff08a7a.
