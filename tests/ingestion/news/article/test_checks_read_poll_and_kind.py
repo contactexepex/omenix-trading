@@ -156,3 +156,26 @@ def test_with_the_same_time_one_differing_text_part_alone_gives_a_different_wrap
     moment = datetime(2026, 10, 27, 2, 30, 0, tzinfo=UTC)
     base = item_key(WRAPPER, RawItem(link="https://w.example/r", **SAME), moment)
     assert item_key(WRAPPER, RawItem(link="https://w.example/r", **{**SAME, **different}), moment) != base
+
+
+# ---- the hostile-item inputs through the privacy surfaces (orchestrator guardrail) -------------------------
+
+
+def test_no_fragment_of_a_bad_link_escapes_through_any_surface_at_debug(caplog, capsys):
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    marks = ("MARKPORTZZ91", "MARKV6ZZ92", "MARKRANGEZZ93", "MARKTITLEZZ94")
+    poll = rss(
+        rss_item(title=marks[3], link=f"https://x.example:abc/{marks[0]}?q={marks[0]}"),
+        rss_item(title=marks[3] + "2", link=f"https://[::1/{marks[1]}"),
+        rss_item(title=marks[3] + "3", link=f"https://x.example:99999999/{marks[2]}"),
+        rss_item(title="Good", link="https://p.example/ok"),
+    )
+    reading = read_poll(poll, PUBLISHER, SEEN)
+    surfaces = repr(reading.rejected) + " ".join(reading.rejected) + caplog.text + capsys.readouterr().out
+    assert (
+        reading.rejected == Counter({codes.ITEM_UNREADABLE: 3}) and reading.items == 4
+    )  # reconciliation still balances
+    assert [a.title for a in reading.articles] == ["Good"]
+    assert not [m for m in marks if m in surfaces]
