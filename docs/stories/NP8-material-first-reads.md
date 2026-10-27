@@ -86,3 +86,24 @@ is treated as unusable (rule 3), never as a reason to stop reading; a probe (no 
 ## Size and order
 About 250 lines of code in four small files (`reads/order.py`, `reads/pass_note.py`, a shared pin function moved out of `grouping.py`, the wiring)
 plus tests; lane 1, two judges. It depends on NP7b (the shared pin function), so it is built after NP7b merges.
+
+## Built (code story; rows M1 to M17)
+- `reads/order.py` (`ReadOrder`, `NewestFirst`, `MaterialFirst`), `reads/queue.py` (`MaterialQueue`: 300 article reads ranked, then at most 100
+  resolution reads, one budget of 400), `reads/plan.py` (`ReadPlanner`: not configured is green newest first; a file used before and now
+  missing, rolled back, edited in place, damaged or unreadable degrades to newest first, RED, no note), `reads/pass_note.py` (`PassNote`,
+  `PassNotes`), `reads/links.py` (one `fetchable` question for both ways of choosing pages), `news/pin.py` (the pin rule NP7b wrote inside
+  the grouping, now shared: the cluster run uses it too, behaviour unchanged).
+- A pass with no planner (or whose plan is newest first) takes the old code path untouched: the existing tests of the pass pass unchanged.
+- `ReadReport` prints `order ...` whenever a planner chose one, and `scored`, `material`, `material_asked`, `resolve_reads` and
+  `resolve_reads_exhausted` for a material-first pass (judge 105: the exhausted count is its own).
+- `MaterialTerms` and `CompanyList` carry the SHA-256 of the bytes they were read from (`PrivateMaterialityFile` sets it).
+- `news-read-pages.yml` now commits `read-passes.csv` (EXTRA_MANIFESTS) and `receipts/raw/news/read-passes` (RECEIPTS) (judge 105 B1).
+- Plants re-pointed because their code moved: Z17 and Z18 (to `pin.py`), Y2 (to `links.py`).
+
+## Said plainly about the build
+- Nothing has run against real feeds, so the share of material headlines, the unresolved share and the run time of ranking 300 articles are
+  unmeasured. The first apply run will show them in its line.
+- Both private files are always tried, so a pass reports every problem it finds, not only the first.
+- A failure to write the note is counted with the codes the reads already use (`read_conflict`, `read_write_failed`). Two passes in the same
+  second with other counts conflict and never overwrite.
+- A pass whose plan is material first but whose Record reads all come back empty still writes its note (the versions it used are true).

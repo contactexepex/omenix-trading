@@ -27,4 +27,6 @@ class PrivateMaterialityFile:
 
     def terms(self) -> MaterialTerms:
         picked = self.files.latest(self.lowest_version, self.used)
-        return parse_terms(picked.data, picked.version)
+        terms = parse_terms(picked.data, picked.version)
+        terms.sha256 = picked.sha256
+        return terms

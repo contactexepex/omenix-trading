@@ -35,8 +35,8 @@ class Term:
 
 
 class MaterialTerms:
-    def __init__(self, terms: tuple[Term, ...], version: int = 0):
-        self.terms, self.version = terms, version
+    def __init__(self, terms: tuple[Term, ...], version: int = 0, sha256: str = ""):
+        self.terms, self.version, self.sha256 = terms, version, sha256
 
     def weight(self, title: str | None, source: str | None = None) -> float:
         """`source`: the outlet name, whose " - Outlet" suffix on a title is not about the story (judge 95 F1)."""

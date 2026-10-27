@@ -1438,9 +1438,9 @@
   "tests": [
    "tests/ingestion/news/reads/test_pass.py::test_an_article_on_an_outlet_we_may_not_read_makes_no_request"
   ],
-  "file": "fno/ingestion/news/reads/run.py",
-  "old": "        elif not self.rules.may_fetch(plain_host(urlsplit(url).hostname)):",
-  "new": "        elif False:"
+  "file": "fno/ingestion/news/reads/links.py",
+  "old": "    return rules.may_fetch(plain_host(urlsplit(url).hostname))",
+  "new": "    return True"
  },
  {
   "id": "Y3",
@@ -2209,8 +2209,8 @@
   "tests": [
    "tests/ingestion/news/cluster_record/test_version_two_run.py::test_an_older_list_than_the_last_file_used_stops_the_run_and_writes_nothing"
   ],
-  "file": "fno/ingestion/news/cluster_record/grouping.py",
-  "old": "    if companies.version < previous.companies_version:",
+  "file": "fno/ingestion/news/pin.py",
+  "old": "    if version < last_version:",
   "new": "    if False:"
  },
  {
@@ -2218,9 +2218,9 @@
   "tests": [
    "tests/ingestion/news/cluster_record/test_version_two_run.py::test_the_same_version_with_other_bytes_is_a_list_edited_in_place_and_stops_the_run"
   ],
-  "file": "fno/ingestion/news/cluster_record/grouping.py",
-  "old": "if companies.version == previous.companies_version and companies.sha256 != previous.companies_sha256:",
-  "new": "if False:"
+  "file": "fno/ingestion/news/pin.py",
+  "old": "    if version == last_version and sha256 != last_sha256:",
+  "new": "    if False:"
  },
  {
   "id": "Z19",
@@ -2277,5 +2277,172 @@
   "file": "fno/ingestion/news/cluster_record/run.py",
   "old": "max(earlier)[1]",
   "new": "min(earlier)[1]"
+ },
+ {
+  "id": "M1",
+  "tests": [
+   "tests/ingestion/news/test_pin.py::test_before_the_first_run_there_is_nothing_to_compare_with",
+   "tests/ingestion/news/test_pin.py::test_the_same_version_with_the_same_bytes_and_any_newer_version_are_fine"
+  ],
+  "file": "fno/ingestion/news/pin.py",
+  "old": "    if not last_version:",
+  "new": "    if False:"
+ },
+ {
+  "id": "M2",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_order_puts_material_first_and_keeps_newest_first_inside_each_tier",
+   "tests/ingestion/news/reads/test_material_first.py::test_material_articles_are_read_before_the_others_when_the_pages_are_fewer_than_the_articles"
+  ],
+  "file": "fno/ingestion/news/reads/order.py",
+  "old": "return first + rest, len(first)",
+  "new": "return rest + first, len(first)"
+ },
+ {
+  "id": "M3",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_an_article_naming_no_company_or_two_is_not_material_whatever_its_weight"
+  ],
+  "file": "fno/ingestion/news/reads/order.py",
+  "old": "return self.terms.is_material(article.title, tag, article.source)",
+  "new": "return self.terms.weight(article.title, article.source) >= 1"
+ },
+ {
+  "id": "M4",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_never_configured_is_green_newest_first_and_writes_no_note",
+   "tests/ingestion/news/reads/test_material_first.py::test_a_degraded_pass_leaves_the_pin_where_the_last_good_note_put_it"
+  ],
+  "file": "fno/ingestion/news/reads/plan.py",
+  "old": "if str(refused) != spec.missing or last_version:",
+  "new": "if str(refused) != spec.missing:"
+ },
+ {
+  "id": "M5",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_private_file_that_exists_but_cannot_be_used_degrades_to_newest_first_red_with_no_note_and_reads_go_on"
+  ],
+  "file": "fno/ingestion/news/reads/plan.py",
+  "old": "report.reject(str(refused))",
+  "new": "pass"
+ },
+ {
+  "id": "M5b",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_private_file_that_exists_but_cannot_be_used_degrades_to_newest_first_red_with_no_note_and_reads_go_on"
+  ],
+  "file": "fno/ingestion/news/reads/plan.py",
+  "old": "report.reject(spec.unavailable)",
+  "new": "pass"
+ },
+ {
+  "id": "M6",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_degraded_pass_leaves_the_pin_where_the_last_good_note_put_it"
+  ],
+  "file": "fno/ingestion/news/reads/plan.py",
+  "old": "        if refusal:",
+  "new": "        if False:"
+ },
+ {
+  "id": "M7",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_private_file_that_exists_but_cannot_be_used_degrades_to_newest_first_red_with_no_note_and_reads_go_on",
+   "tests/ingestion/news/reads/test_material_first.py::test_never_configured_is_green_newest_first_and_writes_no_note"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "if apply and plan and plan.note:",
+  "new": "if apply and plan:"
+ },
+ {
+  "id": "M8",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_material_first_pass_with_apply_writes_one_note_of_counts_and_versions_and_a_probe_none"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "if apply and plan and plan.note:",
+  "new": "if plan and plan.note:"
+ },
+ {
+  "id": "M9",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_record_reads_are_one_budget_and_the_ranking_counts_what_it_could_not_reach"
+  ],
+  "file": "fno/ingestion/news/reads/queue.py",
+  "old": "elif len(scored) >= SCORE_READS:",
+  "new": "elif len(scored) > SCORE_READS:"
+ },
+ {
+  "id": "M10",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_google_news_items_left_without_a_resolution_read_are_counted_and_a_publisher_item_still_follows"
+  ],
+  "file": "fno/ingestion/news/reads/queue.py",
+  "old": "if report.counts[\"resolve_reads\"] >= RESOLVE_READS:",
+  "new": "if report.counts[\"resolve_reads\"] > RESOLVE_READS:"
+ },
+ {
+  "id": "M11",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_google_news_items_left_without_a_resolution_read_are_counted_and_a_publisher_item_still_follows"
+  ],
+  "file": "fno/ingestion/news/reads/queue.py",
+  "old": "report.counts[\"resolve_reads_exhausted\"] += 1",
+  "new": "report.counts[\"resolve_reads_exhausted\"] += 0"
+ },
+ {
+  "id": "M12",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_pass_note_is_counts_and_versions_only"
+  ],
+  "file": "fno/ingestion/news/reads/pass_note.py",
+  "old": "or set(document) != KEYS or",
+  "new": "or False or"
+ },
+ {
+  "id": "M13",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_workflow_commits_the_pass_notes_manifest_and_receipts"
+  ],
+  "file": ".github/workflows/news-read-pages.yml",
+  "old": "EXTRA_MANIFESTS: research/data/manifests/news/read-passes.csv",
+  "new": "EXTRA_MANIFESTS: research/data/manifests/news/other.csv"
+ },
+ {
+  "id": "M14",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_the_pin_is_checked_against_the_newest_note_not_the_first"
+  ],
+  "file": "fno/ingestion/news/reads/pass_note.py",
+  "old": "self.record.get(f\"{FOLDER}/{names[-1]}\")",
+  "new": "self.record.get(f\"{FOLDER}/{names[0]}\")"
+ },
+ {
+  "id": "M15",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_material_articles_are_read_before_the_others_when_the_pages_are_fewer_than_the_articles",
+   "tests/ingestion/news/reads/test_material_first.py::test_never_configured_is_green_newest_first_and_writes_no_note"
+  ],
+  "file": "fno/ingestion/news/reads/report.py",
+  "old": "seen = f\"order {self.order}, {seen}\" if self.order else seen",
+  "new": "seen = seen"
+ },
+ {
+  "id": "M16",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_an_outlet_we_may_not_read_is_skipped_in_the_material_first_path_too"
+  ],
+  "file": "fno/ingestion/news/reads/queue.py",
+  "old": "if fetchable(self.rules, url):",
+  "new": "if True:"
+ },
+ {
+  "id": "M17",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_material_first_pass_with_apply_writes_one_note_of_counts_and_versions_and_a_probe_none"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "asked=report.counts[\"asked\"]",
+  "new": "asked=0"
  }
 ]

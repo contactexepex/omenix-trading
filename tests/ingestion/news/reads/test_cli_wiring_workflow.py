@@ -103,7 +103,8 @@ def test_the_workflow_is_dispatch_only_serial_with_the_record_and_never_applies_
 def test_the_workflow_commits_only_its_own_manifest_and_receipts_and_only_with_apply():
     text = (ROOT / ".github/workflows/news-read-pages.yml").read_text()
     assert "MANIFEST: research/data/manifests/news/reads.csv" in text and "ops/commit_news_record.sh" in text
-    assert "RECEIPTS: receipts/raw/news/reads receipts/_batches" in text
+    assert "RECEIPTS: receipts/raw/news/reads receipts/raw/news/read-passes receipts/_batches" in text
+    assert "EXTRA_MANIFESTS: research/data/manifests/news/read-passes.csv" in text  # the pass notes (NP8, judge 105 B1)
     steps = {s.get("name", ""): s for s in workflow()["jobs"]["read"]["steps"]}
     commit = next(s for n, s in steps.items() if n.startswith("Commit the reads manifest"))
     assert "inputs.apply" in commit["if"] and "!inputs.dry_run" in commit["if"]
