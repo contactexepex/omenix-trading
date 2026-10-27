@@ -131,3 +131,31 @@ def test_two_format_2_versions_that_differ_only_in_the_source_domain_get_two_rev
     record.put(first.path, article(title="T2", source_domain="a.example").to_bytes())
     second = ArticlePlanner(record).plan(article(title="T2", source_domain="b.example"))
     assert second.outcome is Outcome.REVISION and second.path != first.path
+
+
+# --- judge 74 add.1: a listing that lags behind a revision written earlier in the run ---
+
+
+class LaggingListing(AreaStore):
+    """A store whose folder listing never shows files written in this run (a lagging Drive listing)."""
+
+    def checksums(self, folder):
+        return {}
+
+
+def test_a_lagging_listing_gives_no_op_for_the_same_version_and_a_conflict_only_for_a_different_one(tmp_path):
+    from fno.ingestion.storage.raw_store import RawFileConflict
+
+    record = LaggingListing(LocalFolderStore(tmp_path / "drive"), "raw")
+    record.put(article_path(BASE["key"]), v2(title="T1"))
+    planner = ArticlePlanner(record)
+    first = planner.plan(article(title="T2"))
+    assert first.outcome is Outcome.REVISION
+    planner.held[first.path] = article(title="T2").to_bytes()  # what ArticleWriter does after writing it
+    again = planner.plan(article(title="T2"))  # the listing does not show it, the cache does
+    assert again.outcome is Outcome.NO_OP and again.path == first.path
+    planner.held[first.path] = article(title="T3").to_bytes()  # a different version under the same name
+    import pytest
+
+    with pytest.raises(RawFileConflict):
+        planner.plan(article(title="T2"))
