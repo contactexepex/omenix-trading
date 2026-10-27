@@ -1,5 +1,7 @@
 # NP6b: independent origins and flags (the corroboration read-model)
 
+> **DELETED in DEL1 (28 Oct 2026, owner: "get rid of these 400 unused lines."):** `corroborate` and its flags no longer exist (corroboration is derived downstream). The text below is the record of what was built; `docs/stories/DEL1-delete-unused-derivation.md` says what stayed.
+
 Lane 1, two judges. Plan: [NP6](NP6-tiered-clustering.md) (passed by judge 96, round 2). Contract rows W7 to W11b. **Pure code: no request,
 no file written, no Record change, no workflow, no dependency.** The count is computed when a cluster is READ from its members' views
 (NP5b), never stored, so editing a rule file never leaves a stale number in the write-once Record.
