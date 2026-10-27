@@ -26,6 +26,14 @@ class ClusterWriter:
         """`reader`: the Record, read only; `store`: the write path (Drive, then receipt); `manifest`: clusters.csv."""
         self.reader, self.store, self.manifest = reader, store, manifest
 
+    @property
+    def skipped_rows(self) -> int:
+        return self.manifest.skipped
+
+    def check_ready(self) -> None:
+        """TableFileBroken when clusters.csv ends in a torn line: checked BEFORE the Drive file is written."""
+        self.manifest.check_appendable()
+
     def write(self, path: str, data: bytes, day: date) -> Written:
         held = self.reader.get(path)
         if held is not None and held != data:

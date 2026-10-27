@@ -94,7 +94,11 @@ Corroboration or wire-credit counting (owner decision), tuning the threshold, sc
 - **Order of runs:** cluster only a window whose end has passed, after the promote that covers it (shared concurrency group). The
   default window end is the current hour floored, so every article first seen before it is already in the Record only if that promote
   has run. A `cluster_conflict` means inputs, version or determinism changed for a closed window: investigate, never overwrite.
-- **Proof:** 27 cluster-record tests and 12 guard tests; plants fail a test for the conflict check (also with a store that overwrites),
+- **Round 1 (judge 53):** a listed-but-unreadable earlier file is `previous_unreadable` and nothing is written (R1, pinned by a test whose
+  plant `return ()` first survived); `clusters.csv` is checked for a torn last line BEFORE the Drive file is written (`manifest_broken`);
+  not-whole rows in either manifest are reported (`manifest_row_skipped`) and nothing is written, because a hidden article or file would
+  change the bytes of a later run of the same window.
+- **Proof:** 30 cluster-record tests and 12 guard tests; plants fail a test for the conflict check (also with a store that overwrites),
   file-before-row order, the missing-row repair, each reconciliation check on its own (duplicate member, made-up member, counts),
   the version in the path, the strictly earlier previous file, a damaged previous file, an unreadable article, the candidate net,
   the reader's window cover and its `known_at` bound, the member order, and the conflict alert text.

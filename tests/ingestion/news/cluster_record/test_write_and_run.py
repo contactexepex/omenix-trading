@@ -235,3 +235,43 @@ def test_the_cluster_file_keeps_the_assignment_order_with_the_anchor_first():
 
     clustering = Clustering(AS_OF, "1", (Cluster("c" * 64, "b" * 64, ("b" * 64, "a" * 64), ()),), 0, 0)
     assert parse_cluster_file(cluster_file_bytes(clustering)).clusters[0].member_keys == ("b" * 64, "a" * 64)
+
+
+def test_an_earlier_file_that_is_listed_but_cannot_be_read_is_counted_and_nothing_is_written(tmp_path):
+    """judge 53 R1: a listing that names a file `get` cannot return must not be treated as 'no earlier file'."""
+    from fno.ingestion.news.cluster_record.run import ClusterRun
+    from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
+
+    class ListsButCannotRead(LocalFolderStore):
+        def get(self, path):
+            return None if "news/clusters/" in path else super().get(path)
+
+    world = seeded(tmp_path)
+    world.cluster()
+    record = AreaStore(ListsButCannotRead(world.drive.folder), "raw")
+    run = ClusterRun(world.run_object.source, world.run_object.writer, record)
+    report = run.run(AS_OF + timedelta(hours=1))
+    assert report.rejected == {codes.PREVIOUS_UNREADABLE: 1} and len(world.cluster_files()) == 1
+
+
+def test_a_torn_clusters_manifest_is_found_before_any_file_is_written(tmp_path):
+    """judge 53: otherwise the Drive file would be written and only then would the row fail."""
+    world = seeded(tmp_path)
+    world.cluster()
+    path = world.record.manifest_folder / "clusters.csv"
+    path.write_text(path.read_text().rstrip("\n")[:-20])
+    world.build()
+    before = (world.cluster_files(), path.read_bytes())
+    report = world.cluster(AS_OF + timedelta(hours=1))
+    assert report.rejected == {codes.MANIFEST_BROKEN: 1} and (world.cluster_files(), path.read_bytes()) == before
+
+
+def test_a_not_whole_row_in_either_manifest_is_reported_and_nothing_is_written(tmp_path):
+    for name in ("articles.csv", "clusters.csv"):
+        world = seeded(tmp_path / name.split(".")[0])
+        world.cluster()
+        path = world.record.manifest_folder / name
+        path.write_text(path.read_text() + "2026-10-27,abc,reco\n")
+        world.build()
+        report = world.cluster(AS_OF + timedelta(hours=1))
+        assert report.rejected[codes.MANIFEST_ROW_SKIPPED] == 1 and len(world.cluster_files()) == 1

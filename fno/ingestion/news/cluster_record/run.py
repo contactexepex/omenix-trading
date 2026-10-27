@@ -22,6 +22,7 @@ from fno.ingestion.news.cluster_record.cluster_file import (
 from fno.ingestion.news.cluster_record.report import ClusterReport
 from fno.ingestion.news.cluster_record.writer import ClusterWriter
 from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
+from fno.ingestion.storage.row_log import TableFileBroken
 
 
 def reconciles(clustering: Clustering, articles: tuple[Article, ...]) -> bool:
@@ -43,6 +44,14 @@ class ClusterRun:
 
     def run(self, as_of: datetime) -> ClusterReport:
         report = ClusterReport()
+        try:
+            self.writer.check_ready()
+        except TableFileBroken:
+            report.reject(codes.MANIFEST_BROKEN)
+            return report
+        for skipped in (self.source.skipped_rows, self.writer.skipped_rows):
+            if skipped:  # a not-whole manifest row may hide an article or a file: report it, write nothing
+                report.reject(codes.MANIFEST_ROW_SKIPPED, skipped)
         found = self.source.candidates(as_of)
         report.read(len(found.articles), found.unreadable)
         try:

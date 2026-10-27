@@ -37,6 +37,11 @@ class ArticleSource:
         """`record`: the Record area, read only (this class has no way to write); `manifest`: the articles manifest."""
         self.record, self.manifest = record, manifest
 
+    @property
+    def skipped_rows(self) -> int:
+        """Rows of the articles manifest that are not whole: each may hide an article, so a run reports them."""
+        return self.manifest.skipped
+
     def candidates(self, as_of: datetime) -> Candidates:
         net = (as_of - WINDOW - MARGIN).date()
         found, unreadable = [], 0
