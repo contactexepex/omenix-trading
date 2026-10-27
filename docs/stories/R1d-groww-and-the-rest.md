@@ -33,12 +33,12 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
      (`PER_SECOND = 4`), index recorders 2.5 a second across 3 workers (`quotes/indices.py:25`), any other recorder slot its
      `per_second` or none (`quotes/recorder.py:127`), candle source 0.5 s. No caller is replaced by a single host limiter, so
      concurrent callers stay as fast as today and each caller's politeness is unchanged.
-  2. **A host-wide Groww limiter is a ceiling only:** one instance per process, set above the highest aggregate of today's callers,
-     so it never bites for today's caller set and only bounds a spike below Groww's failure point (about 10 a second). It
-     has a per-second spacing only: **no per-minute count**, because intraday 4/s plus the index recorders 2.5/s would be 6.5/s =
-     390/min in one process, which a 300/min ceiling would slow (new behaviour). The ceiling's number is fixed in the code
-     story with the proof that it never bites (see condition 5); whether those callers ever overlap in one process is not
-     recorded here, so the proof assumes they can.
+  2. **No host-wide ceiling in this step.** Today has none; adding one would be new behaviour, and the host's limit (10 a
+     second, 300 a minute in `settings_for("groww")`) stays unused here. Whether to add one is the owner's separate decision
+     with the Groww health feature (R1d2). (Judge 34 found no process holding two Groww callers: each of `intraday/wiring.py:63`, `intraday/feed_wiring.py:51`,
+     `intraday/backfill_wiring.py:46`, `quotes/index_wiring.py:20` and `quotes/window_wiring.py:28` builds one provider; the story
+     re-checks this against `composition.py:53` and `preopen/wiring.py:80` before relying on it, so a ceiling would have
+     nothing to protect in this repository's processes.)
   3. **Independent 429 pauses, as today:** each provider keeps its own 60 s `RateLimitPause` (`groww.py:142`), in process only, no
      half-open, no log, no alert. A pause shared across callers would stop the callers that were not refused (less data than
      today) and is a data-versus-blacklist call for the owner; it is deferred to the Groww health feature with R1d2.
@@ -61,11 +61,10 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
    behaviour change and needs no wait/probe machinery. This must be stated and tested.
 2. The market-hours rule above.
 3. Nothing may make fewer attempts at a live capture than today (R1c's lesson): the same never-weaker test for each moved wait.
-4. One shared Groww **ceiling** per process, like `SHARED_PACER` (a test: two providers share it). It does not share the pause or
-   replace the per-caller limiters.
+4. Pauses stay one per `GrowwProvider` (`groww.py:142`), as today. Tests: two recorders on one provider share its pause; two
+   providers do not (a 429 in one does not pause the other).
 5. Never-weaker tests: each caller's request starts stay spaced exactly as today (intraday 4/s, index recorders 2.5/s across 3
-   workers, candle 0.5 s, unpaced slots unpaced); the combined rate of the index recorders is unchanged; the ceiling never
-   bites for today's caller set (all callers at full rate together stay un-delayed); a 429 in one provider does not pause another.
+   workers, candle 0.5 s, unpaced slots unpaced), and the index recorders' combined rate is unchanged.
 
 ## Rulings (orchestrator, 27 Oct 2026) and what stays parked
 
