@@ -111,3 +111,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 98 | NP6b corroboration (code, judge #1) | 1 | PASS (round 1, e7ff690) | `judge_98_np6b-corroboration.md` |
 | 99 | NP6a grouper v2 (code, judge #1) | 1 | PASS (round 1, 7323c3f) | `judge_99_np6a-grouper-v2.md` |
 | 100 | NP6a grouper version 2, code (judge #2) | 1 | PASS (round 1, 7323c3f) | `judge_100_np6a-grouper-v2-judge2.md` |
+| 101 | NP7 cutover and read-contract plan (plan doc, judge #1) | 1 | FAIL (round 1, f69aef7) | `judge_101_np7-plan.md` |
