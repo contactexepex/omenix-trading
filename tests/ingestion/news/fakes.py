@@ -52,3 +52,37 @@ class Session:
         if isinstance(step, BaseException):
             raise step
         return step
+
+
+class LocalServer:
+    """A real HTTP server on an ephemeral localhost port for the tests that must reach urllib3. It is started in a thread
+    and the constructor returns only once the server really accepts a connection (a bounded wait, never a blind
+    sleep); `close()` stops it and joins its thread."""
+
+    READY_SECONDS = 5.0
+
+    def __init__(self, handler):
+        import socket
+        import threading
+        import time
+        from http.server import HTTPServer
+
+        self.httpd = HTTPServer(("127.0.0.1", 0), handler)  # port 0: the system picks a free one
+        self.port = self.httpd.server_port
+        self.base = f"http://127.0.0.1:{self.port}"
+        self.thread = threading.Thread(target=self.httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        self.thread.start()
+        deadline = time.monotonic() + self.READY_SECONDS
+        while True:
+            try:
+                socket.create_connection(("127.0.0.1", self.port), timeout=0.5).close()
+                break
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise RuntimeError("the local test server did not start") from None
+                time.sleep(0.02)
+
+    def close(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.thread.join(5.0)

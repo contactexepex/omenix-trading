@@ -3,8 +3,7 @@ a redirect or a refusal is a block, not a parse failure."""
 
 from __future__ import annotations
 
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 
 import pytest
 import requests
@@ -14,7 +13,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.response_check import classify
 from fno.ingestion.news.session import NewsSession
 from fno.shared.nse_pacer import NsePacer
-from tests.ingestion.news.fakes import CONSENT_PAGE, RSS
+from tests.ingestion.news.fakes import CONSENT_PAGE, RSS, LocalServer
 
 URL = "https://feeds.example/rss"
 
@@ -46,8 +45,8 @@ def session(*answers):
     return s, wire
 
 
-class CookieServer:
-    """A real local HTTP server: /set answers with a cookie, /look records the Cookie header it was sent."""
+class CookieServer(LocalServer):
+    """/set answers with a cookie, /look records the Cookie header it was sent."""
 
     def __init__(self):
         seen = self.seen = []
@@ -65,13 +64,8 @@ class CookieServer:
             def log_message(self, *args):
                 pass
 
-        self.httpd = HTTPServer(("127.0.0.1", 0), Handler)
-        self.url = f"http://127.0.0.1:{self.httpd.server_port}"
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
-
-    def close(self):
-        self.httpd.shutdown()
-        self.httpd.server_close()
+        super().__init__(Handler)
+        self.url = self.base
 
 
 def test_a_cookie_set_by_an_answer_is_neither_kept_nor_sent_back():

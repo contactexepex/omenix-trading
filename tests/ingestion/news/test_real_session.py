@@ -5,8 +5,7 @@ alerts are the real ones."""
 from __future__ import annotations
 
 import logging
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 
 import pytest
 import requests
@@ -21,10 +20,10 @@ from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
 from fno.shared.http_pacing import SHARED_PACER, PacedSession
 from fno.shared.resilience.transition_log import LayeredLog
-from tests.ingestion.news.fakes import MARK_HOST, MARK_PATH, MARK_QUERY, NOW, RSS
+from tests.ingestion.news.fakes import MARK_HOST, MARK_PATH, MARK_QUERY, NOW, RSS, LocalServer
 
 
-class Server:
+class Server(LocalServer):
     def __init__(self, status):
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):  # noqa: N802
@@ -37,13 +36,8 @@ class Server:
             def log_message(self, *args):
                 pass
 
-        self.httpd = HTTPServer(("127.0.0.1", 0), Handler)
-        self.url = f"http://127.0.0.1:{self.httpd.server_port}/{MARK_PATH}?q={MARK_QUERY}"
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
-
-    def close(self):
-        self.httpd.shutdown()
-        self.httpd.server_close()
+        super().__init__(Handler)
+        self.url = f"{self.base}/{MARK_PATH}?q={MARK_QUERY}"
 
 
 @pytest.fixture

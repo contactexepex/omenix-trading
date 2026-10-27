@@ -56,23 +56,21 @@ def test_rate_pacer_does_not_wait_after_an_idle_gap():
 
 
 def test_rate_pacer_holds_spacing_across_threads():
-    import time
+    """Deterministic: a frozen clock, and the waits the pacer asks for are the slots it handed out (6 callers, 0.05 s
+    apart; the first is free). Timing callers after they wake would let scheduler jitter under load shrink the gap."""
+    asked, lock = [], threading.Lock()
 
-    pacer = RatePacer(20)
-    starts, lock = [], threading.Lock()
-
-    def work():
-        pacer.wait()
+    def record(seconds):
         with lock:
-            starts.append(time.monotonic())
+            asked.append(seconds)
 
-    threads = [threading.Thread(target=work) for _ in range(6)]
+    pacer = RatePacer(20, clock=lambda: 0.0, sleep=record)
+    threads = [threading.Thread(target=pacer.wait) for _ in range(6)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    starts.sort()
-    assert min(b - a for a, b in zip(starts, starts[1:])) >= 0.04  # 1/20 s, with a little timer slack
+    assert sorted(asked) == pytest.approx([0.05 * n for n in range(1, 6)])
 
 
 # ---- the 429 pause and the guard ---------------------------------------------------------------------------------
