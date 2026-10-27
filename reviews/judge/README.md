@@ -104,3 +104,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 91 | NP4b page reads (code, judge #1) | 1 | FAIL (round 1, 337f0ea); PASS (346e78c, 98ad64a) | `judge_91_np4b-page-reads.md` |
 | 92 | NP5a tagger, code (judge #2) | 1 | FAIL (round 1, 29d19cf) | `judge_92_np5a-tagger-judge2.md` |
 | 93 | NP5a tagger (code, judge #1) | 1 | FAIL (round 1, 29d19cf) | `judge_93_np5a-tagger.md` |
+| 94 | NP5b origins, promotional, materiality (code, judge #1) | 1 | FAIL (round 1, 691f315) | `judge_94_np5b-origins-materiality.md` |
