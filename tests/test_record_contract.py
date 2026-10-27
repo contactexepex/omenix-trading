@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOC = (ROOT / "docs" / "RECORD_CONTRACT.md").read_text()
 PLANTS = json.loads((ROOT / "tools" / "contract_plants.json").read_text())
-ROW = re.compile(r"^\| ([A-Z]\d[a-z]?) \|.*\|$", re.M)
+ROW = re.compile(r"^\| ([A-Z]\d+[a-z]?) \|.*\|$", re.M)
 TEST_ID = re.compile(r"`(tests/[\w/.]+\.py(?:::\w+)?)`")
 
 

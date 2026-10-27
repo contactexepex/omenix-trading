@@ -16,7 +16,7 @@ orchestrator): "we don't want to lose any data anymore"; receipts for news go fr
 1. **Interface `ReceiptWriter`** (a small Protocol next to `ReceiptFolder`): `write(receipt) -> Receipt` (returns the receipt kept for
    the path). `ReceiptFolder` already has that method, so strategy A (one file per Drive file) is unchanged and stays in the tree.
    `DataStore` is typed against the Protocol instead of `ReceiptFolder`.
-2. **Strategy B, `BatchReceiptWriter(folder, run_id)`**: appends one line per Drive file to ONE file for the run,
+2. **Strategy B, `BatchReceiptWriter(folder, run_id)`** (the run id is checked when it is made, before the run writes anything to Drive): appends one line per Drive file to ONE file for the run,
    `receipts/_batches/<YYYY>/<MM>/<run_id>.tsv` (run ids are unique and time-sortable, so two runs never touch one file: no merge conflicts, the
    property the per-file layout was chosen for). A line has the same five fields a per-file receipt has plus the path
    (`path, sha256, size, written_at, writer, run_id`), written as ONE `O_APPEND` write of the whole line, after Drive accepted
@@ -54,6 +54,19 @@ can; the protection against that is git history, same as before.
 
 ## Built (27 Oct 2026)
 `fno/ingestion/storage/batch_receipts.py` (`BatchIndex`, `BatchReceiptWriter`), `receipt.py` (the `Receipt` dataclass moved out so the two modules do not import each other; `receipts.py` still exports it), `ReceiptWriter` Protocol and the combined reader in `receipts.py`, `DataStore` typed to the Protocol, `DriveCache.sync` reports batch problems, `batch_receipt_writer()` in `data_wiring.py` used by the two news wiring roots, `receipts/_batches` added to the two news workflows' commit paths. Contract rows N6 to N8 (plants run). Existing news tests changed only where they patched the old `receipt_folder` or asserted the old `RECEIPTS` path.
+
+## Round 1 of the code judges (judge_62) and what changed
+- **B1, a damaged news line broke unrelated readers (true, reproduced).** Now a damaged line is never a crash and never a receipt
+  (a digest that is not 64 hex characters, a non-numeric size, an unusable path, a carriage return, the wrong field count, a file that
+  is not text are all `BatchProblem`s). A problem is shown only to a sync of a prefix that covers the file it names, or, if it names none,
+  to a sync inside or around the batched area (`raw/news`); `data/flows`, circulars and pre-open never hear of it. **Way out for a
+  torn tail:** a torn or malformed line that names a file stops mattering once that path has a valid receipt (the next run saves the
+  file again and writes a valid line); a line that names no file proves nothing about any file and is a warning, not a failure.
+- **B2, a short write could glue the next line on (true).** The writer loops until the whole line is written and raises if it cannot;
+  before appending it refuses a batch file that does not end in a line break (`BatchBroken`), so a half line is never extended and the
+  run ends red (the file is then re-saved and receipted by the next run).
+- **M1:** a per-file receipt is read before a batch line, and a different digest between a batch line and a per-file receipt for the
+  same path is reported. **M2:** this document now matches the code. **M3:** a line is read from its exact bytes (no newline translation).
 
 ## Fail closed (orchestrator, 27 Oct)
 A Record file with no valid receipt line is never passed silently. Verifiers that walk receipts (`DriveCache.sync`, `receipted_rows`) cannot see a file that has none, in the per-file layout either; so `DriveCache.unreceipted(prefix)` walks the Drive folder and lists every file with no receipt (per-file or batch), and `data-cache sync <prefix> --unreceipted` reports them and exits 1. It is opt-in so the existing `data/vix` check is unchanged. A torn last batch line names its file (`path: its receipt line is cut short, so the file is not proved`) and the file is listed as unreceipted too. The news writers' own reconcile-before-write on the next run also re-saves a missing line.

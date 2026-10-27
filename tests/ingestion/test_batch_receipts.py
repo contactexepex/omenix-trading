@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, BatchReceiptWriter
+from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, BatchBroken, BatchReceiptWriter
 from fno.ingestion.storage.data_store import DataStore
 from fno.ingestion.storage.drive_cache import DriveCache
 from fno.ingestion.storage.raw_store import LocalFolderStore, RawFileConflict
@@ -47,7 +47,7 @@ def test_every_file_of_a_run_is_proved_by_its_own_line_found_by_path(tmp_path):
         found = fresh.read(f"{AREA}/{path}")
         assert found is not None and found.sha256 == hashlib.sha256(data).hexdigest() and found.size == len(data)
     assert [r.path for r in fresh.under("raw/news/articles")] == sorted(f"{AREA}/{p}" for p in FILES)
-    assert fresh.batch_problems() == []
+    assert fresh.batch_problems("raw/news") == []
 
 
 def test_two_runs_make_two_batch_files_and_never_touch_each_other(tmp_path):
@@ -85,20 +85,165 @@ def test_a_path_with_a_tab_or_line_break_is_refused(tmp_path):
             writer.write(receipt(path, b"x"))
 
 
+def put_batch(tmp_path: Path, name: str, text: str) -> None:
+    folder = tmp_path / "receipts" / BATCH_FOLDER / "2026" / "10"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / name).write_text(text)
+
+
+def line(path: str, digest: str = "a" * 64, size: str = "1", run: str = "r") -> str:
+    return "\t".join([path, digest, size, "2026-10-27T12:00:00+00:00", "w", run]) + "\n"
+
+
 def test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts(tmp_path):
+    put_batch(tmp_path, "r1.tsv", line("raw/news/a") + "only\tthree\tfields\n" + "raw/news/torn\t" + "c" * 64 + "\t1")
+    put_batch(tmp_path, "r2.tsv", line("raw/news/a", "b" * 64, run="r2"))
+    receipts = ReceiptFolder(tmp_path / "receipts")
+    assert receipts.read("raw/news/a").sha256 == "a" * 64  # the first one is kept
+    assert receipts.read("raw/news/torn") is None
+    problems = receipts.batch_problems("raw/news")
+    assert any("different digest" in p.message and p.path == "raw/news/a" for p in problems)
+    assert any(
+        p.path == "raw/news/torn" and "not proved" in p.message for p in problems
+    )  # the cut-off line names its file
+    assert any(p.path is None and "cut short" in p.message for p in problems)
+    assert any(p.path is None and "not a whole receipt line" in p.message for p in problems)  # names no file: a warning
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        line("raw/news/x", digest="zz"),  # a digest that is not 64 hex characters
+        line("raw/news/x", size="many"),  # a size that is not a number
+        line("../raw/news/x"),  # a path that is not a valid archive path
+        line("raw/news/x").replace("\n", "\r\n"),  # a carriage return stays in the last field
+        "raw/news/x\t\t\t\t\t\t\t\n",  # too many fields
+    ],
+)
+def test_a_damaged_line_is_a_reported_problem_never_a_crash_and_never_a_receipt(tmp_path, bad):
+    put_batch(tmp_path, "r1.tsv", line("raw/news/ok") + bad)
+    receipts = ReceiptFolder(tmp_path / "receipts")
+    assert receipts.read("raw/news/ok") is not None and receipts.read("raw/news/x") is None
+    assert [r.path for r in receipts.under("raw/news")] == ["raw/news/ok"]
+    assert receipts.batch_problems("raw/news")
+
+
+def test_a_batch_file_that_is_not_text_is_a_warning_not_a_crash(tmp_path):
     folder = tmp_path / "receipts" / BATCH_FOLDER / "2026" / "10"
     folder.mkdir(parents=True)
-    good = "\t".join(["raw/n/a", "a" * 64, "1", "2026-10-27T12:00:00+00:00", "w", "r1"]) + "\n"
-    other = "\t".join(["raw/n/a", "b" * 64, "1", "2026-10-27T12:00:00+00:00", "w", "r2"]) + "\n"
-    (folder / "r1.tsv").write_text(good + "only\tthree\tfields\n" + "raw/n/torn\t" + "c" * 64 + "\t1")
-    (folder / "r2.tsv").write_text(other)
+    (folder / "r1.tsv").write_bytes(b"\xff\xfe\x00 not text \x80")
     receipts = ReceiptFolder(tmp_path / "receipts")
-    assert receipts.read("raw/n/a").sha256 == "a" * 64  # the first one is kept
-    assert receipts.read("raw/n/torn") is None
-    problems = receipts.batch_problems()
-    assert len(problems) == 4 and any("cut short" in p for p in problems) and any("not 6 fields" in p for p in problems)
-    assert any("different digest" in p for p in problems)
-    assert any(p.startswith("raw/n/torn: ") and "not proved" in p for p in problems)  # the cut-off line names its file
+    assert receipts.under("raw/news") == [] and [p.path for p in receipts.batch_problems("raw/news")] == [None]
+
+
+# ---- B1: news damage never reaches an unrelated reader -------------------------------------------------------------
+
+
+def test_damage_in_a_news_batch_does_not_touch_the_sync_of_an_unrelated_table(tmp_path):
+    put_batch(
+        tmp_path, "r1.tsv", line("raw/news/a") + "garbage\n" + line("raw/news/b", size="x") + "raw/news/t\t" + "d" * 8
+    )
+    drive = LocalFolderStore(tmp_path / "drive")
+    receipts = ReceiptFolder(tmp_path / "receipts")
+    DataStore(drive, "data", receipts, "w", "20261027T120000Z-eeeeee").put("flows/fii/2026.csv", b"x,y\n")
+    cache = DriveCache(drive, receipts, root=tmp_path / "cache")
+    assert receipts.batch_problems("data/flows/fii") == []
+    report = cache.sync("data/flows/fii")
+    assert report.complete and report.warnings == [] and report.present + len(report.downloaded) == 1
+
+
+def test_news_damage_that_names_a_file_fails_a_news_sync_until_the_file_has_a_valid_receipt(tmp_path):
+    drive, receipts, store = world(tmp_path, "20261027T120000Z-aaaaaa")
+    for path, data in FILES.items():
+        store.put(path, data)
+    torn_path = f"{AREA}/news/articles/3.json"
+    batch = batch_files(tmp_path)[0]
+    lines = batch.read_text().splitlines(keepends=True)
+    batch.write_text("".join(x for x in lines if torn_path not in x) + torn_path + "\t" + "e" * 10)  # line 3 cut off
+    cache = DriveCache(drive, ReceiptFolder(tmp_path / "receipts"), root=tmp_path / "cache")
+    report = cache.sync("raw/news/articles")
+    assert not report.complete and any(torn_path in p and "not proved" in p for p in report.problems)
+    # the way out: the next run saves the same file again, its valid line settles the cut-off one
+    again = DataStore(
+        drive, AREA, BatchReceiptWriter(cache.receipts, "20261027T130000Z-bbbbbb"), "w", "20261027T130000Z-bbbbbb"
+    )
+    again.put("news/articles/3.json", FILES["news/articles/3.json"])
+    fresh = DriveCache(drive, ReceiptFolder(tmp_path / "receipts"), root=tmp_path / "cache2")
+    assert fresh.sync("raw/news/articles").problems == []
+
+
+def test_damage_that_names_no_file_is_a_warning_and_the_news_sync_still_completes(tmp_path):
+    drive, receipts, store = world(tmp_path)
+    for path, data in FILES.items():
+        store.put(path, data)
+    batch = batch_files(tmp_path)[0]
+    batch.write_text(batch.read_text() + "garbage line with no tabs\n")
+    cache = DriveCache(drive, ReceiptFolder(tmp_path / "receipts"), root=tmp_path / "cache")
+    report = cache.sync("raw/news/articles")
+    assert report.complete and len(report.warnings) == 1 and report.present + len(report.downloaded) == len(FILES)
+
+
+# ---- B2: a short write never glues two receipt lines ---------------------------------------------------------------
+
+
+def test_a_write_that_returns_short_is_finished_not_left_half_written(tmp_path, monkeypatch):
+    import os as os_module
+
+    real = os_module.write
+
+    def two_bytes_at_a_time(descriptor, data):
+        return real(descriptor, bytes(data)[:2])
+
+    monkeypatch.setattr("fno.ingestion.storage.batch_receipts.os.write", two_bytes_at_a_time)
+    _, receipts, store = world(tmp_path)
+    store.put("news/a", b"a")
+    store.put("news/b", b"b")
+    fresh = ReceiptFolder(tmp_path / "receipts")
+    assert fresh.read("raw/news/a") is not None and fresh.read("raw/news/b") is not None
+    assert fresh.batch_problems("raw/news") == []
+
+
+def test_a_write_that_fails_halfway_makes_the_next_append_refuse_instead_of_gluing_onto_it(tmp_path, monkeypatch):
+    import os as os_module
+
+    real, calls = os_module.write, []
+
+    def fails_after_a_few_bytes(descriptor, data):
+        calls.append(1)
+        if len(calls) == 1:
+            real(descriptor, bytes(data)[:10])
+            raise OSError("disk full")
+        return real(descriptor, data)
+
+    monkeypatch.setattr("fno.ingestion.storage.batch_receipts.os.write", fails_after_a_few_bytes)
+    _, receipts, store = world(tmp_path)
+    with pytest.raises(OSError):
+        store.put("news/a", b"a")
+    half = batch_files(tmp_path)[0].read_bytes()
+    with pytest.raises(BatchBroken):
+        store.put("news/b", b"b")  # refuses; the half line is not extended
+    assert batch_files(tmp_path)[0].read_bytes() == half
+
+
+def test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines(tmp_path):
+    put_batch(tmp_path, "20261027T120000Z-aaaaaa.tsv", line("raw/news/a") + "raw/news/torn\tabc")
+    _, receipts, store = world(tmp_path)
+    with pytest.raises(BatchBroken):
+        store.put("news/new", b"x")
+
+
+# ---- precedence: a per-file receipt is read first, a different batch digest is reported ---------------------------
+
+
+def test_a_per_file_receipt_wins_and_a_different_batch_digest_for_the_same_path_is_reported(tmp_path):
+    put_batch(tmp_path, "r1.tsv", line("raw/news/a", "b" * 64))
+    receipts = ReceiptFolder(tmp_path / "receipts")
+    per_file = receipts.file_for("raw/news/a")  # a state the writers cannot make (they refuse): made by hand
+    per_file.parent.mkdir(parents=True)
+    per_file.write_text(receipt("raw/news/a", b"one").to_text())
+    assert receipts.read("raw/news/a").sha256 == hashlib.sha256(b"one").hexdigest()
+    assert [r.sha256 for r in receipts.under("raw/news")] == [hashlib.sha256(b"one").hexdigest()]
+    assert any(p.path == "raw/news/a" and "per-file" in p.message for p in receipts.batch_problems("raw/news"))
 
 
 # ---- the verified cache over a batch-receipted prefix ------------------------------------------------------------

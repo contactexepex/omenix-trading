@@ -238,8 +238,8 @@
    "tests/ingestion/test_batch_receipts.py::test_two_runs_make_two_batch_files_and_never_touch_each_other"
   ],
   "file": "fno/ingestion/storage/batch_receipts.py",
-  "old": "            os.write(descriptor, batch_line(receipt).encode(\"utf-8\"))  # the whole line in one write",
-  "new": "            if not receipt.path.endswith(\"/2.json\"):\n                os.write(descriptor, batch_line(receipt).encode(\"utf-8\"))"
+  "old": "        self._append(self.receipts.folder / BATCH_FOLDER / self.file_name, batch_line(receipt).encode(\"utf-8\"))",
+  "new": "        if not receipt.path.endswith(\"/2.json\"):\n            self._append(self.receipts.folder / BATCH_FOLDER / self.file_name, batch_line(receipt).encode(\"utf-8\"))"
  },
  {
   "id": "N7",
@@ -256,7 +256,8 @@
   "id": "N8",
   "tests": [
    "tests/ingestion/test_batch_receipts.py::test_the_same_bytes_again_keep_the_first_line_and_different_bytes_are_refused",
-   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts"
+   "tests/ingestion/test_batch_receipts.py::test_a_different_digest_is_also_refused_against_a_per_file_receipt_and_the_other_way_round",
+   "tests/ingestion/test_batch_receipts.py::test_a_per_file_receipt_wins_and_a_different_batch_digest_for_the_same_path_is_reported"
   ],
   "file": "fno/ingestion/storage/batch_receipts.py",
   "old": "                raise RawFileConflict(f\"{receipt.path} already has a receipt with a different SHA-256\")",
@@ -272,6 +273,30 @@
   "file": "fno/ingestion/storage/drive_cache.py",
   "old": "        walk(prefix)\n        return sorted(found)",
   "new": "        return sorted(found)"
+ },
+ {
+  "id": "N10",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_damaged_line_is_a_reported_problem_never_a_crash_and_never_a_receipt",
+   "tests/ingestion/test_batch_receipts.py::test_damage_in_a_news_batch_does_not_touch_the_sync_of_an_unrelated_table",
+   "tests/ingestion/test_batch_receipts.py::test_news_damage_that_names_a_file_fails_a_news_sync_until_the_file_has_a_valid_receipt",
+   "tests/ingestion/test_batch_receipts.py::test_damage_that_names_no_file_is_a_warning_and_the_news_sync_still_completes",
+   "tests/ingestion/test_batch_receipts.py::test_a_torn_last_line_a_wrong_shape_and_two_digests_are_reported_and_never_read_as_receipts"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "    wanted = path_parts(prefix)\n    if path is not None:",
+  "new": "    return True\n    wanted = path_parts(prefix)\n    if path is not None:"
+ },
+ {
+  "id": "N11",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_returns_short_is_finished_not_left_half_written",
+   "tests/ingestion/test_batch_receipts.py::test_a_write_that_fails_halfway_makes_the_next_append_refuse_instead_of_gluing_onto_it",
+   "tests/ingestion/test_batch_receipts.py::test_a_batch_file_that_does_not_end_in_a_line_break_takes_no_more_lines"
+  ],
+  "file": "fno/ingestion/storage/batch_receipts.py",
+  "old": "        if file.exists() and file.stat().st_size and file.read_bytes()[-1:] != b\"\\n\":",
+  "new": "        if False:"
  },
  {
   "id": "C1",

@@ -26,6 +26,6 @@ def cmd_cache_sync(args, out=print) -> int:
     if args.unreceipted:
         report.problems += [UNRECEIPTED.format(path=path) for path in cache.unreceipted(args.prefix)]
     out(SYNCED.format(prefix=args.prefix, present=report.present, downloaded=len(report.downloaded)))
-    for problem in report.problems:
+    for problem in [*report.problems, *report.warnings]:
         out(problem)
     return 0 if report.complete else 1

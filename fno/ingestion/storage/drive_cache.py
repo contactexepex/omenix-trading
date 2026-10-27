@@ -24,6 +24,7 @@ class SyncReport:
     present: int = 0
     downloaded: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)  # shown, but they prove nothing about a file: not a failure
 
     @property
     def complete(self) -> bool:
@@ -44,7 +45,8 @@ class DriveCache:
         with no receipt at all is a problem, never an empty success. `strip` drops a leading part of the Drive
         path when writing under `into` (e.g. the area, to restore `data/research/x` as `research/x`)."""
         report, receipts = SyncReport(), self.receipts.under(prefix)
-        report.problems += self.receipts.batch_problems()
+        for problem in self.receipts.batch_problems(prefix):
+            (report.problems if problem.path else report.warnings).append(problem.message)
         if not receipts:  # a wrong path must never read as "nothing to sync, all verified"
             report.problems.append(NO_RECEIPTS.format(prefix=prefix))
         for receipt in receipts:

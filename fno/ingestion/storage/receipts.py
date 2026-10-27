@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
 
-from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, BatchIndex
+from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, PER_FILE_CONFLICT, BatchIndex, BatchProblem, covers
 from fno.ingestion.storage.raw_store import RawFileConflict, path_parts
 from fno.ingestion.storage.receipt import FIELD_SEPARATOR, Receipt
 
@@ -42,10 +42,15 @@ class ReceiptFolder:
             return Receipt.from_text(path, file.read_text())
         return self.batches.receipts().get(path)
 
-    def batch_problems(self) -> list[str]:
-        """What is wrong with the batch files (a torn last line, a wrong shape, two digests for one path)."""
-        self.batches.receipts()
-        return list(self.batches.problems)
+    def batch_problems(self, prefix: str) -> list[BatchProblem]:
+        """What is wrong with the batch files, as far as a sync of `prefix` should hear of it: a damaged line, two
+        digests for one path (in batches, or between a batch and a per-file receipt)."""
+        found = [p for p in self.batches.problems() if covers(prefix, p.path)]
+        for path, batched in self.batches.receipts().items():
+            per_file = self.file_for(path)
+            if covers(prefix, path) and per_file.is_file() and self.read(path).sha256 != batched.sha256:
+                found.append(BatchProblem(PER_FILE_CONFLICT.format(path=path), path))
+        return found
 
     def write(self, receipt: Receipt) -> Receipt:
         """The receipt kept for the path: the earlier one when the digest matches, else the new one."""
