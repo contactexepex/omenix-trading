@@ -70,6 +70,27 @@ class StagingArea:
             if data is not None:
                 yield StagedCopy(source, fetched_at, path, data)
 
+    def stamps(self, source: str, path: str) -> list[tuple[datetime, str]]:
+        """The fetch time and stamp name of every staged copy of an archive path, earliest first, WITHOUT reading any
+        bytes (one listing). The cleanup uses it to look at ages before it reads anything."""
+        names = self.store.checksums(self._name(source, path))
+        return sorted((t, n) for n in names if (t := _parse_stamp(n)))
+
+    def read(self, source: str, path: str, stamp: str) -> StagedCopy | None:
+        """One staged copy by its stamp (None when it is gone)."""
+        fetched_at = _parse_stamp(stamp)
+        data = self.store.get(self._name(source, path, stamp)) if fetched_at else None
+        return None if data is None else StagedCopy(source, fetched_at, path, data)
+
+    def archive_paths(self, source: str, folder: str = "") -> list[str]:
+        """Every archive path under a source that holds staged copies, found by walking the folders (a folder with
+        fetch stamps in it is one archive path). Sorted; reads nothing but listings."""
+        here = self._name(source, folder) if folder else source
+        found = [folder] if folder and any(_parse_stamp(n) for n in self.store.checksums(here)) else []
+        for child in self.store.folders(here):
+            found += self.archive_paths(source, f"{folder}/{child}" if folder else child)
+        return found
+
     def children(self, source: str, folder: str = "") -> list[str]:
         """The folder names directly under a source (or a folder in it): which feeds or days hold staged files."""
         return self.store.folders(self._name(source, folder) if folder else source)

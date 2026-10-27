@@ -88,6 +88,14 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 |---|---|---|---|---|---|
 | P1 | The public-record scan flags secrets, credential shapes, broker fields and e-mail addresses before a commit (it never prints the value). | `RecordScanner` and the commit hook | `tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_broker_field_and_email_flagged`<br>`tests/shared/test_record_scan.py::test_finding_str_has_no_value` | the scan returning no findings | **tested, plant run** |
 
+### H. Staging cleanup (dormant; story S1)
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| E1 | The staging cleanup can only touch `staging/`: it builds the path itself from validated parts and hard-refuses a Record path (`raw/`, `config/`, `data/`), the staging root, a look-alike such as `staging2/`, and `..`, again at the last step before Drive. | `DriveStagingTrash`, `inside_staging` | `tests/ingestion/staging_cleanup/test_trash.py::test_a_deleter_handed_a_path_outside_staging_hard_refuses_before_any_drive_call`<br>`tests/ingestion/staging_cleanup/test_trash.py::test_the_parts_cannot_form_a_path_outside_staging` | the staging-prefix check removed | **tested, plant run** |
+| E2 | A staged NSE copy is removed only when the Record holds its exact bytes (or the revisions area lists its SHA-256); anything unproven, unreadable or from a source with no rule is kept; news polls are never removed. | `NseCopyProof`, `KeepForever` | `tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_the_record_does_not_hold_is_never_trashed`<br>`tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_whose_bytes_differ_from_the_record_is_kept_unless_the_revisions_hold_it`<br>`tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_and_news_polls_are_never_trashed` | every copy counted as promoted | **tested, plant run** |
+| E3 | Only a copy strictly older than 7 days (by its own fetch stamp) is considered; the default run only reports and builds no deleter. | `StagingCleanup.run`, `build_staging_cleanup` | `tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_younger_than_seven_days_or_exactly_seven_is_kept`<br>`tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_without_apply_no_deleter_is_built_at_all` | the age test removed | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the

@@ -2,7 +2,7 @@
 
 **Lane 1, two judges (a destructive Drive operation and the owner's no-data-loss line).** Owner decision, 27 Oct 2026 (relayed by the
 orchestrator): "we don't want to lose any data anymore"; staging copies older than 7 days that are PROVEN promoted are removed.
-**Status: PLAN, no code yet.** Ships dormant (`workflow_dispatch` only); the owner enables it at go-live.
+**Status: NSE half built; news polls held back for the owner (see "Decided").** Ships dormant (`workflow_dispatch` only); the owner enables it at go-live.
 
 ## What is true today (read from the code)
 - `RawFileStore` has no delete, by design (the Record is write-once). Staging is a Drive area `staging/`, laid out
@@ -40,7 +40,29 @@ Must fail a test when planted: a cleanup that trashes an un-promoted copy (proof
 a missing article; one that trashes a copy younger than 7 days (or exactly 7); a deleter handed a `raw/` (or `config/`, `..`, staging root,
 `staging2/`) path that does not hard-refuse; apply mode that is on by default; a failed trash read as success; a path or headline in the report.
 
-## Questions for the orchestrator
+## Decided (orchestrator, 27 Oct 2026) and built
+- **Trash, not permanent delete**: confirmed. `DriveStagingTrash` PATCHes `trashed: true` (Drive keeps it about 30 days).
+- **Keep the newest copy per path regardless of age: no** (the proof covers it).
+- **Split by what is lossless.** NSE copies: the Record holds the same bytes, so removing a proven-promoted copy loses nothing: BUILT
+  (`NseCopyProof`). News polls: the Record keeps an article's fields (title, summary, canonical link, times), NOT the raw poll, which also holds
+  the full body, author, categories and, for wrapper items, the real link. Removing a poll is therefore NOT lossless, so it is the owner's
+  decision. The code has `KeepForever` for news as the default; the choices (never remove / remove after promote / archive the raw poll to the
+  Record first, then remove) are one entry in `staging_cleanup/wiring.py::proofs()`. No news poll is removed by this story.
+- **What cleaning staging does and does not do:** staging is in the private Drive, not in GitHub, so this saves Drive storage only; the
+  repository and clone size is the receipts story (R2).
+- **Built in `fno/ingestion/staging_cleanup/`**: `trash.py` (the narrow deleter), `proof.py` (`NseCopyProof`, `KeepForever`), `cleanup.py`
+  (`StagingCleanup`, report-only without a deleter), `wiring.py` (composition root, docstring states the code-level limit), `cli.py`
+  (`python -m fno staging cleanup [--apply] [--limit N] [--source TAG]`); `StagingArea` gained read-only `stamps`, `read`, `archive_paths`;
+  `.github/workflows/staging-cleanup.yml` is dispatch-only, `apply` off by default, in the `pipeline-staging` concurrency group.
+- **Tests** (`tests/ingestion/staging_cleanup/`): 43, offline. Contract rows E1 to E3. Eleven deliberate breaks each fail a test: deleter accepts any
+  path, no second check before Drive, stamp not validated, an un-promoted copy proven, any Record file counts (bytes not compared), a doubt
+  proves, a news poll trashed, exactly 7 days trashed, age ignored, a failed trash counted as trashed, an already-gone counted as trashed,
+  a deleter built without `apply`.
+- **Not testable offline:** the real Drive trash call. The first live run is a report-only dispatch by the owner.
+- Existing tests edited: the subcommand list and count (`staging`), the pinned-installs count (18 workflows), and the pause-log test's
+  "reaches Drive only" list (`staging-cleanup.yml`).
+
+## Questions for the orchestrator (settled above)
 1. Trash (recoverable ~30 days) instead of permanent delete: OK? I recommend it; it is the only place this repository would remove a file.
 2. Should the newest staged copy of each path be kept regardless of age? I propose NO (the proof already covers it); say if you prefer yes.
 3. I cannot test the real Drive trash call offline; the first live run is a report-only dry run by the owner, then `apply`.

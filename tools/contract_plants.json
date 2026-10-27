@@ -279,5 +279,36 @@
   "file": ".github/workflows/news-fetch.yml",
   "old": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n",
   "new": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n          echo masked\n"
+ },
+ {
+  "id": "E1",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_trash.py::test_a_deleter_handed_a_path_outside_staging_hard_refuses_before_any_drive_call",
+   "tests/ingestion/staging_cleanup/test_trash.py::test_the_parts_cannot_form_a_path_outside_staging"
+  ],
+  "file": "fno/ingestion/staging_cleanup/trash.py",
+  "old": "    if parts[0] != STAGING_ROOT or len(parts) < 2:",
+  "new": "    if False:"
+ },
+ {
+  "id": "E2",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_the_record_does_not_hold_is_never_trashed",
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_whose_bytes_differ_from_the_record_is_kept_unless_the_revisions_hold_it",
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_and_news_polls_are_never_trashed"
+  ],
+  "file": "fno/ingestion/staging_cleanup/proof.py",
+  "old": "            return (held is not None and held == copy.data) or self.revisions.holds(copy.path, digest)",
+  "new": "            return True"
+ },
+ {
+  "id": "E3",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_copy_younger_than_seven_days_or_exactly_seven_is_kept",
+   "tests/ingestion/staging_cleanup/test_wiring_and_workflow.py::test_without_apply_no_deleter_is_built_at_all"
+  ],
+  "file": "fno/ingestion/staging_cleanup/cleanup.py",
+  "old": "            if self.clock() - fetched_at <= self.max_age:",
+  "new": "            if False:"
  }
 ]
