@@ -71,5 +71,7 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 58 | F1 filings non-list answer (code) | 1 | FAIL (round 1, 39f38e5); PASS (round 2, fbca4e2; N2 follow-up) | `judge_58_f1-filings-non-list.md` |
 | 59 | F2 filings non-text row fields (code) | 1 | PASS (round 1, 5f00329) | `judge_59_f2-filings-field-text.md` |
 | 60 | T1 test reliability and filings field messages, code (judge #2) | 1 | PASS (147d15c) | `judge_60_t1-test-reliability-judge2.md` |
-| 61 | R2 news batch receipts, code (judge #2) | 2 | FAIL (round 2, 498151a; round 1 e9b98b2) | `judge_61_r2-batch-receipts-judge2.md` |
+| 61 | R2 news batch receipts, code (judge #2) | 2 | PASS (d7f7c3a, e919a29; FAIL 498151a, e9b98b2) | `judge_61_r2-batch-receipts-judge2.md` |
 | 62 | R2 news batch receipts (code, judge #1 of 2) | 1 | FAIL (round 1, e9b98b2); PASS (round 2, 498151a; superseded by e919a29, PASS; doc sentence to correct) | `judge_62_r2-news-batch-receipts.md` |
+| 63 | G1 Groww cutover plan, text (judge #2) | 2 | PASS (15e1dad; FAIL af42b79) | `judge_63_g1-groww-cutover-judge2.md` |
+| 64 | CP1 pause circulars cron (code) | 1 | PASS (round 1, 8297459) | `judge_64_cp1-pause-circulars.md` |

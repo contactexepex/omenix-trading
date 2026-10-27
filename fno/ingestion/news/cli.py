@@ -54,6 +54,13 @@ def add_news_parser(subparsers) -> None:
     )
     check.add_argument("--file", default=None, help="the manifest file in that folder (default: articles.csv)")
     check.set_defaults(func=cmd_news_check_manifest)
+    batches = actions.add_parser(
+        "repair-batches", help="cut a half line off the end of a receipt batch file (the workflow's commit guard)"
+    )
+    batches.add_argument(
+        "folder", nargs="?", type=Path, default=None, help="the batch folder (default: the repository's)"
+    )
+    batches.set_defaults(func=cmd_news_repair_batches)
 
 
 def cmd_news_fetch(args, out=print) -> int:
@@ -94,6 +101,9 @@ def cmd_news_promote(args, out=print) -> int:
 
 
 GUARD_ALERTS = {  # fixed texts: codes only, never a row, a path or a title
+    codes.BATCH_TORN: "Omenix F&O news record: batch_torn; a receipt batch file ended in a half line, which was not "
+    "committed; the file it named has no receipt until a later run saves it again "
+    "(data-cache sync --unreceipted lists it)",
     codes.MANIFEST_BROKEN: "Omenix F&O news promote: news manifest: manifest_broken; commit skipped; "
     "re-run the same --from..--to range to repair (a later run heals only the days its range covers)",
     codes.MANIFEST_ROW_SKIPPED: "Omenix F&O news promote: news manifest: manifest_row_skipped; commit skipped; "
@@ -115,6 +125,24 @@ def cmd_news_check_manifest(args, out=print) -> int:
         return 0
     out(f"news manifest: {problem}")
     out(build_alert_sender().send(GUARD_ALERTS[problem]))
+    return 1
+
+
+def cmd_news_repair_batches(args, out=print) -> int:
+    """Run by the commit step before the receipts are added: a batch file a killed run left with a half line last has
+    that fragment cut off (never a whole line), so it never reaches main; exit 1 and an alert, because the file the
+    fragment named has no receipt until a later run saves it again (`data-cache sync --unreceipted` lists it)."""
+    from fno.ingestion.composition import build_alert_sender
+    from fno.ingestion.storage.batch_receipts import BATCH_FOLDER, cut_torn_tails
+    from fno.ingestion.storage.data_wiring import RECEIPTS_FOLDER
+    from fno.ingestion.storage.wiring import REPOSITORY
+
+    cut = cut_torn_tails(args.folder or REPOSITORY / RECEIPTS_FOLDER / BATCH_FOLDER)
+    if not cut:
+        out("news receipt batches: whole")
+        return 0
+    out(f"news receipt batches: {codes.BATCH_TORN} in {len(cut)} file(s); the half line was not committed")
+    out(build_alert_sender().send(GUARD_ALERTS[codes.BATCH_TORN]))
     return 1
 
 

@@ -19,6 +19,7 @@ MANIFEST_DIR = "research/data/manifests/news"
 MANIFEST, RECEIPTS = f"{MANIFEST_DIR}/articles.csv", "receipts/raw/news"
 STEP = "Commit the news manifest and receipts (the manifest only when it is whole)"
 SHA = "b" * 64
+BOTH_RECEIPTS = f"{RECEIPTS} receipts/_batches"  # the articles run adds both folders to its commit
 
 
 SCRIPT = ROOT / "ops" / "commit_news_record.sh"
@@ -65,7 +66,7 @@ class Repo:
 
     def run_step(self):
         env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "PYTHONPATH": str(ROOT),
-               "MANIFEST": MANIFEST, "RECEIPTS": RECEIPTS, "FNO_SLACK_BOT_TOKEN": ""}  # fmt: skip
+               "MANIFEST": MANIFEST, "RECEIPTS": BOTH_RECEIPTS, "FNO_SLACK_BOT_TOKEN": ""}  # fmt: skip
         return subprocess.run(
             ["bash", "-e", "-c", step_script()], cwd=self.work, env=env, capture_output=True, text=True
         )
@@ -245,3 +246,66 @@ def test_a_push_that_fails_makes_the_step_fail_even_when_the_pull_worked(tmp_pat
     git(repo.work, "remote", "set-url", "--push", "origin", str(tmp_path / "nowhere.git"))
     done = repo.run_step()
     assert done.returncode != 0 and repo.on_main(MANIFEST) is None
+
+
+# ---- the receipt batches (story R2): a half line last never reaches main ---------------------------------------
+
+BATCH = "receipts/_batches/2026/10/20261027T120000Z-aaaaaa.tsv"
+WHOLE = "raw/news/articles/ab/one.json\t" + "a" * 64 + "\t1\t2026-10-27T12:00:00+00:00\tw\tr\n"
+
+
+def write_batch(repo, tail: str) -> None:
+    repo.write(1, torn=False)
+    batch = repo.work / BATCH
+    batch.parent.mkdir(parents=True)
+    batch.write_text(WHOLE + WHOLE.replace("one", "two") + tail)
+
+
+def test_a_batch_file_with_a_half_line_last_is_cut_back_to_its_whole_lines_and_the_run_is_red(tmp_path):
+    repo = Repo(tmp_path)
+    write_batch(repo, "raw/news/articles/ab/three.json\t" + "b" * 20)
+    done = repo.run_step()
+    assert done.returncode == 1 and "batch_torn" in done.stdout
+    on_main = repo.on_main(BATCH)
+    assert on_main == WHOLE + WHOLE.replace("one", "two")  # every whole line kept, the fragment not published
+    assert repo.on_main(MANIFEST).count("recorded") == 1  # the rest of the step still ran
+
+
+def test_a_whole_batch_file_is_committed_unchanged_and_the_run_is_green(tmp_path):
+    repo = Repo(tmp_path)
+    write_batch(repo, "")
+    done = repo.run_step()
+    assert done.returncode == 0, done.stderr
+    assert repo.on_main(BATCH) == WHOLE + WHOLE.replace("one", "two")
+
+
+def test_the_repair_cuts_only_a_fragment_and_never_a_whole_line(tmp_path):
+    from fno.ingestion.storage.batch_receipts import cut_torn_tails
+
+    folder = tmp_path / "b" / "2026" / "10"
+    folder.mkdir(parents=True)
+    (folder / "whole.tsv").write_text(WHOLE)
+    (folder / "torn.tsv").write_text(WHOLE + "half")
+    (folder / "nothing_whole.tsv").write_text("half")
+    cut = cut_torn_tails(tmp_path / "b")
+    assert [f.name for f in cut] == ["nothing_whole.tsv", "torn.tsv"]
+    assert (folder / "whole.tsv").read_text() == WHOLE and (folder / "torn.tsv").read_text() == WHOLE
+    assert (folder / "nothing_whole.tsv").read_text() == "" and cut_torn_tails(tmp_path / "absent") == []
+
+
+def test_the_repair_command_is_loud_with_a_fixed_text_and_quiet_when_every_batch_is_whole(tmp_path, monkeypatch):
+    folder = tmp_path / "b" / "2026" / "10"
+    folder.mkdir(parents=True)
+    (folder / "x.tsv").write_text(WHOLE)
+    sent, printed = [], []
+    monkeypatch.setattr(
+        "fno.ingestion.composition.build_alert_sender",
+        lambda: type("A", (), {"send": lambda s, m: sent.append(m) or "sent"})(),
+    )
+    args = type("Args", (), {"folder": tmp_path / "b"})()
+    assert news_cli.cmd_news_repair_batches(args, out=printed.append) == 0 and sent == []
+    (folder / "x.tsv").write_text(WHOLE + "fragment-marker")
+    assert news_cli.cmd_news_repair_batches(args, out=printed.append) == 1
+    assert (
+        any("batch_torn" in line for line in printed) and "batch_torn" in sent[0] and "fragment-marker" not in sent[0]
+    )

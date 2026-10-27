@@ -10,6 +10,7 @@ import pytest
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FEEDS_FOLDER, FeedListError, PrivateFeedLists
 from fno.ingestion.news.record import wiring
+from fno.ingestion.storage.batch_receipts import BatchReceiptWriter
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
 from fno.ingestion.storage.receipts import ReceiptFolder
 from tests.ingestion.news.article.samples import rss, rss_item
@@ -44,7 +45,11 @@ def feed_list(version, drive, *feeds):
 def world(tmp_path, monkeypatch):
     drive = RecordingDrive(tmp_path / "drive")
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
-    monkeypatch.setattr(wiring, "receipt_folder", lambda: ReceiptFolder(tmp_path / "repo" / "receipts"))
+    monkeypatch.setattr(
+        wiring,
+        "batch_receipt_writer",
+        lambda run_id: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"), run_id),
+    )
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "repo" / "manifests")
     return drive
 
@@ -65,6 +70,20 @@ def test_the_wired_gate_writes_only_the_record_areas_and_reads_only_staging_conf
     assert any(p.startswith("staging/news/") for p in world.reads)
     again = wiring.build_news_promotion().promote(DAY, DAY)  # a new process reads the Record back: all no-ops
     assert (again.outcomes["recorded"], again.outcomes["revisions"], again.outcomes["no_ops"]) == (0, 0, 2)
+
+
+def test_the_wired_gate_receipts_every_record_file_in_one_batch_file_for_the_run(world, tmp_path):
+    feed_list(1, world, ("feed-01", None))
+    stage(world, "feed-01", rss(rss_item(title="v1")))
+    stage(world, "feed-01", rss(rss_item(title="v2")), POLL_AT + timedelta(hours=1))
+    world.writes.clear()
+    wiring.build_news_promotion().promote(DAY, DAY)
+    receipts = tmp_path / "repo" / "receipts"
+    assert len(list((receipts / "_batches").rglob("*.tsv"))) == 1 and not list(receipts.rglob("*.sha256"))
+    folder = ReceiptFolder(receipts)
+    assert sorted(r.path for r in folder.under("raw/news")) == sorted(
+        f"raw/{p.removeprefix('raw/')}" for p in world.writes
+    )
 
 
 def test_a_feed_retired_from_the_newest_list_still_promotes_its_old_polls(world):
