@@ -60,4 +60,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 47 | P2b2 news Record writer (code) | 1 | PASS (007ff9c) | `judge_47_p2b2-writer.md` |
 | 48 | P2b2 news Record writer, code (judge #2) | 1 | PASS (round 2, 007ff9c) | `judge_48_p2b2-writer-judge2.md` |
 | 49 | P2b3 news manifest commit guard, code (judge #2) | 1 | FAIL (round 2, 55eea4b) | `judge_49_p2b3-guard-judge2.md` |
-| 50 | P2b3 news-promote commit guard (code) | 1 | FAIL (round 1, e41cd1e) | `judge_50_p2b3-commit-guard.md` |
+| 50 | P2b3 news-promote commit guard (code) | 1 | PASS (60d3f1b) | `judge_50_p2b3-commit-guard.md` |

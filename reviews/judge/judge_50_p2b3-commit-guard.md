@@ -102,3 +102,36 @@ My Addendum-0 reproduction stands: a final row torn inside the size field (`…,
 Fix: one test with that input asserting `check-manifest` exits 1. The plant must then fail.
 
 **Verdict at 55eea4b: FAIL, on G1 alone** (one test).
+
+## Addendum 2: 60d3f1b (final): PASS
+
+Reviewed `60d3f1b3e7c8565906b621a4fd026e60ed6f5df8`, which supersedes 55eea4b. The production delta:
+- `NewsManifest.problem()` returns `manifest_broken` (no trailing newline) or `manifest_row_skipped` (a row that is not
+  whole), or `None`;
+- one fixed alert text per cause;
+- the repo-standard "Alert the desk channel when the job failed" step (`failure() && !inputs.dry_run`). Its text is
+  fixed, with the run link; it inlines only the `steps.promote.outcome` value and the run's own context values, with no
+  input text and no secret.
+
+**Gates:** 774 passed, 2 runs out of 2. ruff, imports (442 files) and size are clean.
+
+| Plant | Result |
+|---|---|
+| G1: `check_appendable` dropped from the check | **caught (4)**, closing G1 |
+| G2: the alert step disabled | caught |
+| The broken branch adds the manifest | caught |
+| Exit swallowed | caught |
+| Receipts dropped in the broken branch | caught |
+| Guard bypassed | caught |
+| Alert texts swapped | caught |
+
+**T2 matches the ruled design.** The broken branch never adds the manifest and still commits the receipts. Both halves
+are pinned, as I asked.
+
+**Alert wording is right.**
+- `manifest_broken` reads: commit skipped; re-run the same `--from..--to` range (healing is range-bound).
+- `manifest_row_skipped` reads: commit skipped; fix by hand.
+
+A broken run now gives two alerts, the guard's and the job-failure step's. That is redundant but harmless.
+
+**Verdict: PASS (strong evidence).** (a)-(e) are all met. P2b3 needs judge #2's PASS too.
