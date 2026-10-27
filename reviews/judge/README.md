@@ -99,6 +99,6 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 86 | NP2d wrapper index (code, judge #1) | 1 | PASS (round 1, dbb4905; round 2, 2ac29df; wiring pin to add) | `judge_86_np2d-wrapper-index.md` |
 | 87 | NP4a page fetcher and outlet probe, code (judge #2) | 1 | PASS (40faf61, 3f56dbc) | `judge_87_np4a-page-fetcher-judge2.md` |
 | 88 | NP4a page fetcher (code, judge #1) | 1 | PASS (round 1, 3f56dbc) | `judge_88_np4a-page-fetcher.md` |
-| 89 | NP4b page reads, code (judge #2) | 1 | FAIL (round 1, 337f0ea) | `judge_89_np4b-page-reads-judge2.md` |
+| 89 | NP4b page reads, code (judge #2) | 2 | PASS (346e78c; FAIL 337f0ea) | `judge_89_np4b-page-reads-judge2.md` |
 | 90 | NP5 tagger and origins plan, plan doc (judge #2) | 1 | FAIL (round 1, 4a322e9) | `judge_90_np5-plan-judge2.md` |
 | 91 | NP4b page reads (code, judge #1) | 1 | FAIL (round 1, 337f0ea) | `judge_91_np4b-page-reads.md` |

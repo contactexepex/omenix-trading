@@ -79,3 +79,44 @@ I counted those 9 as the baseline for my plants.
 3. **The JSON-LD depth limit has no test.** Removing `depth < MAX_DEPTH` survives the suite.
 
 **Verdict: FAIL** (round 1, `337f0ea`). F1 is a small catch; F2 is a deadline in the fetcher.
+
+## Addendum 1: round 2 on `346e78c` (with `9a12caf`'s unbuffered probe job)
+
+`git diff 337f0ea 346e78c -- fno`:
+- `from_json_ld` skips a block that raises `ValueError` or `RecursionError`, and `_read` counts any extract failure as
+  `extract_error` and goes on;
+- `fetch(url, seconds)` has a total deadline (at most 60 s) over hops, robots.txt and the body;
+- requests' connect and read timeouts are cut to the time left, and the body is read with `raw.read1`, so the deadline
+  is checked between drips;
+- a timeout stops the host;
+- the pass gives each fetch what is left of its budget;
+- the read file is UTF-8 with a 4,000-byte cap;
+- `PAGES` and the other limits moved to `reads/limits.py`.
+
+**Gates** (in the locked venv): **1806 passed**. My earlier 9 commit-guard failures are gone too: `python -m fno` no
+longer imports `selectolax` (I confirmed `import fno.ingestion.news.cli` leaves it unloaded). ruff clean; imports clean
+(586 files); code size passed; contract plants all ok.
+
+**My round-1 reproductions:**
+- **F1 fixed:** the 200,000-deep JSON-LD page gives `None`, no exception.
+- **Should-fix 1 fixed:** five 80-character Devanagari names plus the provider come to 1,789 bytes, under the cap.
+- **Should-fix 2 fixed:** the CLI import no longer loads `selectolax`.
+
+**F2 fixed, checked in urllib3 2.8.0 (locked):** `read1(decode_content=True)` keeps reading until it has decoded data or
+reaches the end of the stream. So the loop never ends early on an empty chunk in the middle of a gzip body, and a drip
+returns what has arrived, so the deadline is checked between drips.
+
+The bound is now: a run takes at most `BUDGET_SECONDS`, plus one fetch of at most `max(1, what is left)`, and never more
+than 60 s per fetch. The name lookup is outside it, and that is stated.
+
+**Plants (5 of 5 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| no deadline check in the body loop | 5 |
+| no deadline check per hop | 1 |
+| the pass not passing its budget | 2 |
+| extract failure not caught | 1 |
+| `RecursionError` not caught | 2 |
+
+**Verdict: PASS** (`346e78c`). Both must-fixes and all three should-fixes are done.
