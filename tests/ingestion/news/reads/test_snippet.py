@@ -102,3 +102,13 @@ def test_the_snippet_is_in_the_read_file_only_never_in_a_report_a_manifest_a_rec
     assert [p.name for p in holders] == [world.read_files()[0].rsplit("/", 1)[-1]]
     for text in (report.line(), repr(report), str(report.__dict__)):
         assert "Zzsecretphrase" not in text
+
+
+def test_a_hostile_run_of_full_stops_is_read_in_linear_time():
+    """Judge 119: a run of 20,000 stops took over two seconds when every start position was tried."""
+    import time
+
+    for body in ("." * 20_000, "?!" * 10_000, "a. " * 6_000):
+        started = time.perf_counter()
+        summary_extract(body)
+        assert time.perf_counter() - started < 0.5

@@ -1,6 +1,6 @@
 """The page snippet (NP10; owner decision E1 = YES, 28 Oct 2026): the first few sentences of the article body, bounded
 and deterministic, stored in its own field of the read file. Never the body: at most `MAX_SENTENCES` sentences and
-`MAX_CHARS` characters. Pure and linear: the body is cut to `MAX_SCAN` characters before the cleaners run, and the same
+`MAX_CHARS` characters. Pure and linear (a run of stops is matched once): the body is cut to `MAX_SCAN` characters before the cleaners run, and the same
 page always gives the same snippet, so a re-read is the same file. Page text is untrusted: it is cleaned, cut and
 stored, never followed."""
 
@@ -18,7 +18,7 @@ ABBREVIATIONS = frozenset(
 
 _TAGS = re.compile(r"<[^<>]*>")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]+")
-_STOP = re.compile(r"[.!?।]+(?=\s+\S)")  # a full stop, then space, then something follows
+_STOP = re.compile(r"(?<![.!?।])[.!?।]++(?=\s+\S)")  # a run of stops, then space, then something follows
 
 
 def clean(body: str) -> str:

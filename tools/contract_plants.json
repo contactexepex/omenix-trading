@@ -1703,6 +1703,15 @@
   "new": "FORMAT = 1"
  },
  {
+  "id": "A8",
+  "tests": [
+   "tests/ingestion/news/reads/test_snippet.py::test_a_hostile_run_of_full_stops_is_read_in_linear_time"
+  ],
+  "file": "fno/ingestion/news/reads/snippet.py",
+  "old": "(?<![.!?।])[.!?।]++(?=",
+  "new": "[.!?।]+(?="
+ },
+ {
   "id": "T1",
   "tests": [
    "tests/ingestion/news/tagging/test_tagger.py::test_the_summary_is_used_only_when_the_title_names_nobody_and_then_only_as_mentioned",
