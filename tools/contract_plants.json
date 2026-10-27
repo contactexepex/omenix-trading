@@ -29,6 +29,15 @@
   "new": "        file.write_bytes(data)"
  },
  {
+  "id": "W2b",
+  "tests": [
+   "tests/ingestion/test_write_once_layers.py::test_the_drive_cache_write_that_dies_midway_leaves_nothing_under_the_real_name"
+  ],
+  "file": "fno/ingestion/storage/drive_cache.py",
+  "old": "    temporary = file.with_name(f\".{file.name}.part\")\n    temporary.write_bytes(data)\n    temporary.replace(file)  # a reader never sees a half-written file under the real name",
+  "new": "    file.write_bytes(data)"
+ },
+ {
   "id": "W3",
   "tests": [
    "tests/ingestion/test_drive_resilience.py::test_data_put_writes_no_receipt_for_a_file_that_was_not_confirmed"

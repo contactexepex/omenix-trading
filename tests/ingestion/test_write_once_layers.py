@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from fno.ingestion.storage import drive_cache
 from fno.ingestion.storage.raw_store import LocalFolderStore, RawFileConflict
 from fno.ingestion.storage.receipts import Receipt, ReceiptFolder
 
@@ -16,17 +17,25 @@ def _receipt(sha256: str, written_at: str = "2026-10-27T00:00:00+00:00") -> Rece
     return Receipt(PATH, sha256, 3, written_at, "test", "run-1")
 
 
-def test_a_write_that_dies_midway_leaves_nothing_under_the_real_name(tmp_path: Path, monkeypatch) -> None:
-    def half_write_then_die(self: Path, data: bytes) -> int:
-        with self.open("wb") as handle:
-            handle.write(data[:1])
-        raise OSError("disk went away")
+def _half_write_then_die(self: Path, data: bytes) -> int:
+    with self.open("wb") as handle:
+        handle.write(data[:1])
+    raise OSError("disk went away")
 
-    monkeypatch.setattr(Path, "write_bytes", half_write_then_die)
+
+def test_a_write_that_dies_midway_leaves_nothing_under_the_real_name(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(Path, "write_bytes", _half_write_then_die)
     store = LocalFolderStore(tmp_path)
     with pytest.raises(OSError):
         store.put("raw/a/f.bin", b"whole file")
     assert not (tmp_path / "raw/a/f.bin").exists()
+
+
+def test_the_drive_cache_write_that_dies_midway_leaves_nothing_under_the_real_name(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(Path, "write_bytes", _half_write_then_die)
+    with pytest.raises(OSError):
+        drive_cache._write(tmp_path / "cache" / "f.bin", b"whole file")
+    assert not (tmp_path / "cache" / "f.bin").exists()
 
 
 def test_the_receipt_layer_refuses_a_different_digest_by_itself(tmp_path: Path) -> None:
