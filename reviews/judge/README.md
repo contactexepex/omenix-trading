@@ -52,4 +52,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 39 | R1d3 close read and NSDL waits, code (judge #2) | 1 | PASS (round 1, b4f1fc6) | `judge_39_r1d3-code-judge2.md` |
 | 40 | R1d4 locking tests and no-refactor, lane-2 check (judge #2) | 2 | PASS (8d2968e) | `judge_40_r1d4-refactor-check.md` |
 | 41 | RUN_LOCATIONS map, lane-2 check | 2 | PASS (round 2, 5f4fd8e) | `judge_41_run-locations.md` |
-| 42 | P2 news and dedup plan (design) | 1 | FAIL (83ca758; privacy, item key, normalising, same-bytes) | `judge_42_p2-news-plan.md` |
+| 42 | P2 news and dedup plan (design) | 1 | FAIL (f23aeff; privacy, item key, normalising, same-bytes) | `judge_42_p2-news-plan.md` |

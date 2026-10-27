@@ -119,3 +119,27 @@ Each needs a test and a plant. The rest are testable as written.
 
 No orders; no secrets, because the feeds are public and nothing signs in. Privacy is the one hard line at risk (D1).
 Nothing is built, so nothing is at risk yet.
+
+## Addendum 1: SHA corrected to f23aeff: FAIL stands, D1-D8 unchanged
+
+The orchestrator corrected the SHA to `f23aeff1faacfd56151bd33c48e83b63865989e7`. The diff from 83ca758 writes in what I
+had already reviewed as decided or committed:
+- the "Decided" section;
+- invariant 5, "clustering never deletes or hides an article";
+- the P2c cross-source one-cluster test;
+- the owner-decisions list, including retention.
+
+None of D1-D4 is touched:
+- invariant 3 still says "GitHub gets receipts, manifest rows" while the standard manifest carries a `url` column (D1);
+- the article id for a Google News item is still undefined (D2);
+- "tracking parameters removed" still has no list (D3);
+- `seen_at` is still in the article file under a "same bytes" no-op (D4).
+
+**D3 is outside the new invariant 5.** An id collision from over-normalising loses the second article at the gate,
+before any clustering. "Clustering never deletes or hides an article" does not cover it. The design needs the
+one-record-per-item-key invariant asked for above.
+
+**The P2c test is right,** and it fits D2: two article records (wrapper and publisher), merged in one cluster, none
+deleted.
+
+**Verdict at f23aeff: FAIL (design).** D1-D8 as above. The second judge is still asked for.
