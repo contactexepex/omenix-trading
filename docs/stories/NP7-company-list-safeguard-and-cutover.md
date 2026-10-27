@@ -6,7 +6,7 @@ ingestion only (owner, 27 Oct 2026, relayed by the orchestrator): this repositor
 dashboard or an API reads, and its fields, belong to the repository that serves it.** The earlier draft of this plan had a derived
 "view file" and a consumer contract (NP7a); both are DROPPED, and nothing here says what a consumer reads. Any consumer can read the
 facts-only Record, the cluster files and the receipts from the Drive, and apply the public rules (`config/news_sources.yaml`) and its own
-private lists itself. `ArticleViewer` (NP5b) and `corroborate` (NP6b) stay as this repository's own compute-on-read code; no run here uses them
+private lists itself. `ArticleViewer` (NP5b) and `corroborate` (NP6b) were this repository's own compute-on-read code; no run used them and DEL1 deleted them
 yet, and this plan adds no consumer for them. The view design was dropped on architecture grounds (not this repository's job), not because it was broken: judge 101 found its snapshot
 design sound. Nothing is lost by dropping it: the Record archives EVERY article whether or not a company is tagged (market-wide and macro news
 included); any filtering is the consumer's choice. **This document builds nothing.**

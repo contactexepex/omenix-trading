@@ -1,5 +1,7 @@
 # NP5b: origins, promotion and materiality
 
+> **DELETED in DEL1 (28 Oct 2026, owner: "get rid of these 400 unused lines."):** `OriginReader`, `PromotionalFilter` and `ArticleViewer`/`ArticleView` no longer exist; `MaterialTerms` and `resolve/effective_url.py` stay. The text below is the record of what was built; `docs/stories/DEL1-delete-unused-derivation.md` says what stayed.
+
 Lane 1, two judges (it decides what is flagged as agency copy or promotional, and what counts as material; it consumes a
 private owner file). Plan: [NP5](NP5-origin-filters-and-tagger.md). Contract rows U1 to U12. **Pure code: no request, no file
 written, no Record change, no workflow, no dependency.** Everything is computed when an article is read; no recorded byte changes.

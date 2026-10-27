@@ -49,7 +49,7 @@ outlet suffix never makes a headline material). Nothing is left unpinned.
 ## Contract rows and plants removed (so no plant guards deleted code)
 
 Rows and plants: U1-U7 (origins), U12, U13, U15, U16, W7b (view), W7-W7, W8, W9, W10, W10b, W11, W11b, W11c, W11d
-(corroboration): 22 ids. Re-pointed, not removed: U11. Plants 275 -> 253 (before any Option 1 methods). Rows in
+(corroboration) 21 ids, plus O4, O8 and O14 (they guarded the deleted `tier_of`, `is_opinion`, `domain_of_label`): 24 ids, not the 22 first counted. Re-pointed, not removed: U11 and the O15 test name. Plants 275 -> 251. Rows in
 `docs/RECORD_CONTRACT.md` go with them (test_record_contract enforces parity).
 
 ## Docs touched
