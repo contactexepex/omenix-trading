@@ -85,3 +85,8 @@ READER_FAILING = (
 )
 READ_CONFLICT = "read_conflict"  # the read file exists with other bytes: nothing is overwritten
 READ_WRITE_FAILED = "read_write_failed"  # Drive or the manifest would not take the file (only the code is kept)
+# the materiality terms (NP5b): fixed codes; the file is the owner's private content, so no code carries a term
+MATERIALITY_MISSING = "materiality_missing"
+MATERIALITY_INVALID = "materiality_invalid"
+MATERIALITY_ROLLED_BACK = "materiality_rolled_back"
+MATERIALITY_DAMAGED = "materiality_damaged"

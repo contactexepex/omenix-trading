@@ -1,0 +1,30 @@
+# NP5b: origins, promotion and materiality
+
+Lane 1, two judges (it decides what is flagged as agency copy or promotional, and what counts as material; it consumes a
+private owner file). Plan: [NP5](NP5-origin-filters-and-tagger.md). Contract rows U1 to U12. **Pure code: no request, no file
+written, no Record change, no workflow, no dependency.** Everything is computed when an article is read; no recorded byte changes.
+
+## What it is
+- `OriginReader.read(host, provider, authors, title) -> Origin(wire, via)` (`origins/origin.py`): an article is an agency's copy
+  when, in this order, its host is the agency's domain, its JSON-LD provider or a byline names the agency whole (any case), or its
+  title ENDS with an attribution to it (`(Agency)`, `[Agency]`, `- Agency`, `| Agency`; bounded labels, title cut to 1,000
+  characters). A title that only mentions an agency is not a copy of it. Agencies come from the source rules (NP1), not from code.
+- `PromotionalFilter.check(...) -> Promotion` (`origins/promotional.py`): flagged when the provider, a byline or the source label
+  is a listed promotional name, the host is a listed promotional domain, or a listed marker phrase is in the capped title or the
+  cleaned summary. Phrases are compiled with `safe_pattern.compile_safe` (NP5a).
+- `MaterialTerms` (`materiality/terms.py`) and `PrivateMaterialityFile` (`materiality/file.py`, folder `materiality`,
+  `materiality-vN.json`, same versioned-private-file design as the company list): a headline weighs the sum of the terms it
+  matches (each once); it is material when the weight is at least 1 AND the tagger gives exactly one `high`-confidence company.
+  A mistake in the file is refused with one fixed code (`MATERIALITY_*` in `codes.py`) and no text; a missing or rolled-back
+  version stops the reader, never silently falls back.
+- `ArticleViewer.view(article, resolution=None, read=None) -> ArticleView` (`news/view.py`): one pure view over a recorded article,
+  its resolution and its read file: effective URL (only from the resolution file or the article's own canonical link, never from
+  feed text, a label or a page), tier, listed/unlisted, opinion path, wire, promotion, read outcome.
+
+## Said plainly
+- The materiality terms are the owner's private content: no `materiality-v*.json` in the repository, tests use invented terms.
+  The terms file does not exist yet; until the owner writes one, nothing is material (evidence: reasoning only).
+- Wire detection has no lede check (agentic looked at the first sentence); a story that credits an agency only in its body is
+  missed. Reasoning only; measured in NP3c if it matters.
+- Title attribution is a heuristic: `Rates hold - Agency` is called a copy even if the outlet wrote it itself and credits the
+  agency as a source. For a dashboard flag this is acceptable; it never changes a recorded byte.

@@ -1735,5 +1735,114 @@
   "file": "fno/ingestion/news/reads/cli.py",
   "old": "from fno.ingestion.news.reads.limits import PAGES",
   "new": "from fno.ingestion.news.reads.run import PAGES"
+ },
+ {
+  "id": "U1",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_an_article_on_an_agencys_own_domain_is_that_agencys_story"
+  ],
+  "file": "fno/ingestion/news/origins/origin.py",
+  "old": "            return Origin(wire, DOMAIN)",
+  "new": "            return Origin()"
+ },
+ {
+  "id": "U2",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_the_json_ld_provider_and_a_byline_name_the_agency_whole_and_in_any_case"
+  ],
+  "file": "fno/ingestion/news/origins/origin.py",
+  "old": "        wire = self.rules.wire_of_name(provider)",
+  "new": "        wire = \"\""
+ },
+ {
+  "id": "U3",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_the_json_ld_provider_and_a_byline_name_the_agency_whole_and_in_any_case"
+  ],
+  "file": "fno/ingestion/news/origins/origin.py",
+  "old": "            wire = self.rules.wire_of_name(author)",
+  "new": "            wire = \"\""
+ },
+ {
+  "id": "U4",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_title_that_only_mentions_an_agency_is_not_a_copy_of_it"
+  ],
+  "file": "fno/ingestion/news/origins/origin.py",
+  "old": "[)\\]]\\s*$\")",
+  "new": "[)\\]]\\s*\")"
+ },
+ {
+  "id": "U5",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_listed_promotional_provider_byline_source_or_domain_is_promotional"
+  ],
+  "file": "fno/ingestion/news/origins/promotional.py",
+  "old": "        if any(self.rules.is_promotional_provider(name) for name in (provider, source_label, *authors)):",
+  "new": "        if False and any(self.rules.is_promotional_provider(name) for name in (provider, source_label, *authors)):"
+ },
+ {
+  "id": "U6",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_listed_promotional_provider_byline_source_or_domain_is_promotional"
+  ],
+  "file": "fno/ingestion/news/origins/promotional.py",
+  "old": "        if self.rules.is_promotional_domain(host):",
+  "new": "        if False:"
+ },
+ {
+  "id": "U7",
+  "tests": [
+   "tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_marker_phrase_beyond_the_text_cap_or_inside_a_link_is_not_seen"
+  ],
+  "file": "fno/ingestion/news/origins/promotional.py",
+  "old": "texts = (capped(title), plain_text(summary, source_label))",
+  "new": "texts = (title or \"\", summary or \"\")"
+ },
+ {
+  "id": "U8",
+  "tests": [
+   "tests/ingestion/news/materiality/test_terms_and_file.py::test_a_headline_is_material_only_with_weight_one_or_more_and_exactly_one_high_confidence_company"
+  ],
+  "file": "fno/ingestion/news/materiality/terms.py",
+  "old": "return self.weight(title) >= MATERIAL_AT and tag.confidence == HIGH",
+  "new": "return self.weight(title) >= MATERIAL_AT"
+ },
+ {
+  "id": "U9",
+  "tests": [
+   "tests/ingestion/news/materiality/test_terms_and_file.py::test_a_file_with_a_mistake_is_refused_with_one_fixed_code_and_no_text"
+  ],
+  "file": "fno/ingestion/news/materiality/terms.py",
+  "old": "Term(compile_safe(pattern), float(weight))",
+  "new": "Term(__import__(\"re\").compile(pattern), float(weight))"
+ },
+ {
+  "id": "U10",
+  "tests": [
+   "tests/ingestion/news/materiality/test_terms_and_file.py::test_a_term_beyond_the_text_cap_is_not_seen"
+  ],
+  "file": "fno/ingestion/news/materiality/terms.py",
+  "old": "        text = capped(title)",
+  "new": "        text = title or \"\""
+ },
+ {
+  "id": "U11",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file",
+   "tests/ingestion/news/test_view.py::test_the_feed_text_a_label_or_a_page_can_never_set_the_url"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "url = resolution.url if resolution else article.canonical_url",
+  "new": "url = article.wrapper_link or article.canonical_url"
+ },
+ {
+  "id": "U12",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_an_unlisted_host_is_unlisted_and_a_non_news_path_of_a_desk_outlet_is_opinion"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "listed=tier != UNLISTED,",
+  "new": "listed=True,"
  }
 ]

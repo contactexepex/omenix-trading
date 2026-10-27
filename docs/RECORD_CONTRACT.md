@@ -313,6 +313,23 @@ Which of the owner's companies an article is about, computed when the article is
 | T11 | An exclusion that is no longer safe is dropped, not fatal: tagging goes on. | `NameDictionary` | `tests/ingestion/news/tagging/test_tagger.py::test_an_exclusion_that_is_no_longer_safe_is_dropped_not_fatal` | bad exclusion stops tagging | **tested, plant run** |
 | T12 | Every shipped promotional phrase is in the safe pattern grammar and the source-rule loader refuses one that is not, so the shipped file loads. | `load_source_rules` | `tests/ingestion/news/test_safe_pattern.py::test_every_shipped_promotional_phrase_is_in_the_grammar_and_the_shipped_file_loads`<br>`tests/ingestion/news/test_safe_pattern.py::test_the_loader_refuses_a_promotional_phrase_outside_the_grammar` | unsafe phrase loads | **tested, plant run** |
 
+## Origins, promotion and materiality (NP5b)
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| U1 | An article on an agency's own domain is that agency's story. | `OriginReader.read` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_an_article_on_an_agencys_own_domain_is_that_agencys_story` | domain ignored | **tested, plant run** |
+| U2 | The JSON-LD provider names the agency whole and in any case. | `OriginReader.read` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_the_json_ld_provider_and_a_byline_name_the_agency_whole_and_in_any_case` | provider ignored | **tested, plant run** |
+| U3 | A byline names the agency whole and in any case. | `OriginReader.read` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_the_json_ld_provider_and_a_byline_name_the_agency_whole_and_in_any_case` | byline ignored | **tested, plant run** |
+| U4 | A title carries an attribution only at its end; one that merely mentions an agency is not a copy. | `attributions` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_title_that_only_mentions_an_agency_is_not_a_copy_of_it` | bracket anywhere in the title counts | **tested, plant run** |
+| U5 | A listed promotional provider, byline or source label flags the article. | `PromotionalFilter.check` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_listed_promotional_provider_byline_source_or_domain_is_promotional` | provider never promotional | **tested, plant run** |
+| U6 | A listed promotional domain flags the article. | `PromotionalFilter.check` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_listed_promotional_provider_byline_source_or_domain_is_promotional` | domain never promotional | **tested, plant run** |
+| U7 | Marker phrases are searched in the capped title and the cleaned summary only. | `PromotionalFilter.check` | `tests/ingestion/news/origins/test_origins_and_promotional.py::test_a_marker_phrase_beyond_the_text_cap_or_inside_a_link_is_not_seen` | text not capped or cleaned | **tested, plant run** |
+| U8 | A headline is material only with weight one or more AND exactly one high-confidence company. | `MaterialTerms.is_material` | `tests/ingestion/news/materiality/test_terms_and_file.py::test_a_headline_is_material_only_with_weight_one_or_more_and_exactly_one_high_confidence_company` | confidence ignored | **tested, plant run** |
+| U9 | A term outside the safe grammar is refused with one fixed code. | `parse_terms` | `tests/ingestion/news/materiality/test_terms_and_file.py::test_a_file_with_a_mistake_is_refused_with_one_fixed_code_and_no_text` | unsafe term loads | **tested, plant run** |
+| U10 | A headline is cut to the text cap before a term looks at it. | `MaterialTerms.weight` | `tests/ingestion/news/materiality/test_terms_and_file.py::test_a_term_beyond_the_text_cap_is_not_seen` | uncapped | **tested, plant run** |
+| U11 | A Google News article takes its URL only from the resolution file, never from the feed. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file`<br>`tests/ingestion/news/test_view.py::test_the_feed_text_a_label_or_a_page_can_never_set_the_url` | wrapper link used as URL | **tested, plant run** |
+| U12 | An unlisted host is unlisted. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_an_unlisted_host_is_unlisted_and_a_non_news_path_of_a_desk_outlet_is_opinion` | unlisted shown as listed | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the
