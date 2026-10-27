@@ -70,6 +70,18 @@ def _placeable(row: dict) -> bool:
     return _timed(row) or bool(nse_time(row.get("filingDate"))) or bool(xbrl_link(row.get("xbrl")))
 
 
+def listed(body: object, what: str) -> list:
+    """The rows of a list NSE answered: nothing for an empty answer; a ValueError that says what came instead when
+    the body is not a list (a non-empty object or text), so the run names the odd answer, not a bare TypeError. An
+    unknown answer is a failure to read, never "no filings": that would hide missing data."""
+    if not body:
+        return []
+    if isinstance(body, list):
+        return body
+    shape = f"an object with keys {sorted(map(str, body))[:5]}" if isinstance(body, dict) else type(body).__name__
+    raise ValueError(f"{what}: NSE answered {shape}, not a list")
+
+
 class FilingIndex(ABC):
     name: str = "index"
     kind: str = ""  # FILING_RESULTS or FILING_SHAREHOLDING
@@ -90,9 +102,9 @@ class NseLegacyResultsIndex(FilingIndex):
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
         params = {"index": self.MARKET, "symbol": symbol, "period": "Quarterly"}
-        rows = self.get_json(NSE_LEGACY_RESULTS, params)
+        rows = listed(self.get_json(NSE_LEGACY_RESULTS, params), self.name)
         oldest = since - OLDEST_LATE_FILING
-        recent = [r for r in rows or [] if nse_day(r[self.PERIOD_END]) >= oldest and _placeable(r)]
+        recent = [r for r in rows if nse_day(r[self.PERIOD_END]) >= oldest and _placeable(r)]
         found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 
@@ -131,6 +143,8 @@ class NseIntegratedResultsIndex(FilingIndex):
         rows: list[dict] = []
         for page in range(1, MAX_PAGES + 1):
             answer = self.get_json(NSE_INTEGRATED_RESULTS, {"index": "equities", "symbol": symbol, "page": page})
+            if not isinstance(answer, dict):
+                raise ValueError(f"{self.name}: NSE answered {type(answer).__name__}, not an object")
             new = [r for r in answer.get("data") or [] if r not in rows]
             rows += new
             if not new or len(rows) >= int(answer.get("totalCount") or 0):
@@ -154,8 +168,8 @@ class NseShareholdingIndex(FilingIndex):
     name, kind = "NSE shareholding list", FILING_SHAREHOLDING
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
-        rows = self.get_json(NSE_SHAREHOLDING, {"index": "equities", "symbol": symbol})
-        found = (self._filing(symbol, row) for row in rows or [])
+        rows = listed(self.get_json(NSE_SHAREHOLDING, {"index": "equities", "symbol": symbol}), self.name)
+        found = (self._filing(symbol, row) for row in rows)
         return [f for f in found if f.filed_at.date() >= since]
 
     def _filing(self, symbol: str, row: dict) -> Filing:
