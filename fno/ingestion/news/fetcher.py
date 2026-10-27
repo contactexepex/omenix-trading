@@ -45,17 +45,19 @@ class NewsFetcher:
 
     def run(self, feeds: FeedList) -> FetchReport:
         report, stopped = FetchReport(), set()
+        for _ in feeds.damaged:  # a version edited after use was skipped: the run is not clean
+            report.add(codes.FEED_LIST_DAMAGED)
         for feed in feeds.feeds:
             if feed.host in stopped:
                 report.add(codes.HOST_BLOCKED)
                 continue
-            code = self._poll(feed, feeds.version)
+            code = self._poll(feed, feeds)
             if code in codes.HOST_STOPS:
                 stopped.add(feed.host)
             report.add(code)
         return report
 
-    def _poll(self, feed: FeedEntry, version: int) -> str:
+    def _poll(self, feed: FeedEntry, feeds: FeedList) -> str:
         try:
             response = self.session.get(feed.url, timeout=TIMEOUT_SECONDS)
         except SourceCoolingOff:
@@ -63,9 +65,9 @@ class NewsFetcher:
         except requests.RequestException:
             return codes.FETCH_FAILED  # the message can carry the URL: only the code is kept
         verdict = classify(response.status_code, response.is_redirect, response.content)
-        return self._stage(feed, version, response.content) if verdict == codes.FETCHED else verdict
+        return self._stage(feed, feeds, response.content) if verdict == codes.FETCHED else verdict
 
-    def _stage(self, feed: FeedEntry, version: int, data: bytes) -> str:
+    def _stage(self, feed: FeedEntry, feeds: FeedList, data: bytes) -> str:
         fetched_at = self.clock()
         path = f"{feed.feed_id}/{fetched_at:%Y/%m/%d}/poll"
         try:
@@ -74,5 +76,9 @@ class NewsFetcher:
             return codes.STAGE_FAILED
         if not staged:
             return codes.UNCHANGED
-        self.log.append(PollRow(fetched_at, feed.feed_id, path, hashlib.sha256(data).hexdigest(), len(data), version))
+        self.log.append(
+            PollRow(
+                fetched_at, feed.feed_id, path, hashlib.sha256(data).hexdigest(), len(data), feeds.version, feeds.sha256
+            )
+        )
         return codes.FETCHED

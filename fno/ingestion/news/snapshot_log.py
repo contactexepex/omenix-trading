@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fno.ingestion.storage.row_log import CsvRowLog
 
-FIELDS = ("fetched_at", "feed_id", "path", "sha256", "size_bytes", "feed_list_version")
+FIELDS = ("fetched_at", "feed_id", "path", "sha256", "size_bytes", "feed_list_version", "feed_list_sha256")
 LOG_FILE = "polls.csv"
 
 
@@ -23,6 +23,7 @@ class PollRow:
     sha256: str
     size_bytes: int
     feed_list_version: int
+    feed_list_sha256: str
 
 
 class NewsSnapshotLog:
@@ -31,8 +32,20 @@ class NewsSnapshotLog:
 
     def append(self, row: PollRow) -> None:
         self.log.check_appendable()
-        cells = (row.fetched_at.isoformat(), row.feed_id, row.path, row.sha256, row.size_bytes, row.feed_list_version)
+        cells = (
+            row.fetched_at.isoformat(),
+            row.feed_id,
+            row.path,
+            row.sha256,
+            row.size_bytes,
+            row.feed_list_version,
+            row.feed_list_sha256,
+        )
         self.log.append(FIELDS, [cells])
 
     def highest_feed_list_version(self) -> int:
         return max((int(r["feed_list_version"]) for r in self.log.rows()), default=0)
+
+    def used_feed_lists(self) -> dict[int, str]:
+        """Version -> the SHA-256 it had when a poll used it (feed ids and hashes only)."""
+        return {int(r["feed_list_version"]): r["feed_list_sha256"] for r in self.log.rows()}

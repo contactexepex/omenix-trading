@@ -176,7 +176,12 @@ repository's logs and Drive.
   `workflow_dispatch` only (a test fails if a schedule is added).
 - **Feed list (Judge 1's versioning point):** write-once files `feeds/feeds-v<N>.json` in a private `config` area of the Drive
   folder; the newest by number is used (v10 beats v9); the owner adds a version instead of editing one. A missing, invalid or
-  older-than-already-used list stops the run before any request, with a fixed code. The highest version used is read back from
+  older-than-already-used list stops the run before any request, with a fixed code. **An edited version is detected:** every
+  poll row logs the SHA-256 of the list version it used; a version whose file no longer has that hash was edited in place, is
+  skipped, the next older good version is used, and the run reports `feed_list_damaged` and alerts (never silent); if every
+  version was edited the run stops with the same code before any request.
+  **To change the feeds the owner adds a new file** `feeds/feeds-v<N+1>.json` (the next number) in the private `config`
+  area; the next run reads it with no halt. Never edit an existing version. The highest version used is read back from
   the poll log (feed ids, paths and hashes only). Reasoning only for the choice over reading the list outside the verified
   cache: one read path, no unverified "config" path, and a bad version leaves the previous one in place.
 - **Session:** `NewsSession`, a subclass of the shared `PacedSession` used by the news fetcher alone: a reject-all cookie
@@ -189,7 +194,7 @@ repository's logs and Drive.
   the bytes.
 - **Not in P2a:** the gate (P2b), clustering (P2c), the cluster record (P2d), the article key, the revision handling and the
   per-poll reconciliation of items: they need the parsed items.
-- **Proof:** 48 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
+- **Proof:** 52 offline tests (no network, no Drive; a real local HTTP server for the cookie test) including the privacy test
   over a planted marker URL, query, host and headline, the failure paths and DEBUG logging; mutation plants on the cookie policy,
   redirects, the feed check, the host stop, file-first ordering, the privacy paths, the version rules, the alert and the schedule.
   One plant survives and is equivalent: `return_ok` returning True changes nothing while `set_ok` stores no cookie.

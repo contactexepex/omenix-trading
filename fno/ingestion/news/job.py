@@ -14,5 +14,5 @@ class NewsFetchJob:
 
     def run(self) -> FetchReport:
         """Raises FeedListError (a fixed code) when the list is missing, invalid or older than one already used."""
-        feeds = self.lists.latest(self.log.highest_feed_list_version())
+        feeds = self.lists.latest(self.log.highest_feed_list_version(), self.log.used_feed_lists())
         return self.fetcher.run(feeds)

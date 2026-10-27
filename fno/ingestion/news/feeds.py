@@ -6,8 +6,10 @@ message."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
@@ -38,6 +40,8 @@ class FeedEntry:
 class FeedList:
     version: int
     feeds: tuple[FeedEntry, ...]
+    sha256: str = ""  # of the file as read, logged with every poll
+    damaged: tuple[int, ...] = ()  # newer versions skipped because they were edited after use
 
 
 def parse_feed_list(data: bytes, version: int) -> FeedList:
@@ -55,7 +59,7 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
     )
     if not valid:
         raise FeedListError(codes.FEED_LIST_INVALID)
-    return FeedList(version, feeds)
+    return FeedList(version, feeds, hashlib.sha256(data).hexdigest())
 
 
 class PrivateFeedLists:
@@ -63,17 +67,24 @@ class PrivateFeedLists:
         """`store`: the private config area of Drive (read only here)."""
         self.store = store
 
-    def latest(self, lowest_version: int = 0) -> FeedList:
-        """The newest version; `lowest_version`: the newest already used, below which the run stops."""
-        versions = {
-            int(m.group(1)): name for name in self.store.checksums(FEEDS_FOLDER) if (m := VERSION_NAME.match(name))
-        }
+    def latest(self, lowest_version: int = 0, used: Mapping[int, str] | None = None) -> FeedList:
+        """The newest usable version. `lowest_version`: the newest already used, below which the run stops. `used`: the
+        SHA-256 each used version had when it was used; a version whose file now differs was edited in place, is skipped
+        (never silently) and the next older good one is used instead."""
+        used = used or {}
+        versions = {int(m.group(1)): n for n in self.store.checksums(FEEDS_FOLDER) if (m := VERSION_NAME.match(n))}
         if not versions:
             raise FeedListError(codes.FEED_LIST_MISSING)
-        newest = max(versions)
-        if newest < lowest_version:
+        if max(versions) < lowest_version:
             raise FeedListError(codes.FEED_LIST_ROLLED_BACK)
-        data = self.store.get(f"{FEEDS_FOLDER}/{versions[newest]}")
-        if data is None:
-            raise FeedListError(codes.FEED_LIST_MISSING)
-        return parse_feed_list(data, newest)
+        damaged = []
+        for version in sorted(versions, reverse=True):
+            data = self.store.get(f"{FEEDS_FOLDER}/{versions[version]}")
+            if data is None:
+                raise FeedListError(codes.FEED_LIST_MISSING)
+            if version in used and hashlib.sha256(data).hexdigest() != used[version]:
+                damaged.append(version)
+                continue
+            found = parse_feed_list(data, version)
+            return FeedList(found.version, found.feeds, found.sha256, tuple(damaged))
+        raise FeedListError(codes.FEED_LIST_DAMAGED)

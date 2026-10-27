@@ -17,7 +17,7 @@ from fno.ingestion.news.job import NewsFetchJob
 from fno.ingestion.news.snapshot_log import NewsSnapshotLog, PollRow
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.raw_store import LocalFolderStore
-from tests.ingestion.news.fakes import FEED_URL, NOW, Reply, Session, put_version
+from tests.ingestion.news.fakes import FEED_URL, NOW, OTHER_URL, Reply, Session, put_version
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -41,7 +41,7 @@ def test_a_list_older_than_the_newest_one_already_used_stops_the_run(tmp_path):
     session = Session(**{FEED_URL: Reply()})
     run, drive, log = job(tmp_path, session)
     put_version(drive, 1, FEED_URL)
-    log.append(PollRow(NOW, "feed-01", "p", "0" * 64, 1, 2))  # a poll already made with version 2
+    log.append(PollRow(NOW, "feed-01", "p", "0" * 64, 1, 2, "f" * 64))  # a poll already made with version 2
     with pytest.raises(FeedListError, match=codes.FEED_LIST_ROLLED_BACK):
         run.run()
     assert session.asked == []
@@ -84,3 +84,65 @@ def test_news_fetch_workflow_is_manual_only_with_no_schedule():
     document = yaml.safe_load((ROOT / ".github" / "workflows" / "news-fetch.yml").read_text("utf-8"))
     triggers = document[True] if True in document else document["on"]  # YAML reads a bare `on` as the boolean True
     assert set(triggers) == {"workflow_dispatch"}
+
+
+# ---- an edited feed list (the owner's "add a version" rule; Judge 1's verified-cache point) --------------------------
+
+
+def edit_in_place(drive, version, *urls):
+    from tests.ingestion.news.fakes import feed_list_bytes
+
+    (drive.folder / "feeds" / f"feeds-v{version}.json").write_bytes(feed_list_bytes(*urls))
+
+
+def test_a_new_version_is_read_by_the_next_run_with_no_halt(tmp_path):
+    session = Session(**{FEED_URL: Reply(), OTHER_URL: Reply()})
+    run, drive, log = job(tmp_path, session)
+    put_version(drive, 1, FEED_URL)
+    assert run.run().ok and log.highest_feed_list_version() == 1
+    put_version(drive, 2, FEED_URL, OTHER_URL)  # the owner adds a feed by adding a version
+    second = run.run()
+    assert second.ok and log.highest_feed_list_version() == 2 and session.asked.count(OTHER_URL) == 1
+
+
+def test_a_version_edited_in_place_after_use_is_skipped_the_last_good_one_is_used_and_the_run_is_not_clean(tmp_path):
+    session = Session(**{FEED_URL: Reply(), OTHER_URL: Reply()})
+    run, drive, _ = job(tmp_path, session)
+    put_version(drive, 1, FEED_URL)
+    run.run()
+    put_version(drive, 2, FEED_URL, OTHER_URL)
+    run.run()
+    edit_in_place(drive, 2, OTHER_URL)  # version 2 is changed after it was used
+    session.asked.clear()
+    report = run.run()
+    assert report.counts[codes.FEED_LIST_DAMAGED] == 1 and not report.ok  # never silent: the command alerts on this
+    assert session.asked == [FEED_URL]  # version 1 was used, not the edited version 2
+
+
+def test_when_every_version_has_been_edited_the_run_stops_with_a_code_before_any_request(tmp_path):
+    session = Session(**{FEED_URL: Reply()})
+    run, drive, _ = job(tmp_path, session)
+    put_version(drive, 1, FEED_URL)
+    run.run()
+    edit_in_place(drive, 1, OTHER_URL)
+    session.asked.clear()
+    with pytest.raises(FeedListError, match=codes.FEED_LIST_DAMAGED):
+        run.run()
+    assert session.asked == []
+
+
+def test_the_command_alerts_when_a_version_was_edited_after_use(tmp_path, monkeypatch):
+    run, drive, _ = job(tmp_path, Session(**{FEED_URL: Reply(), OTHER_URL: Reply()}))
+    put_version(drive, 1, FEED_URL)
+    run.run()
+    put_version(drive, 2, FEED_URL, OTHER_URL)
+    run.run()
+    edit_in_place(drive, 2, OTHER_URL)
+    alerts = []
+    monkeypatch.setattr("fno.ingestion.news.wiring.build_news_fetch", lambda: run)
+    monkeypatch.setattr(
+        "fno.ingestion.composition.build_alert_sender",
+        lambda: type("A", (), {"send": lambda self, text: alerts.append(text) or text})(),
+    )
+    assert news_cli.cmd_news_fetch(None, out=lambda line: None) == 1
+    assert alerts and codes.FEED_LIST_DAMAGED in alerts[0]
