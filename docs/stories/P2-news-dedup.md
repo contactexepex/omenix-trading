@@ -25,8 +25,9 @@ apply; the invariants below take its place.
 
 - **P2a, fetch into Staging.** A fetcher per feed (Google News RSS search feeds and a few publisher RSS feeds) saves each
   poll's raw bytes to Staging, tagged source + seen_at (`staging/news/<source>/<YYYY>/<MM>/<DD>/<HHMMSS>_<feed>.xml`),
-  append-only, with a snapshot-log row like the global cues. A new workflow `news-fetch.yml`, **`workflow_dispatch` only
-  until the owner approves go-live** (a cron would start real writes to Staging on merge; see "Deferred").
+  append-only, with a snapshot-log row like the global cues. A new workflow `news-fetch.yml` with **`workflow_dispatch` only
+  and no active cron**, like the thirteen workflows whose schedules stay off until cutover: merging it starts no external
+  fetch and no Staging write (see "Deferred").
 - **P2b, the gate for articles.** New promotion checks: the poll parses; each item has title, link and a time; the item's
   time is inside a freshness window; the canonical URL is computed (tracking parameters and fragments removed). Passing
   articles are written write-once to the Record, one file per article id (title, source name, published time, seen_at,
