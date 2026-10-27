@@ -148,3 +148,32 @@ staged at fetch time. Say it in the story.
 - **The full plant runner: 302 of 302 `ok`.**
 
 **Verdict: PASS** (`423ac92`).
+
+## Addendum 3
+
+**Gating PASS at `24459f1`.**
+- `git diff 423ac92 24459f1`: two comment lines in `provenance/sweep.py` and 8 lines of story text. No executable line
+  changed.
+
+**Re-run at this exact SHA (locked venv, `__pycache__` cleared):**
+- **The damaged-day probe:** with a damaged `<DAY-3>.json` and a poll on DAY, `<DAY>.json` is written and
+  `provenance_unreadable 1` is reported, with `ok` False. C1 is general: `open_days` decides each day separately, and
+  `_damaged` counts once.
+- **The daily probe:** `<DAY>.json` is written once.
+- **Gates:**
+  - `pytest -q -n auto`: 2037 passed;
+  - `ruff check` and `ruff format --check`: clean;
+  - `check_imports`: 639 files clean;
+  - `test_code_size`: 3 passed;
+  - `check_numbers`: clean.
+- **The full plant runner: 302 of 302 `ok`.**
+
+**The stated limit.** A poll staged after its day already has a file goes in only through a range pass.
+- It is stated plainly in the story (`docs/stories/NP11-feed-provenance.md:123-124`), not in the contract's "Not
+  guaranteed" section.
+- It is not a silent loss of data. The cleanup gate keeps such a poll staged, so nothing is trashed, and it touches only
+  the provenance (recall-measurement) file, never archived articles.
+- What is missing is a count for that case. Add one line to the "Not guaranteed" section of
+  `docs/NEWS_RECORD_CONTRACT.md` in a later text edit, so the contract says it too. Not blocking.
+
+**Verdict: PASS** (`24459f1`).
