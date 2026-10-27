@@ -122,6 +122,9 @@ def test_a_possessive_is_the_company_and_a_plural_word_is_not():
     assert tag("Zzalpha's profit jumps 20%").primary == ("ZZAL",) and tag("Zzalpha Bank’s profit").primary == ("ZZAB",)
     assert tag("Zzalpha's, Zzbeta's and Zzdelta's shares rise").confidence == LOW
     assert tag("Zzalphas rise").symbols == ()
+    assert tag("Zzbeta's Q2 beats").confidence == HIGH
+    two = tag("Zzalpha, Zzbeta's results")  # judge 93 B1: a list of two, not one high-confidence company
+    assert (two.primary, two.mentioned, two.confidence) == ((), ("ZZAL", "ZZBE"), LOW)
 
 
 def test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does():
