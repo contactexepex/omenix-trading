@@ -21,10 +21,15 @@ STEP = "Commit the news manifest and receipts (the manifest only when it is whol
 SHA = "b" * 64
 
 
+SCRIPT = ROOT / "ops" / "commit_news_record.sh"
+
+
 def step_script() -> str:
+    """The guard is one script that both news workflows call; the workflow step must be exactly that call."""
     flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
     (job,) = flow["jobs"].values()
-    return next(s for s in job["steps"] if s.get("name") == STEP)["run"]
+    assert next(s for s in job["steps"] if s.get("name") == STEP)["run"] == "bash ops/commit_news_record.sh"
+    return SCRIPT.read_text()
 
 
 def git(cwd, *args, check=True):
@@ -111,7 +116,7 @@ def test_the_guard_command_is_loud_and_names_the_range_bound_repair(tmp_path, mo
         "fno.ingestion.composition.build_alert_sender",
         lambda: type("A", (), {"send": lambda s, m: sent.append(m) or "sent"})(),
     )
-    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR})()
+    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR, "file": None})()
     assert news_cli.cmd_news_check_manifest(args, out=printed.append) == 1
     assert printed[0] == "news manifest: manifest_broken" and "same --from..--to range" in sent[0]
     assert "days its range covers" in sent[0]
@@ -124,7 +129,7 @@ def test_a_whole_manifest_passes_the_guard_command_and_sends_nothing(tmp_path, m
     monkeypatch.setattr(
         "fno.ingestion.composition.build_alert_sender", lambda: type("A", (), {"send": lambda s, m: sent.append(m)})()
     )
-    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR})()
+    args = type("Args", (), {"folder": repo.work / MANIFEST_DIR, "file": None})()
     assert news_cli.cmd_news_check_manifest(args, out=lambda line: None) == 0 and sent == []
 
 
@@ -153,7 +158,7 @@ def _alert_for(tmp_path, monkeypatch, text):
         "fno.ingestion.composition.build_alert_sender",
         lambda: type("A", (), {"send": lambda s, m: sent.append(m) or ""})(),
     )
-    args = type("Args", (), {"folder": _manifest_file(tmp_path, text)})()
+    args = type("Args", (), {"folder": _manifest_file(tmp_path, text), "file": None})()
     return news_cli.cmd_news_check_manifest(args, out=printed.append), printed, sent
 
 
@@ -171,10 +176,11 @@ def test_the_alert_text_is_fixed_and_says_what_to_do_for_each_cause(tmp_path, mo
 def test_the_broken_branch_of_the_step_never_adds_the_manifest():
     """judge 49 T2, for this design: the broken branch commits receipts but must not `git add` the manifest."""
     run = step_script()
-    broken = run[run.index("\nelse") :]
-    assert 'git add "$RECEIPTS"' in broken and '"$MANIFEST"' not in broken.replace(
-        'git checkout -- "$MANIFEST"', ""
-    ).replace('rm -f "$MANIFEST"', "")
+    broken = run[run.index("\nelse") : run.index("\nfi")]
+    assert (
+        "git add" not in broken and 'git checkout -- "$MANIFEST"' in broken
+    )  # the receipts are added after the branch
+    assert run.index('git add -- "$folder"') > run.index("\nfi")  # for both outcomes
 
 
 def test_a_failed_job_always_alerts_the_desk_channel_even_when_promote_was_killed():
@@ -197,3 +203,45 @@ def test_check_manifest_exits_1_for_a_final_row_torn_inside_the_size_field(tmp_p
     """judge 50 G1, at the command: the exit code, the printed code and the alert for `…,recorded,<64 hex>,12`."""
     code, printed, sent = _alert_for(tmp_path, monkeypatch, HEADER + WHOLE_ROW.rsplit(",", 1)[0] + ",12")
     assert (code, printed[0]) == (1, "news manifest: manifest_broken") and len(sent) == 1
+
+
+def test_the_same_script_guards_the_cluster_manifest_and_commits_its_receipts(tmp_path):
+    """P2d: news-cluster.yml calls this script too; a torn clusters.csv never reaches main, its receipts do."""
+    repo = Repo(tmp_path)
+    folder = repo.work / MANIFEST_DIR
+    NewsManifest(folder, "clusters.csv").add(date(2026, 10, 27), "a" * 64, "recorded", SHA, 10)
+    path = folder / "clusters.csv"
+    path.write_text(path.read_text().rstrip("\n")[:-30])  # a run killed mid-row
+    receipt = repo.work / "receipts/raw/news/clusters/1/x.json.sha256"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("receipt\n")
+    env = {
+        **os.environ,
+        "PATH": f"{repo.bin}:{os.environ['PATH']}",
+        "PYTHONPATH": str(ROOT),
+        "COMMIT_MESSAGE": "test: clusters",
+        "MANIFEST": f"{MANIFEST_DIR}/clusters.csv",
+        "RECEIPTS": "receipts/raw/news/clusters",
+        "FNO_SLACK_BOT_TOKEN": "",
+    }
+    done = subprocess.run(["bash", "-e", str(SCRIPT)], cwd=repo.work, env=env, capture_output=True, text=True)
+    assert done.returncode == 1 and "manifest_broken" in done.stdout
+    assert repo.on_main(f"{MANIFEST_DIR}/clusters.csv") is None
+    assert repo.on_main("receipts/raw/news/clusters/1/x.json.sha256")
+
+
+def test_a_pull_that_fails_makes_the_step_fail_instead_of_ending_green(tmp_path):
+    """judge 54 F1: `git pull && git push` under `set -e` used to exit 0 with nothing pushed."""
+    repo = Repo(tmp_path)
+    repo.write(2, torn=False)
+    git(repo.work, "remote", "set-url", "origin", str(tmp_path / "nowhere.git"))
+    done = repo.run_step()
+    assert done.returncode != 0 and repo.on_main(MANIFEST) is None
+
+
+def test_a_push_that_fails_makes_the_step_fail_even_when_the_pull_worked(tmp_path):
+    repo = Repo(tmp_path)
+    repo.write(2, torn=False)
+    git(repo.work, "remote", "set-url", "--push", "origin", str(tmp_path / "nowhere.git"))
+    done = repo.run_step()
+    assert done.returncode != 0 and repo.on_main(MANIFEST) is None

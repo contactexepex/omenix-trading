@@ -81,8 +81,11 @@ def test_the_workflow_has_no_schedule_and_commits_only_its_own_paths():
     text = (ROOT / ".github/workflows/news-promote.yml").read_text()
     flow = yaml.safe_load(text)
     assert set(flow[True]) == {"workflow_dispatch"}  # YAML reads `on` as True; no schedule key
-    assert 'git add "$MANIFEST" "$RECEIPTS"' in text and "receipts/raw/news" in text
-    assert "research/data/manifests/news/articles.csv" in text and "--no-verify" not in text
+    (job,) = flow["jobs"].values()
+    assert job["env"]["RECEIPTS"] == "receipts/raw/news"
+    assert job["env"]["MANIFEST"] == "research/data/manifests/news/articles.csv"
+    assert "bash ops/commit_news_record.sh" in text and "--no-verify" not in text
+    assert "--no-verify" not in (ROOT / "ops" / "commit_news_record.sh").read_text()
 
 
 def _steps():

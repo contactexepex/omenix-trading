@@ -36,13 +36,14 @@ def _whole(row: dict) -> bool:
 
 
 class NewsManifest:
-    def __init__(self, folder: Path):
-        self.log = CsvRowLog(Path(folder) / FILE_NAME)
+    def __init__(self, folder: Path, file_name: str = FILE_NAME):
+        self.log = CsvRowLog(Path(folder) / file_name)
         rows = self.log.rows()
         whole = [r for r in rows if _whole(r)]
         self.skipped = len(rows) - len(whole)  # rows that are not whole: reported by the gate, never silently dropped
         self.rows: set[tuple[str, str, str]] = {(r["article_id"], r["status"], r["sha256"]) for r in whole}
         self.recorded: dict[str, str] = {r["article_id"]: r["sha256"] for r in whole if r["status"] == RECORDED}
+        self.recorded_on: dict[str, str] = {r["article_id"]: r["date"] for r in whole if r["status"] == RECORDED}
 
     def problem(self) -> str | None:
         """The fixed code of what makes the file unsafe to commit, or None when whole: a last line with no new line
@@ -74,3 +75,8 @@ class NewsManifest:
         self.rows.add((article_id, status, sha256))
         if status == RECORDED:
             self.recorded[article_id] = sha256
+            self.recorded_on[article_id] = day.isoformat()
+
+    def recorded_since(self, day: date) -> list[str]:
+        """The ids recorded on or after a day (the day of the poll that brought them in), in id order."""
+        return sorted(key for key, recorded_day in self.recorded_on.items() if recorded_day >= day.isoformat())

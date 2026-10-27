@@ -4,7 +4,7 @@ used, is alerted to #fno-desk as the same line: no feed, URL, query or title is 
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from fno.ingestion.news import codes
@@ -15,7 +15,20 @@ from fno.shared.models import now_utc
 ALERT = "Omenix F&O news fetch: {line}"
 PROMOTE_STOPPED = "news promote stopped: {code}"
 PROMOTE_ALERT = "Omenix F&O news promote: {line}"
+CLUSTER_ALERT = "Omenix F&O news cluster: {line}"
+CLUSTER_STOPPED = "news cluster stopped: {code}"
 STOPPED_LINE = "news fetch stopped: {code}"
+
+
+class WindowInFuture(Exception):
+    """The requested window end is later than the current hour."""
+
+
+def _utc_moment(text: str) -> datetime:
+    moment = datetime.fromisoformat(text)
+    if moment.tzinfo is None:
+        raise ValueError("the window end needs a zone, for example 2026-10-27T12:00:00+00:00")
+    return moment.astimezone(UTC)
 
 
 def add_news_parser(subparsers) -> None:
@@ -29,12 +42,17 @@ def add_news_parser(subparsers) -> None:
     promote.add_argument("--to", dest="end", type=date.fromisoformat, default=None,
                          help="YYYY-MM-DD (default: today, UTC: the day polls are staged under)")  # fmt: skip
     promote.set_defaults(func=cmd_news_promote)
+    cluster = actions.add_parser("cluster", help="recent articles into one write-once cluster file (story P2d)")
+    cluster.add_argument("--as-of", dest="as_of", type=_utc_moment, default=None,
+                         help="the window end, ISO with a zone (default: now, floored to the hour)")  # fmt: skip
+    cluster.set_defaults(func=cmd_news_cluster)
     check = actions.add_parser(
         "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
     )
     check.add_argument(
         "folder", nargs="?", type=Path, default=None, help="the manifest folder (default: the repository's)"
     )
+    check.add_argument("--file", default=None, help="the manifest file in that folder (default: articles.csv)")
     check.set_defaults(func=cmd_news_check_manifest)
 
 
@@ -88,13 +106,37 @@ def cmd_news_check_manifest(args, out=print) -> int:
     never publish a torn line. It judges the file, not promote's exit code: a rejection still commits good rows. A
     broken manifest is loud: exit 1 and an alert."""
     from fno.ingestion.composition import build_alert_sender
-    from fno.ingestion.news.record.manifest import NewsManifest
+    from fno.ingestion.news.record.manifest import FILE_NAME, NewsManifest
     from fno.ingestion.news.wiring import POLL_LOG_FOLDER
 
-    problem = NewsManifest(args.folder or POLL_LOG_FOLDER).problem()
+    problem = NewsManifest(args.folder or POLL_LOG_FOLDER, args.file or FILE_NAME).problem()
     if problem is None:
         out("news manifest: whole")
         return 0
     out(f"news manifest: {problem}")
     out(build_alert_sender().send(GUARD_ALERTS[problem]))
     return 1
+
+
+def cmd_news_cluster(args, out=print) -> int:
+    """One line of counts by fixed code; exit 0 only when the file was written or already there; else alerted."""
+    from fno.ingestion.composition import build_alert_sender
+    from fno.ingestion.news.cluster_record.wiring import build_news_cluster
+
+    this_hour = now_utc().replace(minute=0, second=0, microsecond=0)
+    as_of = args.as_of or this_hour
+    try:
+        if as_of > this_hour:  # only a closed window is clustered: a future end would write a file that later conflicts
+            raise WindowInFuture
+        report = build_news_cluster().run(as_of)
+        line, ok, alert = report.line(), report.ok, report.alert_text()
+    except WindowInFuture:
+        line = CLUSTER_STOPPED.format(code=codes.WINDOW_IN_FUTURE)
+        ok, alert = False, line
+    except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
+        line = CLUSTER_STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}")
+        ok, alert = False, line
+    out(line)
+    if not ok:
+        out(build_alert_sender().send(CLUSTER_ALERT.format(line=alert)))
+    return 0 if ok else 1

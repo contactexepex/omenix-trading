@@ -20,7 +20,7 @@ permissions:
   contents: write # commits the news manifest and the receipts of the files the gate wrote
 
 concurrency:
-  group: news-promote
+  group: news-record
   cancel-in-progress: false
 
 jobs:
@@ -35,6 +35,7 @@ jobs:
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       MANIFEST: research/data/manifests/news/articles.csv
       RECEIPTS: receipts/raw/news
+      COMMIT_MESSAGE: "P2b2 Actions: news record"
       FROM_DATE: ${{ inputs.from_date }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -62,21 +63,7 @@ jobs:
           python -m fno news promote --from "$FROM_DATE" | tee promote.log
       - name: Commit the news manifest and receipts (the manifest only when it is whole)
         if: ${{ !inputs.dry_run }}
-        run: |
-          # A promote killed mid-write can leave a torn last line; it must never reach main. The guard judges the
-          # file, not promote's exit code, so a mere rejection still commits the good rows. Receipts are always
-          # committed: they keep the original evidence time, and the next run re-adds the missing rows.
-          if python -m fno news check-manifest research/data/manifests/news; then
-            git add "$MANIFEST" "$RECEIPTS"
-            broken=0
-          else
-            git checkout -- "$MANIFEST" 2>/dev/null || rm -f "$MANIFEST"
-            git add "$RECEIPTS"
-            broken=1
-          fi
-          git diff --cached --quiet || git commit -m "P2b2 Actions: news record $(date -u +%FT%TZ)"
-          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
-          exit "$broken"
+        run: bash ops/commit_news_record.sh
       - name: Fail the run when the promotion was not clean (the alert was sent by the command)
         if: ${{ steps.promote.outcome != 'success' && !inputs.dry_run }}
         run: exit 1
