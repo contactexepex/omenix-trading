@@ -139,3 +139,11 @@ def test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol():
         assert "BSE" not in tag(headline).symbols, headline
     assert tag("Shares rise (BSE: ZZDE)").primary == ("ZZDE",)
     assert tag("Shares of the exchange (BSE) rise").primary == ("BSE",)  # a lone bracketed symbol is still one
+
+
+def test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says():
+    """Judge 92 addendum: the separator must stand apart from the name, and the outlet match ignores case."""
+    assert "ZZAL" in tag("Merger of Zzbeta-Zzalpha", None, "Zzalpha").symbols  # a hyphen inside a word is no separator
+    assert (
+        tag("Markets close higher - ZZALPHA", None, "Zzalpha").symbols == ()
+    )  # the suffix in another case is the outlet

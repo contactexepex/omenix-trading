@@ -55,3 +55,90 @@ re-pointed plant (one occurrence). Merging main or NP4b's final version into thi
 `contract_plants.py` must then be all ok.
 
 **Verdict: FAIL** (round 1, `691f315`).
+
+## Addendum 1
+
+**Round 2 re-review of `story/NP5b-origins-and-materiality` at `1002195`.**
+- The branch is stacked on NP5a `ab4acd2`, which I passed in judge 92 Addendum 1, so NP5a is settled.
+- The `tagging/` package is byte-identical to `ab4acd2`.
+- Also in this head: judge 94's B1 (no URL means no host, plant U13) and the H7 entry from main.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1920 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 608 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught, including U14, U15, U13 and the re-pointed U8 and U10.
+
+### Round-1 findings
+
+1. **F1 (the outlet suffix inflates materiality): fixed.**
+   - What changed:
+     - `MaterialTerms.weight` and `is_material` take `source` and apply NP5a's shared `without_outlet` (`terms.py:41-47`).
+     - `ArticleViewer.view` passes `article.source` (`view.py:63`).
+   - Reproduced with the invented term "profit" (weight 1) and source "Zztv Profit":
+
+     | Title | Round 1 | Round 2 |
+     | --- | --- | --- |
+     | "Zzalpha shares rise - Zztv Profit" | weight 1.0, material | weight 0, not material |
+     | "Zzalpha profit rises - Zztv Profit" | material | weight 1.0, still material (the word is in the story) |
+
+   - Without a source the suffix still counts, the same limit as judge 92 N2. The production caller always passes
+     `article.source`.
+2. **F2 (inherited NP5a defects): fixed** by the merge of NP5a `ab4acd2`.
+   - "Zzalpha's profit jumps" now tags with high confidence and is material.
+3. **H7 note: resolved.** The H7 `old` text now matches the refusal branch in `pages/fetcher.py`, and the plant runner
+   catches it.
+
+### My plants (each restored afterwards)
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| Q4 | `is_material` stops passing `source` to `weight` | caught (3 failed) |
+| Q6 | `view` calls the tagger without `article.source` | **survives** |
+| Q7 | the promotional filter skips the summary | caught (2 failed) |
+
+### Notes (not blocking)
+
+- **N1, test gap (Q6).** The view wiring is correct today. No test pins that the view passes `article.source` to the
+  tagger, yet that argument is the only production path for judge 92 F2 (the outlet name tagging a company). Dropping
+  it would bring F2 back with every test green.
+  - Suggested test: a view of "Markets close higher - Zzalpha" with source "Zzalpha" has no tag.
+  - Add it in the next push that already touches these files.
+- **N2, promotional filter (reasoning only).** It still reads the full title, outlet suffix included, as the
+  implementer said.
+  - The shipped phrases are vendor boilerplate: "Zacks Rank #", "sponsored content|post", "advertorial" and the like.
+    None is plausibly part of an outlet's name.
+  - A false hit would only stop an article counting as an independent origin. That is the conservative direction. No
+    change needed now.
+
+**Verdict: PASS** (round 2, `1002195`).
+
+## Addendum 2
+
+**Re-check of `story/NP5b-origins-and-materiality` at `1b7ff3d`.** This head is `1002195` plus main (NP5a merged) plus
+two tests.
+
+**What changed:**
+- **No production code changed.** `git diff 1002195 1b7ff3d -- fno` is empty.
+- **One test was added**
+  (`test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says`). It closes judge 92
+  Addendum 1's N1 gaps, my plants P2 and P7.
+- **Two contract plants were added**, T16 and T17.
+- **The plant file was only reordered.**
+  - Against `1002195`, no entry was lost or changed, and T16 and T17 are new.
+  - Against main, no entry was lost or changed.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 1921 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 608 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught, T16 and T17 included.
+
+**Still open:** this addendum's N1 gap (plant Q6, the view passing `article.source` to the tagger) is not closed. It
+stays non-blocking.
+
+**Verdict: PASS** (`1b7ff3d`).
