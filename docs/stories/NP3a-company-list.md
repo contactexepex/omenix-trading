@@ -25,9 +25,10 @@ service; reads NSE lists from the Drive archive; the one write is `companies/com
 - **The starter aliases of the reference project's 20 are NOT in this code.** They would put the owner's selection in a public repository. The
   seed has aliases only for the four index underlyings (NSE's own public names); everything else is the owner's to add in a new version
   of the file. This lowers the quality of the first tags until the owner edits, and I say so.
-- **Exclusions are restricted** (no quantifier after a group, at most 120 characters, at most 20, at most two open-ended repeats and four
-  optional parts): plain name patterns pass; a pattern that could run long on a crafted headline does not (judge 72's ReDoS point, applied
-  where the owner's patterns first enter the system; judge 78 F1: six `.*` on 90 characters measured 18.7 s here, six `\w*` 57 s).
+- **Exclusions are an allow-list, not a list of refused shapes** (judge 79 B1, judge 78 F1): plain text, `(?:A|B)` alternatives of plain
+  text, `x?` optional letters (at most four) and one trailing `\w*`, at most 120 characters, at most 20 per company. A first fix that only
+  capped repeats was measured and is not enough (two `.*` took 14 s on 5,000 characters, six on 90 took 18.7 s), because a refused-shape
+  list cannot be complete. The owner loses regex power she never needed for names; if a real need appears, widen the grammar by a story.
 - **The seed skips and counts rows the list checks would refuse, and parses its own bytes before returning them** (judge 78 F2), so a
   bad NSE row can never produce a file that is written once and then stops every consumer.
 - **No hash or content of the list is ever printed or logged** (unlike the feed list, whose salted hash is in the poll log).
