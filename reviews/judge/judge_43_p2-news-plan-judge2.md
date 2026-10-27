@@ -165,3 +165,33 @@ concrete:
 - R3: a cookie policy and a test.
 
 R4 to R6 are one-line text fixes.
+
+## Addendum 2: design round 3, 06e3467 (owner-authorised; PASS)
+
+Branch `story/P2-news-plan`, SHA `06e3467212d5bf17f1a357b25ddcf7684eba7392`, docs only. The owner chose the private feed
+list (variant A).
+
+| Item | Written in as | Verdict |
+|---|---|---|
+| R1 | the feed list in a private Drive file read through the Drive reader; opaque ids (`feed-01`); none in code or `config.yaml`; a missing list stops the run; the master test scans `fno/`, `config.yaml`, `.github/` and `docs/` and captures DEBUG logging (urllib3's request line) | resolved. Also checked: the Drive cache is `work/drive-cache` (`data_wiring.py:17`), which is git-ignored (`.gitignore:43`), and no workflow uploads artifacts, so a cached feed list has no path to GitHub |
+| R2 | window membership and the as-of reader both by `e = max(published, first seen_at)`; the late-arrival test | resolved, but see the text fix below |
+| R3 | reject-all cookie policy on the news session only (NSE and Yahoo unchanged); test plus plant | resolved |
+| R4 | feed id and seen_at left out of the compared fields | resolved |
+| R5 | `allow_redirects=False`; any redirect is a block | resolved |
+| R6 | anchor-only assignment taken in (published, key) order; two anchors -> the earlier (then the smaller key), never merged; re-anchoring recorded in `previous_cluster_ids` | resolved |
+| Residual (hash of a public URL) | in the owner section | resolved |
+
+**One text fix the R2 change left behind (not a new design gap).** The D6 header bullet (doc lines 114-115) still
+states the old input rule: "published, or if `time_source=seen` seen, within the window". That contradicts the new
+`e = max(published, first seen_at)` rule written two bullets below. Correct the header line to the `e` rule in the P2c
+story, so the header and the membership rule are one rule. I will check it in the P2c code round.
+
+**Noted, accepted (reasoning only):** judge #1's fallback key (published second, plus a hash of title and summary, plus
+the source) means an edited summary on a guid-less Google News item gives a new key rather than a revision. So one
+article becomes two records, which clustering then merges. That is a duplicate, never a loss, and it is the right side
+to err on.
+
+Also noted: since an article is seen after it is published, `e` is in practice the first seen_at. The rule is still
+correct, and it guards against a future-dated `published`.
+
+Nothing else new. **Verdict: PASS** (design round 3, judge #2).

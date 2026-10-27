@@ -53,4 +53,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 40 | R1d4 locking tests and no-refactor, lane-2 check (judge #2) | 2 | PASS (8d2968e) | `judge_40_r1d4-refactor-check.md` |
 | 41 | RUN_LOCATIONS map, lane-2 check | 2 | PASS (round 2, 5f4fd8e) | `judge_41_run-locations.md` |
 | 42 | P2 news and dedup plan (design) | 1 | PASS (round 3, 06e3467; 3 items carried to P2a/P2c) | `judge_42_p2-news-plan.md` |
-| 43 | P2 news and dedup, design (judge #2) | 1 | FAIL (round 2, ca6a8c5) | `judge_43_p2-news-plan-judge2.md` |
+| 43 | P2 news and dedup, design (judge #2) | 1 | PASS (round 3, 06e3467) | `judge_43_p2-news-plan-judge2.md` |
