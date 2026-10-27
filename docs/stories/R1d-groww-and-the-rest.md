@@ -65,7 +65,7 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 - **FixedPause, not the breaker:** the plan's "shared breaker" is built as `FixedPause` (`fno/shared/resilience/pause.py`);
   `CircuitBreaker` would defer concurrent readers behind one probe, which condition 1 forbids.
 - **Candle gap:** the 0.5 s now counts from the scheduled start of the previous call, not from its actual start after the
-  sleep; the intraday pacer always worked that way, so it is a difference of milliseconds, as the intraday pacer always was.
+  sleep; the intraday pacer always worked that way, so the difference is milliseconds.
 - **The one-provider scan is a tripwire:** it checks files, not processes (a builder in a loop, or two files used by one
   command, would escape it). It stops a new Groww site being added unnoticed; it is not a proof for a process.
 - **No ceiling is pinned:** each caller's settings are tested to have no per-minute or per-day budget and no wait cap, and
@@ -78,7 +78,8 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
   waiting), no total limit, every failure retried (a refusal and any other error alike), no wait after the last try. The
   reason reported is still the last failure's: a refusal's own text, or the class name with the message withheld.
 - **NSDL back-fill** (`flow_history/nsdl_backfill.py`): the 10 s gap between form posts is a `RateLimit` (spacing
-  `GAP_SECONDS`, no per-minute or per-day budget, no cap on a wait). The two tries per month with the form forgotten
+  `GAP_SECONDS`, no per-minute or per-day budget, no cap on a wait). Like the candle gap, the 10 s now counts from the
+  scheduled start of the previous post, not its actual start after the sleep: a difference of milliseconds. The two tries per month with the form forgotten
   between them stay as they are: they wait for nothing but that gap, so a retry policy would add nothing.
 - **Filings probe stays as it is.** Its pinned behaviour is a 30 s pause after *each* failure, the last one too; the retry
   policy never sleeps after the final try, so moving it would change the pinned pause or need a special case, for a
@@ -90,6 +91,13 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
   limits), 120 s in all for three failing tries, retry of refusals and unexpected errors alike, and the NSDL gap (no
   budget, no cap: 40 starts on a frozen clock reach 390 s without a deferral); plants on the jitter, the waits, the total
   limit, the verdict and the NSDL gap each fail a test.
+
+## Follow-ups (named, not blockers)
+
+- **Filings probe, trailing pause:** the probe sleeps 30 s after its last failed try too, which delays the failure result for
+  nothing. Kept exactly as it is (never weaker); removing it is a future cleanup if a second caller ever needs that shape.
+- **Live validation of R1d3:** the close read runs in O1's evening steps (not in this repository's workflows) and the NSDL
+  back-fill is a one-time hand run, so their live validation happens at cutover; the proof until then is offline.
 
 ## Conditions carried from the judges
 
