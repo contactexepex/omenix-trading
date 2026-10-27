@@ -691,5 +691,120 @@
   "file": "fno/ingestion/news/record/planner.py",
   "old": "        if same_version(kept, data):  # the listing lagged behind a file written earlier in this run: the same version\n            return Plan(Outcome.NO_OP, revision, REVISION, kept)\n",
   "new": ""
+ },
+ {
+  "id": "L1",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed",
+   "tests/ingestion/news/resolve/test_adapter.py::test_each_link_gets_its_result_in_order_and_a_refused_link_is_never_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return True"
+ },
+ {
+  "id": "L2",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_the_allowed_domains_are_the_registrable_domains_of_the_wrapper_feeds_only",
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_no_wrapper_feed_means_nothing_is_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "    return EgressGuard(registrable_domain(f.host) for f in feeds if f.kind == WRAPPER)",
+  "new": "    return EgressGuard(registrable_domain(f.host) for f in feeds)"
+ },
+ {
+  "id": "L3",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_redirect_to_another_host_is_refused_at_the_hop_by_the_same_hook"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
+  "new": "        if False:"
+ },
+ {
+  "id": "L4",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_result_that_is_not_a_clean_https_publisher_link_is_a_bad_result",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_url_back_on_the_service_or_not_clean_is_a_bad_result"
+  ],
+  "file": "fno/ingestion/news/resolve/accept.py",
+  "old": "    if not url or guard.allows_host(plain_host(urlsplit(url).hostname)):",
+  "new": "    if not url:"
+ },
+ {
+  "id": "L5",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_library_that_raises_costs_only_its_batch_and_never_the_run",
+   "tests/ingestion/news/resolve/test_adapter.py::test_a_failure_the_library_reports_is_a_fixed_code_and_its_message_is_never_kept"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        except Exception:  # noqa: BLE001 - a fixed code per link; the caller counts codes and alerts on a high error share\n            return [Resolved(ERROR) for _ in links]",
+  "new": "        except ZeroDivisionError:\n            return [Resolved(ERROR) for _ in links]"
+ },
+ {
+  "id": "L6",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_links_go_in_batches_of_ten_in_order"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "BATCH = 10\n",
+  "new": "BATCH = 1000\n"
+ },
+ {
+  "id": "L7",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)"
+ },
+ {
+  "id": "L8",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_plain_failure_is_still_paced_every_request_waits_even_when_the_one_before_failed"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop), lambda request: self.pacer.wait()],",
+  "new": "                    \"request\": [egress_hook(self.guard), stopped_hook(self.stop)],"
+ },
+ {
+  "id": "L9",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_429_stops_the_run",
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_redirect_to_the_sorry_page_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "        if response.status_code in PUSHBACK_STATUSES:",
+  "new": "        if False:"
+ },
+ {
+  "id": "L10",
+  "tests": [
+   "tests/ingestion/news/resolve/test_adapter.py::test_the_hook_refuses_everything_else_before_it_is_sent"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if url.scheme != \"https\" or not guard.allows_host(url.host) or url.userinfo or url.port is not None:",
+  "new": "        if url.scheme != \"https\" or not guard.allows_host(url.host):"
+ },
+ {
+  "id": "L11",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_the_pacer_never_waits_for_the_first_request_and_never_goes_below_its_floor"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "max(spacing, SPACING_SECONDS)",
+  "new": "spacing"
+ },
+ {
+  "id": "L12",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_503_stops_the_run_at_once_the_rest_are_paused_and_nothing_more_is_requested"
+  ],
+  "file": "fno/ingestion/news/resolve/decoder_adapter.py",
+  "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
+  "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
  }
 ]
