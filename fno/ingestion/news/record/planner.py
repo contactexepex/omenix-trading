@@ -61,9 +61,12 @@ class ArticlePlanner:
             if kept is not None and same_version(kept, data):
                 return Plan(Outcome.NO_OP, f"{folder}/{name}", REVISION, kept)
         revision = f"{folder}/{hashlib.sha256(fixed_bytes(data) or b'').hexdigest()[:8]}.json"
-        if self._held(revision) is not None:  # the same 8 hex characters for two versions: never called a no-op
-            raise RawFileConflict(f"{revision}: revision name collision")
-        return Plan(Outcome.REVISION, revision, REVISION, None)
+        kept = self._held(revision)
+        if kept is None:
+            return Plan(Outcome.REVISION, revision, REVISION, None)
+        if same_version(kept, data):  # the listing lagged behind a file written earlier in this run: the same version
+            return Plan(Outcome.NO_OP, revision, REVISION, kept)
+        raise RawFileConflict(f"{revision}: revision name collision")  # the same 8 hex characters for two versions
 
     def _held(self, path: str) -> bytes | None:
         if path not in self.held:

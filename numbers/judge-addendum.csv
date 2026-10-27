@@ -123,3 +123,10 @@ number,name,session,claimed_at_utc
 66.2,s1-staging-cleanup,judge-1,2026-10-27T09:10:19Z
 67.2,s1-c909933,session_017eR6mx3pkKHVdszkoscVM6,2026-10-27T09:11:00Z
 70.1,np0-news-port-plan,judge-1,2026-10-27T12:09:12Z
+71.1,np1-source-rules,judge-1,2026-10-27T12:12:55Z
+71.2,np1-source-rules,judge-1,2026-10-27T12:18:51Z
+72.1,np1-df3fe62,session_017eR6mx3pkKHVdszkoscVM6,2026-10-27T12:20:54Z
+71.3,np1-source-rules,judge-1,2026-10-27T12:28:12Z
+72.2,np1-d6f28e4,session_017eR6mx3pkKHVdszkoscVM6,2026-10-27T12:29:20Z
+73.1,np2a-article-format-2,judge-1,2026-10-27T12:36:03Z
+74.1,np2a-a72a037,session_017eR6mx3pkKHVdszkoscVM6,2026-10-27T12:36:47Z

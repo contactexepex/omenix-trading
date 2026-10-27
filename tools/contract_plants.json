@@ -684,6 +684,15 @@
   "new": "    if format_number not in FIELDS_OF:"
  },
  {
+  "id": "F13",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_lagging_listing_gives_no_op_for_the_same_version_and_a_conflict_only_for_a_different_one"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "        if same_version(kept, data):  # the listing lagged behind a file written earlier in this run: the same version\n            return Plan(Outcome.NO_OP, revision, REVISION, kept)\n",
+  "new": ""
+ },
+ {
   "id": "L1",
   "tests": [
    "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed",

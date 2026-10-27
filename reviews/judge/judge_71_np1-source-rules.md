@@ -47,3 +47,65 @@ ruff and check_imports are clean; 1287 passed; contract plants all `ok`, includi
 No order path, no secret, no Groww call, no request, no Drive.
 
 ## Verdict: FAIL round 1 at 1d1bfed. B1 required; the two host-doc mismatches and the privacy line requested.
+
+## Addendum 1: round 2 at aa00a5c: PASS, on condition of a one-word fix (`fullmatch`)
+
+Reviewed `git diff 1d1bfed aa00a5c`.
+
+**Gates (strong evidence).** ruff and check_imports are clean; 1294 passed; contract plants O1 to O10 all `ok`.
+
+**B1 fixed (strong evidence, my round-1 probe re-run).**
+- `UniqueKeyLoader` refuses:
+  - a repeated `fetch` (inline and block style);
+  - a second `bseindia.com` entry;
+  - a YAML merge key (`<<`), refused as unreadable.
+- Accepted, and both harmless:
+  - an alias reused for two outlets (each gets the same settings, which is visible in the file);
+  - a repeated name inside a list.
+
+**Host minors fixed.** The Kelvin sign, a tab, a space at either end and U+2028 are now unlisted; upper case and a trailing dot still match, as designed.
+
+**One gap left (strong evidence, reproduced): `plain_host` still returns a host with a trailing newline.**
+- `PLAIN_HOST.match` uses `$`, which in Python matches *before* a final `\n`.
+- `plain_host("marketwatch.com\n")` returns `'marketwatch.com\n'`, not `""`, contradicting its docstring ("Whitespace anywhere ... make it ''").
+- Lookups are still safe: `tier_of` gives `unlisted`, and `may_fetch` gives False.
+- But `outlet_key` passes the newline through. Any later story that writes an outlet key into a line-based file (TSV, CSV, a receipt) inherits a line break.
+- **Condition:** `PLAIN_HOST.fullmatch(cleaned)`, plus a test with `"marketwatch.com\n"` → `""`. The orchestrator can check it.
+
+**Privacy.** The story now states the point and that the merge is held for owner decision H. That is consistent with judge 70's addendum.
+
+**Verdict: PASS round 2 at aa00a5c, on condition of `fullmatch` plus its test. The merge stays held for decision H.**
+
+## Addendum 2: superseded by df3fe62: PASS, the condition still open and widened to two places
+
+Reviewed `git diff aa00a5c df3fe62`, which folds in judge 72's F1 to F5.
+
+**Gates (strong evidence).** 1311 passed; contract plants O1 to O14 all `ok`.
+
+**The new rules read correctly:**
+- a public suffix is refused as an outlet domain: the 2-label `co.in`-style rule plus a curated hosting list, honestly stated as not the full Public Suffix List;
+- `may_fetch` follows `same_as` to the main domain's `fetch: false`;
+- empty labels are refused, and lookups return None for an empty label;
+- two wires claiming one name or domain are refused;
+- `opinion_unless_path` must be `/…/`.
+
+**Condition from Addendum 1: NOT done, and it applies in two places (strong evidence, reproduced at df3fe62).**
+- `rules.py:28` still uses `PLAIN_HOST.match`, so `plain_host("marketwatch.com\n")` returns `'marketwatch.com\n'`.
+- `loader.py:77` uses `DOMAIN.match` in the same way: `build_source_rules({'domains': {'evil.com\n': {'tier': 'tier1'}}})` is **accepted**, so an outlet domain can carry a line break. A quoted YAML key can produce one.
+- **Fix:** `fullmatch` in both places, plus two tests: a host with a trailing newline gives `""`, and a domain key with a trailing newline is refused.
+
+**Verdict: PASS at df3fe62, on condition of `fullmatch` in `rules.py` and `loader.py` with their tests. The merge stays held for decision H.**
+
+## Addendum 3: final at d6f28e4: PASS, condition met
+
+Reviewed `git diff df3fe62 d6f28e4`.
+
+**The condition is met in both places (strong evidence, re-probed):**
+- `plain_host` and `LABEL_IS_A_HOST` use `fullmatch`; `"marketwatch.com\n"` and `"a.example\r\n"` give `""`.
+- `loader._domain` uses `DOMAIN.fullmatch`; `"evil.com\n"` and `"evil.com\r"` are refused.
+- `grep` finds no `.match(` left in `fno/ingestion/news/sources/`.
+- `domain_of_label("reuters.com\n")` still finds reuters.com, which is correct: a label is text, and `strip()` is meant there.
+
+**Gates.** 1316 passed; contract plants O1 to O16 all `ok`. Rows O15 and O16 are new, and each plant fails its test.
+
+**Verdict: PASS at d6f28e4, nothing left open. The merge stays held for owner decision H.**

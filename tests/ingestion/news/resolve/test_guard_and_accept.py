@@ -50,7 +50,7 @@ def test_registrable_domain(host, domain):
     "link",
     ["http://news.svc.example/a", "https://news.svc.example:8443/a", "https://u:p@news.svc.example/a", "https://notsvc.example/a",
      "https://svc.example.evil.example/a", "https://evil.example/a?u=https://svc.example/", "//svc.example/a", "ftp://svc.example/a",
-     "https://svc.example\n/a", "", "not a link"],
+     "https://svc.example\n/a", "", "not a link", "https://news.svc.example/rss/articles/a\u200bb", "https://news.svc.example/rss/articles/\u00e9"],
 )  # fmt: skip
 def test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed(link):
     assert not GUARD.allows_link(link)

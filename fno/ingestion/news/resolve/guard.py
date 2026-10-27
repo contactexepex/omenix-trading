@@ -36,10 +36,11 @@ class EgressGuard:
         return bool(name) and any(name == d or name.endswith("." + d) for d in self.allowed)
 
     def allows_link(self, link: str) -> bool:
-        """True for a CLEAN https link (no whitespace or control character, credentials or port; see `clean_https_link`)
-        whose host is on an allowed domain. `urlsplit` alone would read past a line break inside the host."""
+        """True for a CLEAN https link (no whitespace or control character, credentials or port; see
+        `clean_https_link`) whose host is on an allowed domain and which is ASCII throughout (a zero-width or look-alike
+        character is not a link the service issued). `urlsplit` alone would read past a line break inside the host."""
         clean = clean_https_link(link)
-        return bool(clean) and self.allows_host(urlsplit(clean).hostname)
+        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)
 
     def __bool__(self) -> bool:
         return bool(self.allowed)
