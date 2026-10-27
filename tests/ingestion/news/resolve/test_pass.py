@@ -8,7 +8,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.resolve import run as run_module
 from fno.ingestion.news.resolve.model import DECODE_FAILED, PAUSED, RESOLVED, Resolved
 from fno.ingestion.news.resolve.resolution_file import parse_resolution
-from tests.ingestion.news.resolve.pass_helpers import FakeResolver, World, publisher_item, wrapper_item
+from tests.ingestion.news.resolve.pass_helpers import TODAY, FakeResolver, World, publisher_item, wrapper_item
 
 
 def test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution_file(tmp_path):
@@ -16,9 +16,20 @@ def test_only_wrapper_articles_are_asked_and_each_success_becomes_one_resolution
     world.add(wrapper_item(1), wrapper_item(2))
     world.add(publisher_item(3), feed="feed-02")
     report = world.run()
-    assert report.ok and report.counts["pending"] == 2 and report.counts["not_wrapper"] == 1
+    assert (
+        report.ok and report.counts["pending"] == 2 and report.counts["examined"] == 2
+    )  # the publisher article is never read
     assert report.results["written"] == 2 and len(world.resolver.calls) == 1 and len(world.resolver.calls[0]) == 2
     assert len(world.resolution_files()) == 2 and all("/resolved/" in f for f in world.resolution_files())
+
+
+def test_a_pass_given_the_whole_articles_manifest_still_asks_only_wrapper_articles(tmp_path):
+    """Defence in depth under the index (NP2d): the pass itself checks each article it reads."""
+    world = World(tmp_path)
+    world.add(wrapper_item(1))
+    world.add(publisher_item(2), publisher_item(3), feed="feed-02")
+    report = world.pass_("articles.csv").run(TODAY, True, 80)
+    assert report.counts["examined"] == 3 and report.counts["not_wrapper"] == 2 and report.counts["pending"] == 1
 
 
 def test_a_resolution_file_has_the_url_its_host_and_whether_the_host_is_the_feeds_outlet(tmp_path):
@@ -156,9 +167,19 @@ def test_a_backlog_left_on_the_last_day_by_the_cap_is_expiring_too(tmp_path):
 def test_the_number_of_article_files_read_in_a_pass_is_bounded(tmp_path, monkeypatch):
     monkeypatch.setattr(run_module, "MAX_READS", 2)
     world = World(tmp_path)
-    world.add(*[publisher_item(n) for n in range(1, 6)], feed="feed-02")
+    world.add(*[wrapper_item(n) for n in range(1, 6)])
     report = world.run()
-    assert report.counts["examined"] == 2 and report.counts["unexamined"] == 3 and world.resolver.calls == []
+    assert report.counts["examined"] == 2 and report.counts["unexamined"] == 3 and len(world.resolver.calls[0]) == 2
+
+
+def test_publisher_articles_are_never_read_so_they_cannot_use_up_the_read_cap(tmp_path, monkeypatch):
+    """NP2d: the pass reads the wrapper index, not every article of the look-back."""
+    monkeypatch.setattr(run_module, "MAX_READS", 2)
+    world = World(tmp_path)
+    world.add(*[publisher_item(n) for n in range(1, 30)], feed="feed-02")
+    world.add(wrapper_item(1), wrapper_item(2))
+    report = world.run()
+    assert report.counts["examined"] == 2 and report.counts["unexamined"] == 0 and report.results["written"] == 2
 
 
 def test_one_resolver_call_per_pass_so_its_stop_and_pacing_are_not_reset(tmp_path):

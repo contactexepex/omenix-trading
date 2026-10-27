@@ -10,6 +10,7 @@ import pytest
 from fno.ingestion.news.fetcher import SOURCE
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner
+from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
 from fno.ingestion.staging_cleanup.cleanup import StagingCleanup
 from fno.ingestion.staging_cleanup.news_proof import NewsPollProof
 from fno.ingestion.storage.raw_store import AreaStore
@@ -23,7 +24,10 @@ LATER = POLL_AT + timedelta(days=9)  # the cleanup runs 9 days after the poll
 def proof_for(setup: Setup, kinds=None) -> NewsPollProof:
     manifest = NewsManifest(setup.manifest_folder)
     return NewsPollProof(
-        kinds if kinds is not None else setup.kinds, ArticlePlanner(AreaStore(setup.drive, "raw")), manifest
+        kinds if kinds is not None else setup.kinds,
+        ArticlePlanner(AreaStore(setup.drive, "raw")),
+        manifest,
+        NewsManifest(setup.manifest_folder, WRAPPERS_FILE),
     )
 
 
@@ -115,7 +119,12 @@ def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
         def get(self, path):
             raise OSError("Drive down")
 
-    proof = NewsPollProof(s.kinds, ArticlePlanner(Down(s.drive, "raw")), NewsManifest(s.manifest_folder))
+    proof = NewsPollProof(
+        s.kinds,
+        ArticlePlanner(Down(s.drive, "raw")),
+        NewsManifest(s.manifest_folder),
+        NewsManifest(s.manifest_folder, WRAPPERS_FILE),
+    )
     trash = Trash()
     report = cleanup(s, trash, proof).run([SOURCE])
     assert trash.calls == [] and report.counts["proof_error"] == 1 and not report.ok
@@ -181,3 +190,28 @@ def test_a_poll_read_as_whole_but_with_no_articles_is_kept_not_trashed_by_an_emp
     trash = Trash()
     report = cleanup(s, trash).run([SOURCE])
     assert trash.calls == [] and report.counts["unproven"] == 1
+
+
+# ---- NP2d: a Google News article is protected until its wrapper-index row exists (judge 86) --------------------------
+
+
+def test_a_wrapper_poll_is_kept_while_its_index_row_is_missing_and_trashed_once_it_exists(tmp_path):
+    from fno.ingestion.news.article.keys import WRAPPER
+    from tests.ingestion.news.article.samples import rss, rss_item
+
+    s = Setup(tmp_path, kinds={FEED: WRAPPER})
+    link = "https://wrap.svc.example/rss/articles/CBMi0001?oc=5"
+    s.stage(rss(rss_item(title="Zzwrap", link=link, guid="g-1", source="Outlet")))
+    s.promote()
+    (s.manifest_folder / WRAPPERS_FILE).unlink()  # a torn index discarded by the commit guard
+    assert proof_for(s).promoted(staged(s)) is False  # the poll is the only way to repair it: kept
+    s.build()
+    s.promote()  # the re-run the alert asks for repairs the row
+    assert proof_for(s).promoted(staged(s)) is True
+
+
+def test_a_publisher_poll_needs_no_index_row(tmp_path):
+    s = Setup(tmp_path)
+    s.stage(rss(rss_item()))
+    s.promote()
+    assert not (s.manifest_folder / WRAPPERS_FILE).exists() and proof_for(s).promoted(staged(s)) is True

@@ -22,6 +22,7 @@ from fno.ingestion.news.feeds import PrivateFeedLists
 from fno.ingestion.news.fetcher import SOURCE as NEWS_TAG
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner
+from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
 from fno.ingestion.news.wiring import CONFIG_AREA, POLL_LOG_FOLDER
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.promotion.wiring import NSE_TAG, STAGING_AREA
@@ -78,7 +79,9 @@ def proofs(
     if NSE_TAG in wanted:
         rules[NSE_TAG] = NseCopyProof(record, ArchiveFingerprints(manifests), ArchiveRevisionHolds(archive))
     if NEWS_TAG in wanted:
-        rules[NEWS_TAG] = NewsPollProof(kinds(), ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER))
+        rules[NEWS_TAG] = NewsPollProof(
+            kinds(), ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER), NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE)
+        )
     return rules
 
 

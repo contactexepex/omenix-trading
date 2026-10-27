@@ -39,7 +39,8 @@ class ResolvePass:
     unresolved_last_day = 0  # wrapper articles on the last look-back day that the cap left out of this pass
 
     def __init__(self, record: RawFileStore, articles: NewsManifest, resolver: LinkResolver, writer: WriteOnceWriter):
-        """`record`: the Record, read only. `articles`: the articles manifest. `resolver`: ONE per run (its stop and
+        """`record`: the Record, read only. `articles`: the wrapper index (NP2d), so only Google
+        News articles are read. `resolver`: ONE per run (its stop and
         its pacing live in it). `writer`: the only way to write, with the resolved-files manifest."""
         self.record, self.articles, self.resolver, self.writer = record, articles, resolver, writer
 

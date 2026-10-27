@@ -9,6 +9,7 @@ import os
 from fno.ingestion.news.feeds import PrivateFeedLists
 from fno.ingestion.news.record.gate import NewsGate
 from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.wrapper_index import WrapperIndex
 from fno.ingestion.news.record.writer import ArticleWriter
 from fno.ingestion.news.wiring import CONFIG_AREA, POLL_LOG_FOLDER
 from fno.ingestion.promotion.staging import StagingArea
@@ -30,5 +31,7 @@ def build_news_promotion(env=os.environ) -> NewsGate:
     kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
     run_id = new_run_id(now_utc())
     store = DataStore(drive, RAW_AREA, batch_receipt_writer(run_id), WRITER, run_id)
-    writer = ArticleWriter(AreaStore(drive, RAW_AREA), store, NewsManifest(POLL_LOG_FOLDER))
+    writer = ArticleWriter(
+        AreaStore(drive, RAW_AREA), store, NewsManifest(POLL_LOG_FOLDER), WrapperIndex(POLL_LOG_FOLDER)
+    )
     return NewsGate(StagingArea(AreaStore(drive, STAGING_AREA)), writer, kinds)
