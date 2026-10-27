@@ -144,3 +144,12 @@ def test_the_report_has_no_way_to_write_and_the_workflow_is_manual_read_only_and
     assert "contents: read" in body and "contents: write" not in body
     for word in ("commit_news_record", "git push", "FNO_SLACK_BOT_TOKEN", "--apply"):
         assert word not in body, word
+
+
+def test_the_command_exits_one_when_the_report_is_not_ok(tmp_path, monkeypatch):
+    w = world(tmp_path)
+    w.drive.put(f"raw/{path_of(AS_OF.date(), 1)}", b"damaged")
+    monkeypatch.setattr("fno.ingestion.news.provenance.wiring.build_recall", lambda: RecallRun(w, w, w.index))
+    shown = []
+    assert cmd_news_recall(SimpleNamespace(as_of=AS_OF, days=14), out=shown.append) == 1
+    assert shown == ["news provenance-recall stopped, provenance_unreadable 1"]

@@ -433,6 +433,7 @@ Which feed found which article, kept in sealed files in the private Record only:
 | B14 | A damaged provenance file stops the recall report with its code. | `RecallRun.run` | `tests/ingestion/news/provenance/test_recall.py::test_a_damaged_provenance_file_stops_the_report_with_its_code` | damage uncaught | **tested, plant run** |
 | B15 | Every word the recall command prints is a fixed label or a count (no feed id, key, company or symbol), the failure line included. | `RecallReport.line` | `tests/ingestion/news/provenance/test_recall.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count` | an id in the output | **tested, plant run** |
 | B16 | The recall report has no way to write, commit or alert, and its workflow is manual and `contents: read`. | `provenance/recall.py`, `wiring.py` | `tests/ingestion/news/provenance/test_recall.py::test_the_report_has_no_way_to_write_and_the_workflow_is_manual_read_only_and_alerts_nothing` | a write in the wiring | **tested, plant run** |
+| B17 | The recall command exits 1 when its report is not clean (a damaged provenance file), 0 only for a clean count. | `cmd_news_recall` | `tests/ingestion/news/provenance/test_recall.py::test_the_command_exits_one_when_the_report_is_not_ok` | failure exits 0 | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

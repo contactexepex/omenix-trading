@@ -2116,8 +2116,8 @@
    "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_command_prints_the_lines_and_exits_zero_or_one_and_never_a_traceback"
   ],
   "file": "fno/ingestion/news/cli.py",
-  "old": "return 0 if report.ok else 1",
-  "new": "return 0"
+  "old": "report = build_comparison().run(as_of)\n        out(report.line())\n        return 0 if report.ok else 1",
+  "new": "report = build_comparison().run(as_of)\n        out(report.line())\n        return 0"
  },
  {
   "id": "J7",
@@ -2586,5 +2586,14 @@
   "file": "fno/ingestion/news/provenance/wiring.py",
   "old": "    return RecallRun(",
   "new": "    record.put(\"x\", b\"\")\n    return RecallRun("
+ },
+ {
+  "id": "B17",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_the_command_exits_one_when_the_report_is_not_ok"
+  ],
+  "file": "fno/ingestion/news/cli.py",
+  "old": "report = build_recall().run(as_of, args.days)\n        out(report.line())\n        return 0 if report.ok else 1",
+  "new": "report = build_recall().run(as_of, args.days)\n        out(report.line())\n        return 0"
  }
 ]
