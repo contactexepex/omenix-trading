@@ -225,8 +225,8 @@ def test_a_stopped_run_is_repaired_from_the_held_bytes(tmp_path):
 def test_the_earlier_file_is_strictly_earlier_never_the_same_window(tmp_path):
     world = seeded(tmp_path)
     world.cluster()
-    assert world.run_object._previous(AS_OF) == ()
-    assert len(world.run_object._previous(AS_OF + timedelta(hours=1))) == 2
+    assert world.run_object._previous_file(AS_OF) is None
+    assert len(world.run_object._previous_file(AS_OF + timedelta(hours=1)).clusters) == 2
 
 
 def test_the_cluster_file_keeps_the_assignment_order_with_the_anchor_first():

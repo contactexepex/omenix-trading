@@ -1,7 +1,7 @@
 # NP6: tiered clustering and independent origins (PLAN)
 
 PLAN for the orchestrator's check and one judge before any code. Lane 1 for the code that follows (it changes the write-once
-cluster record, adds a new algorithm-version folder, and decides what the dashboard calls "corroborated"). Plan:
+cluster record, adds a new algorithm-version folder, and decides what counts as an independent origin). Plan:
 [NP0](NP0-news-port-plan.md) section 2i, with the changes below. **This document builds nothing.** I read agentic's
 `analytics/cluster_origins.py` (all 156 lines) and the constants file; I have not read `verification_status.py`, so the
 verification status layer on top of the origin count is NOT planned here (see "Not in NP6").
@@ -64,7 +64,7 @@ If exact re-runs are ever needed, a time column in the manifest row is a separat
 ## Decisions I am making (the judge should overrule what is wrong)
 - Tag with the title only for the bar-mover, not the summary: a summary tag is `mentioned`, and a bar moved by a passing mention would merge or split
   stories on noise.
-- Origins stay out of the cluster file. Cost: a dashboard that reads a cluster must also read its members' views; benefit: editing the
+- Origins stay out of the cluster file. Cost: anything that reads a cluster must also read its members and apply the rules itself (a consumer is another repository's job, see the scope rule); benefit: editing the
   allowlist never leaves a stale count in the write-once record.
 - Version `2` runs in a new folder beside version 1, nothing deleted or rewritten. The workflow stays dispatch-only until NP7 (cutover).
 

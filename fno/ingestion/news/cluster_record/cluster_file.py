@@ -70,6 +70,7 @@ def cluster_file_bytes(clustering: Clustering) -> bytes:
     if document["format"] == FORMAT_2:
         document |= {
             "companies_version": clustering.companies_version,
+            "companies_sha256": clustering.companies_sha256,
             "resolutions_used": clustering.resolutions_used,
             "url_joins": clustering.url_joins,
             "url_joins_refused": clustering.url_joins_refused,
@@ -84,6 +85,8 @@ class ClusterFile:
     window_end: datetime
     window_hours: int
     clusters: tuple[Cluster, ...]
+    companies_version: int = 0  # format 2 files; 0 for format 1 and for a run that had no list
+    companies_sha256: str = ""
 
 
 def parse_cluster_file(data: bytes) -> ClusterFile:
@@ -97,6 +100,9 @@ def parse_cluster_file(data: bytes) -> ClusterFile:
         )
         if document["format"] not in FORMATS or end is None:
             raise ValueError("unknown format")
-        return ClusterFile(document["algorithm_version"], end, int(document["window_hours"]), clusters)
+        return ClusterFile(
+            document["algorithm_version"], end, int(document["window_hours"]), clusters,
+            int(document.get("companies_version", 0)), str(document.get("companies_sha256", "")),
+        )  # fmt: skip
     except (KeyError, TypeError, AttributeError, UnicodeDecodeError) as broken:
         raise ValueError("not a cluster file") from broken

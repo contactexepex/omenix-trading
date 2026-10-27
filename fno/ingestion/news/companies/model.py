@@ -29,6 +29,7 @@ class Company:
 class CompanyList:
     version: int
     companies: tuple[Company, ...]
+    sha256: str = ""  # of the bytes the list was read from ("" when the source cannot say)
 
 
 class CompanyListSource(ABC):

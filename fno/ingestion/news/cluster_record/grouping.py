@@ -23,6 +23,7 @@ from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.article.keys import WRAPPER
 from fno.ingestion.news.cluster.prepare import GROUPER_VERSION, Preparer
 from fno.ingestion.news.cluster.window import in_window
+from fno.ingestion.news.cluster_record.cluster_file import ClusterFile
 from fno.ingestion.news.companies.model import CompanyList, CompanyListSource
 from fno.ingestion.news.companies.parse import CompanyListError
 from fno.ingestion.news.resolve.resolution_file import Resolution, parse_resolution, resolution_path
@@ -40,6 +41,7 @@ class GroupingInputs:
     preparer: Preparer
     companies_version: int
     resolutions_used: int
+    companies_sha256: str = ""
 
 
 class SymbolGrouping:
@@ -48,21 +50,26 @@ class SymbolGrouping:
     def __init__(self, companies: CompanyListSource, record: RawFileStore):
         self.companies, self.record = companies, record
 
-    def inputs(self, articles: tuple[Article, ...], as_of: datetime) -> GroupingInputs:
-        companies = self._company_list()
+    def inputs(
+        self, articles: tuple[Article, ...], as_of: datetime, previous: ClusterFile | None = None
+    ) -> GroupingInputs:
+        """`previous`: the latest earlier file of this version; its list is not to be gone behind or found changed."""
+        companies = self._company_list(previous)
         resolutions = self._resolutions(articles, as_of)
         tagger = Tagger(NameDictionary(companies))
-        return GroupingInputs(Preparer(tagger, resolutions), companies.version, len(resolutions))
+        return GroupingInputs(Preparer(tagger, resolutions), companies.version, len(resolutions), companies.sha256)
 
-    def _company_list(self) -> CompanyList:
+    def _company_list(self, previous: ClusterFile | None) -> CompanyList:
         try:
-            return self.companies.companies()
+            companies = self.companies.companies()
         except CompanyListError as refused:
-            if str(refused) == codes.COMPANY_LIST_MISSING:
-                return CompanyList(0, ())
-            raise GroupingBlocked(str(refused)) from None
+            if str(refused) == codes.COMPANY_LIST_MISSING and not (previous and previous.companies_version):
+                return CompanyList(0, ())  # no list was ever used: version 0, no bar moves
+            raise GroupingBlocked(str(refused)) from None  # a list used before is gone: a stop, not version 0
         except Exception:  # noqa: BLE001 - a store error may name a path; only the code is kept
             raise GroupingBlocked(codes.COMPANY_LIST_UNAVAILABLE) from None
+        _refuse_going_behind(companies, previous)
+        return companies
 
     def _resolutions(self, articles: tuple[Article, ...], as_of: datetime) -> dict[str, Resolution]:
         found = {}
@@ -76,3 +83,17 @@ class SymbolGrouping:
             except Exception:  # noqa: BLE001 - a damaged file or a store error: one code, nothing named
                 raise GroupingBlocked(codes.RESOLUTION_UNREADABLE) from None
         return found
+
+
+def _refuse_going_behind(companies: CompanyList, previous: ClusterFile | None) -> None:
+    """The list this run reads against the one the last file used (NP7b; judge 100 N4, judge 101 B1).
+
+    An older version is a rollback, and the same version with other bytes is a list edited in place (a version number
+    alone would not show it). A newer version is simply a new list. Nothing to compare with before the first file, or
+    after a run with no list."""
+    if previous is None or not previous.companies_version:
+        return
+    if companies.version < previous.companies_version:
+        raise GroupingBlocked(codes.COMPANY_LIST_ROLLED_BACK)
+    if companies.version == previous.companies_version and companies.sha256 != previous.companies_sha256:
+        raise GroupingBlocked(codes.COMPANY_LIST_DAMAGED)
