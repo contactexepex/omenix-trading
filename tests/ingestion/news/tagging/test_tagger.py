@@ -111,3 +111,8 @@ def test_a_dictionary_is_built_from_the_injected_list_and_never_names_a_company_
 def test_an_exclusion_that_is_no_longer_safe_is_dropped_not_fatal(bad):
     company = Company("ZZXX", "Zzxx", exclusions=(bad,))
     assert Tagger(NameDictionary(CompanyList(1, (company,)))).tag("Zzxx rises").primary == ("ZZXX",)
+
+
+def test_hits_never_looks_past_the_cap_even_when_called_directly():
+    assert TAGGER.hits("x " * (MAX_TEXT // 2) + "Zzdelta rises") == []
+    assert [h.symbol for h in TAGGER.hits("Zzdelta rises")] == ["ZZDE"]
