@@ -40,7 +40,7 @@ class Fingerprints:
 
 
 class RecordRows:
-    """A manifest that has a row for every Record file, with that file's own SHA-256 (the normal, fully promoted state)."""
+    """A manifest with a row for every Record file holding that file's own SHA-256 (the fully promoted state)."""
 
     def __init__(self, record: AreaStore):
         self.record = record

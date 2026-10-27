@@ -139,3 +139,18 @@ def test_only_a_poll_folder_is_ever_judged(tmp_path, path):
     trash = Trash()
     cleanup(s, trash).run([SOURCE])
     assert trash.calls and all(call[1].endswith("/poll") for call in trash.calls)
+
+
+def test_an_unknown_feed_is_refused_before_the_poll_is_even_parsed(tmp_path, monkeypatch):
+    from fno.ingestion.staging_cleanup import news_proof
+
+    def must_not_parse(*args, **kwargs):
+        raise AssertionError("an unknown feed's poll was parsed")
+
+    monkeypatch.setattr(news_proof, "read_poll", must_not_parse)
+    s = Setup(tmp_path)
+    s.stage(rss(rss_item()))
+    s.promote()
+    trash = Trash()
+    cleanup(s, trash, proof_for(s, kinds={})).run([SOURCE])
+    assert trash.calls == []
