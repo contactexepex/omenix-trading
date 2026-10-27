@@ -13,7 +13,9 @@ This repository holds all the configuration and code of the ingestion pipeline a
 (resolve, read, tag, cluster, corroborate), store write-once to Google Drive with receipts.** It has **no consumer, API or dashboard
 functionality**: no read or view contract, no knowledge of a dashboard's fields, no shaping of data for presentation. A consumer is a
 separate repository that reads the Drive Record and the public rules itself. When a plan or a change would define what a consumer reads,
-stop and take it to the owner instead. Every story, builder and judge honours this boundary.
+stop and take it to the owner instead. "Derive" means derivation that a pipeline step uses or that is archived write-once to the Record;
+derivation code with no pipeline caller and no archive is not justified by this rule and falls under the no-dead-code standard (give it a
+caller or remove it). Every story, builder and judge honours this boundary.
 
 ## How to work with the owner (always)
 
