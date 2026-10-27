@@ -116,3 +116,26 @@ stops the run. This is low risk and not blocking.
 **Verdict: FAIL** on `321faad`, on S3 (tests only) and S4 (code plus test). These are round-1 findings that crossed
 the freeze, so whether `321faad` counts as round 2 is the orchestrator's call. A SHA that adds S3 and S4 alone gets a
 quick review from me.
+
+## Addendum 3: 8d91634 (S4 resolved by judge #1's B; S3 still open; FAIL)
+
+SHA `8d91634a0556b6a02ded7e45af8846878528fe68`. **Gates** (`__pycache__` cleared): 760 passed; ruff, format, imports
+and size clean.
+
+**S4: resolved.** The manifest now appends through `CsvRowLog`. The gate calls `check_appendable` before any write,
+so a torn last line stops the run with `manifest_broken` and the owner trims it by hand. A row that is not whole (5
+fields, a known status, a 64-hex SHA, an integer size) is skipped and counted as `manifest_row_skipped`, which makes
+the run not clean, and the missing-row repair re-adds it. I re-ran my reproduction on this SHA:
+- torn inside the id, or inside the SHA, with no trailing newline: `TableFileBroken`, and the file is unchanged;
+- the same lines ending in a newline: `manifest_row_skipped 1` and the row is repaired.
+
+That is loud and recoverable, not my suggested automatic trim. Both are safe, and I accept judge #1's ruling.
+Plants: the gate's check removed (2 failed), the SHA check in `_whole` removed (1), skipped rows not reported (1),
+the check removed from `add` (1).
+
+**S3: still open.** `news-promote.yml` is unchanged, and A16 (commit only when promote succeeded) leaves all 760
+green. Needed: a workflow test that the promote step has `continue-on-error: true` and the commit step has no outcome
+condition.
+
+**Verdict: FAIL** on `8d91634`, on S3 only (tests only). Everything else is MET. A SHA that adds the S3 test is a
+PASS from me if nothing else changes.
