@@ -19,8 +19,17 @@ terms of that moment, with the NP5b `ArticleViewer` and the NP6b `corroborate`. 
 write-once in Drive) and is never edited; the next run writes the next snapshot, so a rule edit shows from the next file, not in an old one.
 - **Header:** `format`, `window_end`, the cluster algorithm version, `companies_version`, `materiality_version`, `rules_sha256` (SHA-256 of
   `config/news_sources.yaml`, so the count in a file names the rules it came from; this is the `rules_version` NP6b left to the caller),
-  counts, and the cluster file's own path.
-- **Per cluster** (only clusters with at least one article tagged to a company, primary or mentioned; the rest stay in the cluster file):
+  counts (including `clusters_dropped`, see "Which clusters" below), the cluster file's own path, and `view_rules_version` (a constant for the
+  judgement code: a code change can alter the output with no file version changing, judge 101 recommended 1). A git SHA is NOT used for it: it
+  would make a re-run of a closed window after any unrelated deploy a write-once conflict. Instead a test hashes the source of the judgement modules
+  and fails when it differs from the digest recorded beside the constant, so a change to them forces a deliberate bump (reasoning only: the
+  judge may prefer another mechanism).
+- **Which clusters (owner decision, judge 101 recommended 2).** Option A (the default of this plan): only clusters with at least one article tagged
+  to a company, primary or mentioned. Cost: market-wide news (a rate decision, crude, FII flows) drops out unless an index alias catches it.
+  Option B: A plus clusters that name an index or a market-wide term (the owner writes the terms). Option C: every cluster (the size above).
+  Under A or B an empty company list (`companies_version` 0) would make an empty view, so the view command STOPS with `company_list_missing`
+  instead; and the header reports `clusters_dropped`, so a loss is counted, never silent.
+- **Per cluster:**
   `cluster_id`, `independent_origins`, `unverified_origins`, `flags`, `reads_used`, and its members. **Per member:** `key`, `title`, `summary`
   (the feed's snippet, plain text, capped), `url` (the effective source URL or ""), `outlet`, `tier`, `listed`, `opinion`, `wire`, `wire_via`,
   `promotional`, `tag` (primary, mentioned, confidence), `material`, `access`, `published_at`, `first_seen_at`.
@@ -37,22 +46,32 @@ write-once in Drive) and is never edited; the next run writes the next snapshot,
 - **Dispatch-only workflow** `news-views.yml` (new, same `news-record` concurrency group, counts-only output), like every other NP workflow
   until the owner enables schedules.
 
-## NP7b: the company-list rollback rule (N4, from judge 100)
-`PrivateCompanyFile` is built with `lowest_version=0`, so a run would accept an OLDER list than the one it used before (someone replacing
-`companies-v3.json` by a v2 copy) and silently regroup. Fix: the version 2 cluster run reads the previous file's `companies_version` (it already
-reads that file for `previous`) and builds the list reader with it as `lowest_version`; an older list stops the run with the existing
-`company_list_rolled_back` code. The view command does the same with the cluster file's version. Same rule for `materiality_version` in the
-view header. Not planned: a hash of the list bytes per file (a damaged list is already refused; tamper detection beyond that is not asked for).
-Lane 1 (the same code path as Z6), small.
+## NP7b: the company-list rollback and edit rule (N4, from judge 100; B1 of judge 101)
+`PrivateCompanyFile` is built with `lowest_version=0` and no `used`, so a run would accept an OLDER list than the one it used before, and
+would not notice a list EDITED IN PLACE under the same version number (`VersionedFiles.latest` detects an edit only through
+`used={version: sha}`). Fix, in two parts:
+1. The version 2 cluster file records `companies_sha256` beside `companies_version` (the SHA-256 of the list bytes; it sits in the private
+   Drive file, never in git or a log). The run reads the previous file (it already does, for `previous`) and builds the list reader with
+   `lowest_version` = that `companies_version` and `used={companies_version: companies_sha256}`. An older list stops the run with
+   `company_list_rolled_back`; a list whose bytes differ from the recorded ones stops it with `company_list_damaged`. `PrivateCompanyFile.companies`
+   also refuses when `latest` skipped a damaged newer version (`Picked.damaged` non-empty) instead of quietly using the older one.
+2. The same for `materiality_version` and `materiality_sha256` in the view header (NP7a), and for the company list the view command reads.
+The first v2 file has no previous one, so it only records. Adding `companies_sha256` changes format 2, which no file uses yet (version 2 has
+not been dispatched); the NP6a row Z15 and the parser are updated with it. Lane 1 (the same code path as Z6), small.
 
 ## NP7c: the cutover (mostly documents and owner decisions)
 1. **A gate list the owner checks before any schedule is enabled** (a runbook section in `docs/NEWS_VIEW_CONTRACT.md` or its own page, whichever
    keeps one owner per fact): the outlet and resolver probes ran from a runner and their counts are acceptable; the resolve and read passes
-   ran with `resolver_failing` and `reader_failing` not red; a company list, a materiality file and a discovery file exist (private); the
+   ran with `resolver_failing` and `reader_failing` not red; the scheduled `data-cache sync --unreceipted raw/news` check exists and ran clean
+   (judge 62 F-a: nothing runs it today, so a Record file with no receipt would pass silently); a company list, a materiality file and a discovery file exist (private); the
    version 1 against version 2 clustering comparison (NP3c below) was reviewed, including `url_joins_unlike_title`; a view file was written
    and its size and run time were reported.
-2. **Order of enabling** (each a lane 1 workflow change, one at a time, the owner's go): resolve, read-pages, then the cluster run with
-   algorithm 2, then views. The first scheduled run of each is watched. Groww's market-hours rule is untouched (none of these call Groww).
+2. **Order of enabling (judge 101 B2).** Every news workflow, including fetch and promote, is dispatch-only on main today
+   (`news-fetch`, `news-promote`, `news-resolve`, `news-read-pages`, `news-cluster`, `news-probe-outlets` have no schedule), so nothing flows
+   until the owner enables them, and a later stage reads what an earlier one wrote. The order, each step a lane 1 workflow change at the owner's go,
+   one at a time, each first run watched: **fetch, promote, resolve, read-pages, cluster (algorithm 2), views, then staging cleanup**
+   (`staging-cleanup.yml`: report only first, apply only after the owner reads the report). Groww's market-hours rule is untouched (none of
+   these call Groww).
 3. **Retire omenix's old pieces, only after the owner switches to version 2:** the scheduled version 1 cluster run stops; the version 1 files
    stay forever (write-once) and `parse_cluster_file` keeps reading them. `cluster/entities.py` and the version 1 preparer can then be deleted
    (lane 1, with the removal proven by a test that old files still parse). Until then nothing is removed.
@@ -70,8 +89,8 @@ further here.
 ## Decisions I am making (the judge should overrule what is wrong)
 - A derived snapshot file, not a read library for consumers: one implementation of the rules, plain JSON for the reader. Cost: a file per run
   and a snapshot that is only as fresh as the last run.
-- Company-tagged clusters only in the view file. Cost: an untagged story is not on the dashboard until a company alias catches it (the aliases
-  are the owner's list).
+- Company-tagged clusters only (option A) as the default, with B and C named for the owner. Cost: an untagged story is not on the dashboard
+  until a company alias catches it (the aliases are the owner's list).
 - `url_joins_unlike_title` and the URL rule are not touched until the measurement (agreed with the orchestrator).
 
 ## Said plainly
@@ -80,6 +99,10 @@ further here.
 - Nothing in NP1 to NP7 has run against real feeds: no outlet probe, no resolver call, no page read, no company list exists yet. Every rate,
   size and run-time figure here is reasoning only until the owner dispatches the first runs.
 - The privacy line holds: view files are in the private Drive; no title, URL, symbol or company name is written to git or a log.
+
+## Judge 101 round 1: accepted after checking the code
+B1 (`versioned.py` detects an in-place edit only through `used`, confirmed by reading `latest`), B2 (confirmed: none of the six news workflows has a
+`schedule:`), and both recommendations. Changes are in NP7a (header, which clusters), NP7b and NP7c above.
 
 ## Contract rows planned (new section "The news view file (NP7)")
 V-series is taken; the rows will use the next free letter. Planned claims: the file is built only from the named inputs and carries their versions;
