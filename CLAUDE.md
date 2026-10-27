@@ -7,10 +7,10 @@ or store broker credentials in files. The Python package is `fno`, split into `f
 constants, HTTP pacing, the record scan and other building blocks) and `fno/ingestion/` (the fetch workflows, their
 providers, storage and CLI).
 
-## Scope: data ingestion only (owner, 27 Oct 2026; strict and durable)
+## Scope: data ingestion only (owner decision, 27 Oct 2026, relayed by the orchestrator; the owner's own words are to be quoted in `conversations/2026-10-27.md`; strict and durable)
 
 This repository holds all the configuration and code of the ingestion pipeline and nothing beyond it: **fetch from sources, derive
-(resolve, read, tag, cluster, corroborate), store write-once to Google Drive with receipts.** It has **no consumer, API or dashboard
+(resolve, read, tag, cluster), store write-once to Google Drive with receipts.** It has **no consumer, API or dashboard
 functionality**: no read or view contract, no knowledge of a dashboard's fields, no shaping of data for presentation. A consumer is a
 separate repository that reads the Drive Record and the public rules itself. When a plan or a change would define what a consumer reads,
 stop and take it to the owner instead. "Derive" means derivation that a pipeline step uses or that is archived write-once to the Record;
