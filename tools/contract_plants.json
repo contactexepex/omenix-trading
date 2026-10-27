@@ -1,0 +1,271 @@
+[
+ {
+  "id": "W0",
+  "tests": [
+   "tests/characterization/test_drive_behaviour.py::test_the_same_bytes_again_change_nothing_and_different_bytes_conflict"
+  ],
+  "file": "fno/ingestion/storage/google_drive_upload.py",
+  "old": "                raise RawFileConflict(f\"{path} already exists in Drive with different content\")",
+  "new": "                pass"
+ },
+ {
+  "id": "W1",
+  "tests": [
+   "tests/ingestion/test_raw_store.py::test_same_bytes_again_is_noop",
+   "tests/ingestion/test_raw_store.py::test_different_bytes_refused"
+  ],
+  "file": "fno/ingestion/storage/raw_store.py",
+  "old": "                raise RawFileConflict(f\"{path} already exists with different content\")",
+  "new": "                pass"
+ },
+ {
+  "id": "W2",
+  "tests": [
+   "tests/ingestion/test_raw_store.py::test_no_partial_file_left_under_real_name"
+  ],
+  "file": "fno/ingestion/storage/raw_store.py",
+  "old": "        temporary = file.with_name(f\".{file.name}.part\")\n        temporary.write_bytes(data)\n        temporary.replace(file)  # never leaves a half-written file under the real name",
+  "new": "        file.write_bytes(data)"
+ },
+ {
+  "id": "W3",
+  "tests": [
+   "tests/ingestion/test_drive_resilience.py::test_data_put_writes_no_receipt_for_a_file_that_was_not_confirmed"
+  ],
+  "file": "fno/ingestion/storage/data_store.py",
+  "old": "        self.drive.put(drive_path, data)\n",
+  "new": "        try:\n            self.drive.put(drive_path, data)\n        except Exception:\n            pass\n"
+ },
+ {
+  "id": "W4",
+  "tests": [
+   "tests/ingestion/test_drive_cache.py::test_data_store_rejects_same_path_different_bytes"
+  ],
+  "file": "fno/ingestion/storage/receipts.py",
+  "old": "            if existing.sha256 != receipt.sha256:\n                raise RawFileConflict(f\"{receipt.path} already has a receipt with a different SHA-256\")",
+  "new": "            pass"
+ },
+ {
+  "id": "W5",
+  "tests": [
+   "tests/ingestion/test_drive_cache.py::test_sync_reports_damaged_bytes",
+   "tests/ingestion/test_drive_cache.py::test_sync_reports_missing_drive_file"
+  ],
+  "file": "fno/ingestion/storage/drive_cache.py",
+  "old": "            elif _sha256(data) != receipt.sha256:\n                report.problems.append(DAMAGED.format(path=receipt.path))",
+  "new": "            elif False:\n                report.problems.append(DAMAGED.format(path=receipt.path))"
+ },
+ {
+  "id": "W6",
+  "tests": [
+   "tests/ingestion/test_drive_resilience.py::test_archive_put_writes_no_manifest_row_for_a_file_that_was_not_confirmed"
+  ],
+  "file": "fno/ingestion/storage/manifest_folder.py",
+  "old": "        self.store.put(path, data)\n        self.manifests.record(source, Fingerprint.of(source, path, data))",
+  "new": "        self.manifests.record(source, Fingerprint.of(source, path, data))\n        self.store.put(path, data)"
+ },
+ {
+  "id": "G1",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_the_earliest_passing_copy_becomes_the_record_not_the_newest"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "held, verdict = passing[0].data, Verdict.PROMOTED",
+  "new": "held, verdict = passing[-1].data, Verdict.PROMOTED"
+ },
+ {
+  "id": "G2",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_a_later_passing_version_goes_to_the_revision_sink_with_its_fetch_time"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "later = [copy for copy in passing if copy.data != held]",
+  "new": "later = []"
+ },
+ {
+  "id": "G3",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_garbage_never_reaches_the_record_and_stays_in_staging",
+   "tests/ingestion/promotion/test_gate.py::test_a_non_session_day_is_never_promoted",
+   "tests/ingestion/promotion/test_gate.py::test_a_day_before_the_archive_starts_is_never_promoted",
+   "tests/ingestion/promotion/test_gate.py::test_a_day_with_a_sourced_exception_is_never_promoted"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "problems = [reason for check in self.checks if (reason := check.problem(Candidate(copy, day, filename)))]",
+  "new": "problems = []"
+ },
+ {
+  "id": "G4",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_a_record_written_elsewhere_is_never_overwritten_and_a_differing_staged_copy_is_a_revision"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "        held = self.record.get(path)\n",
+  "new": "        held = None\n"
+ },
+ {
+  "id": "G5",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_promoting_twice_is_idempotent_and_keeps_each_version_once",
+   "tests/ingestion/promotion/test_gate.py::test_a_held_file_no_passing_copy_proves_is_not_saved_again"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "if any(copy.data == held for copy in passing) or verdict is Verdict.PROMOTED:",
+  "new": "if True:"
+ },
+ {
+  "id": "G6",
+  "tests": [
+   "tests/ingestion/promotion/test_gate.py::test_a_manifest_that_disagrees_is_a_conflict_problem_not_a_crash"
+  ],
+  "file": "fno/ingestion/promotion/gate.py",
+  "old": "        except RawFileConflict as conflict:\n            return Promotion(path, Verdict.CONFLICT, (str(conflict),))",
+  "new": "        except ZeroDivisionError as conflict:\n            return Promotion(path, Verdict.CONFLICT, (str(conflict),))"
+ },
+ {
+  "id": "G7",
+  "tests": [
+   "tests/ingestion/promotion/test_design_rules.py::test_only_the_staging_area_and_the_gate_reference_put"
+  ],
+  "file": "fno/ingestion/promotion/runs.py",
+  "old": "        report = PromotionReport(self.source.dataset)\n",
+  "new": "        report = PromotionReport(self.source.dataset)\n        self.gate.record.put\n"
+ },
+ {
+  "id": "G8",
+  "tests": [
+   "tests/ingestion/promotion/test_design_rules.py::test_the_stager_can_only_be_given_a_staging_area_never_a_store_or_a_gate",
+   "tests/ingestion/promotion/test_runs.py::test_a_stager_cannot_be_given_a_record_store"
+  ],
+  "file": "fno/ingestion/promotion/runs.py",
+  "old": "        if not isinstance(staging, StagingArea):  # the fetcher can hold Staging and nothing else\n            raise TypeError(f\"a Stager writes only to a StagingArea, not {type(staging).__name__}\")\n",
+  "new": ""
+ },
+ {
+  "id": "S1",
+  "tests": [
+   "tests/ingestion/promotion/test_staging.py::test_same_bytes_again_is_not_a_second_copy",
+   "tests/ingestion/promotion/test_staging.py::test_newer_fetch_is_a_new_copy_listed_after_the_old_one_which_stays"
+  ],
+  "file": "fno/ingestion/promotion/staging.py",
+  "old": "        if latest and latest.data == data:\n            return False\n",
+  "new": ""
+ },
+ {
+  "id": "R1",
+  "tests": [
+   "tests/ingestion/promotion/test_revision_sink.py::test_a_later_staged_version_is_saved_in_the_revisions_area_with_an_index_row"
+  ],
+  "file": "fno/ingestion/promotion/revision_sink.py",
+  "old": "        return self.archive.capture(path, PublishedFile(data, None), found_at) is not None",
+  "new": "        return False"
+ },
+ {
+  "id": "P1",
+  "tests": [
+   "tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record",
+   "tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record",
+   "tests/shared/test_record_scan.py::test_broker_field_and_email_flagged"
+  ],
+  "file": "fno/shared/record_scan/scanner.py",
+  "old": "    def scan_text(self, path: str, text: str, is_code: bool = False) -> list[Finding]:\n",
+  "new": "    def scan_text(self, path: str, text: str, is_code: bool = False) -> list[Finding]:\n        return []\n"
+ },
+ {
+  "id": "N1",
+  "tests": [
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_a_new_article_is_recorded_with_a_manifest_row_and_a_receipt",
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_running_the_same_range_again_is_all_no_ops_and_writes_nothing_new"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        if _fixed(held) is not None and _fixed(held) == _fixed(data):\n            self._document(path, held, day, article.key, RECORDED)\n            return Outcome.NO_OP",
+  "new": "        if False:\n            return Outcome.NO_OP"
+ },
+ {
+  "id": "N2",
+  "tests": [
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_a_changed_article_keeps_the_first_file_and_writes_one_revision_once",
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_a_revision_has_its_own_manifest_row_and_receipt_at_once"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        self._save(path, data, day, article.key, REVISION)\n        self.held[path] = data\n        return Outcome.REVISION",
+  "new": "        self.store.put(path, data)\n        self.held[path] = data\n        return Outcome.REVISION"
+ },
+ {
+  "id": "N3",
+  "tests": [
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_drive_failing_writes_no_manifest_row_and_is_counted_by_code"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        self.store.put(path, data)\n        self.manifest.add(day, key, status, hashlib.sha256(data).hexdigest(), len(data))",
+  "new": "        self.manifest.add(day, key, status, hashlib.sha256(data).hexdigest(), len(data))\n        self.store.put(path, data)"
+ },
+ {
+  "id": "N4",
+  "tests": [
+   "tests/ingestion/news/record/test_writer_and_gate.py::test_a_torn_manifest_line_is_never_glued_onto_and_stops_the_run_before_any_write"
+  ],
+  "file": "fno/ingestion/news/record/gate.py",
+  "old": "        self.writer.manifest.check_appendable()",
+  "new": "        pass"
+ },
+ {
+  "id": "N5",
+  "tests": [
+   "tests/ingestion/news/record/test_privacy_cli_workflow.py::test_no_title_url_or_query_reaches_the_manifest_receipts_or_the_report",
+   "tests/ingestion/news/cluster_record/test_reader_wiring_privacy_cli.py::test_nothing_of_a_story_reaches_the_cluster_file_manifest_receipts_report_logs_or_alert"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        path, data = article_path(article.key), article.to_bytes()\n",
+  "new": "        path, data = article_path(article.key), article.to_bytes()\n        import logging\n        logging.getLogger('x').debug(article.title)\n"
+ },
+ {
+  "id": "C1",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_write_and_run.py::test_other_bytes_for_a_closed_window_are_a_conflict_and_nothing_is_overwritten",
+   "tests/ingestion/news/cluster_record/test_write_and_run.py::test_the_writer_itself_refuses_to_overwrite_even_if_the_store_would"
+  ],
+  "file": "fno/ingestion/news/cluster_record/writer.py",
+  "old": "        if held is not None and held != data:\n            raise RawFileConflict(f\"{path}: the file exists with other bytes\")",
+  "new": "        pass"
+ },
+ {
+  "id": "C2",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_write_and_run.py::test_clusters_that_do_not_account_for_the_articles_write_nothing",
+   "tests/ingestion/news/cluster_record/test_write_and_run.py::test_an_article_in_two_clusters_or_a_made_up_member_write_nothing_even_when_the_counts_still_add_up"
+  ],
+  "file": "fno/ingestion/news/cluster_record/run.py",
+  "old": "        if not reconciles(clustering, found.articles):\n            report.reject(codes.CLUSTER_NOT_RECONCILED)",
+  "new": "        pass"
+ },
+ {
+  "id": "K1",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_torn_manifest_never_reaches_main_but_the_receipts_do_and_the_run_is_red",
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_pull_that_fails_makes_the_step_fail_instead_of_ending_green"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "if python -m fno news check-manifest \"$(dirname \"$MANIFEST\")\" --file \"$(basename \"$MANIFEST\")\"; then",
+  "new": "if true; then"
+ },
+ {
+  "id": "K2",
+  "tests": [
+   "tests/ingestion/commit_failure/test_callers.py",
+   "tests/ingestion/commit_failure/test_helper_and_markers.py"
+  ],
+  "file": "fno/ingestion/storage/manifest_commit.py",
+  "old": "    if not any(commit_failed(line) for line in lines):\n        return code",
+  "new": "    return code"
+ },
+ {
+  "id": "K3",
+  "tests": [
+   "tests/test_no_masked_pull_push.py"
+  ],
+  "file": ".github/workflows/news-fetch.yml",
+  "old": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n",
+  "new": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n          echo masked\n"
+ }
+]
