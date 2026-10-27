@@ -7,7 +7,7 @@ from __future__ import annotations
 from fno.ingestion.news.article.article_file import build_article
 from fno.ingestion.news.article.keys import PUBLISHER, WRAPPER, item_key
 from fno.ingestion.news.article.raw_item import RawItem
-from fno.ingestion.news.text_rules import without_outlet
+from fno.ingestion.news.text_rules import fold, without_outlet
 from tests.ingestion.news.article.samples import SEEN as SEEN_AT
 
 LINK = "https://news.example/rss/articles/abc"
@@ -60,3 +60,10 @@ def test_a_stored_title_is_never_emptied_by_the_cut():
     assert without_outlet("- Daily Ledger", "Daily Ledger") == ""  # the helper itself; build_article guards it
     article = build_article(WRAPPER, wrapper("- Daily Ledger"), SEEN_AT)
     assert article.title == "- Daily Ledger"
+
+
+def test_a_no_break_space_folds_to_a_plain_space_so_it_cannot_hide_the_outlet():
+    assert fold("a b") == "a b" and fold("Acme’s") == "Acme's"
+    assert without_outlet("Rates rise - Daily Ledger", "Daily Ledger") == "Rates rise"
+    article = build_article(WRAPPER, wrapper("Rates rise - Daily Ledger"), SEEN_AT)
+    assert article.title == "Rates rise"

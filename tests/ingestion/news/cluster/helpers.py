@@ -20,10 +20,15 @@ def at(hours_before: float) -> str:
 
 
 def art(
-    key: str, title: str, published: str | None = None, seen: str | None = None, kind: str = "publisher"
+    key: str,
+    title: str,
+    published: str | None = None,
+    seen: str | None = None,
+    kind: str = "publisher",
+    source: str = "Outlet",
 ) -> Article:
     published = at(3) if published is None else published
-    return Article(key, kind, "Outlet", title, "summary", "", published, "published" if published else "seen",
+    return Article(key, kind, source, title, "summary", "", published, "published" if published else "seen",
                    seen or published or at(3))  # fmt: skip
 
 

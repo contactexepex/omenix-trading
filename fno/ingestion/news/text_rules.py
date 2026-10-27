@@ -5,7 +5,7 @@ revisions). It lives here, not in `tagging/`, so that tuning the tagger can neve
 
 from __future__ import annotations
 
-_QUOTES = str.maketrans({"’": "'", "‘": "'", " ": " "})
+_QUOTES = str.maketrans({"’": "'", "‘": "'", "\u00a0": " "})
 _SEPARATORS = " -–—|"
 
 

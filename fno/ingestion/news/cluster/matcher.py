@@ -30,7 +30,7 @@ class Prepared:
 
     @classmethod
     def of(cls, article: Article) -> Prepared:
-        form = title_form(article.title)
+        form = title_form(article.title, article.source)
         return cls(article, shingles(form), entities_in(form), story_time(article))
 
     @property

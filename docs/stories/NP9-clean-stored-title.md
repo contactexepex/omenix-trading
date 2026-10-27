@@ -69,3 +69,15 @@ two judges for the code after the plan passes.
   for the tagger, and `build_article` guards it with `... or title`, so a title the cut would empty is stored as given.
 - **Match (judge 1 suggestion):** compare `fold(title)[-len(name):]` to the name case-insensitively, not `.lower()` on the whole title.
 - Rows F14, F15, F15b, F16, F17 with plants; T16 and T17 re-pointed to `text_rules.py` (T17 follows the new match line).
+
+## Code judges, round 1 (judge 115, judge 116) and the fixes
+
+- **Judge 116 B1 (my regression in the move):** `_QUOTES` lost its U+00A0 entry (a no-break space typed as a plain space). Fixed with
+  the escape `" "`; row F20 with a plant; a test with a no-break space inside the outlet tail.
+- **Judge 115 B1 (an interaction I missed):** `cluster/title_text.py` cut the last " - ..." of every title with a blind heuristic
+  made for titles that still carried an outlet; on clean titles it ate real text ("Q2 results - profit rises 20%" and "... profit
+  falls 5%" became one form and merged). Fixed by using the shared `without_outlet(title, article.source)`: only a tail that IS the
+  outlet the feed named is cut. This changes the clustering algorithm (versions 1 and 2 share `title_form`); no cluster files exist
+  yet (the Record is empty). Cost, said plainly (reasoning only): a publisher item whose feed names no `source` keeps a trailing
+  " - Outlet" in its form, so a wrapper/publisher pair of one story scores a little lower; `news compare-clusterings` measures it on
+  real data. Rows F18 and F19 with plants. The parked-code note on agency wrappers (judge 115 N1) is moot: DEL1 deletes that code.

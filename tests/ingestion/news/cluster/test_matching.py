@@ -19,20 +19,33 @@ def test_the_same_key_is_the_same_story_whatever_the_titles_and_the_distance_in_
 
 def test_a_wrapper_copy_and_its_publisher_copy_of_one_story_are_one_cluster():
     publisher = art("p1", "Nifty ends higher as IT stocks rally", at(3))
-    wrapper = art("g1", "Nifty ends higher as IT stocks rally - Economic Times", at(2.9), kind="wrapper")
+    wrapper = art(
+        "g1", "Nifty ends higher as IT stocks rally - Economic Times", at(2.9), kind="wrapper", source="Economic Times"
+    )
     assert keys_of(cluster_articles([wrapper, publisher], AS_OF)) == [("p1", "g1")]
 
 
-def test_the_title_form_drops_case_punctuation_and_a_trailing_outlet_name():
+def test_the_title_form_drops_case_punctuation_and_the_outlet_name_the_feed_gave():
     assert (
-        title_form("Nifty Ends Higher, as IT Stocks Rally! - The Economic Times")
+        title_form("Nifty Ends Higher, as IT Stocks Rally! - The Economic Times", "The Economic Times")
         == "nifty ends higher as it stocks rally"
     )
-    assert title_form("Sensex | Live Updates | Moneycontrol") == "sensex live updates"  # only the last segment goes
-    assert title_form("Budget - Live") == "budget live"  # too short to trim: "Live" is not an outlet name
-    assert title_form("RBI holds rates - what it means for the loan market today and next week") == (
+    assert title_form("Sensex | Live Updates | Moneycontrol", "Moneycontrol") == "sensex live updates"  # only that tail
+    assert title_form("Sensex | Live Updates | Moneycontrol") == "sensex live updates moneycontrol"  # no source: no cut
+    assert title_form("RBI holds rates - what it means for the loan market today and next week", "Outlet") == (
         "rbi holds rates what it means for the loan market today and next week"
-    )  # a long tail is part of the headline
+    )  # a tail that is not the outlet is part of the headline
+
+
+def test_a_headlines_own_dash_is_never_taken_for_an_outlet_so_opposite_stories_stay_apart():
+    """Judge 115: the old blind cut turned both of these into the same form and merged them."""
+    rises = art("r1", "Zzalpha Q2 results - profit rises 20% - Zztv Profit", at(3), source="Zztv Profit")
+    falls = art("f1", "Zzalpha Q2 results - profit falls 5% - Zztv Profit", at(2.9), source="Zztv Profit")
+    assert title_form(rises.title, rises.source) != title_form(falls.title, falls.source)
+    clean_rises = art("r2", "Zzalpha Q2 results - profit rises 20%", at(3), kind="wrapper")
+    clean_falls = art("f2", "Zzalpha Q2 results - profit falls 5%", at(2.9), kind="wrapper")
+    assert keys_of(cluster_articles([clean_rises, clean_falls], AS_OF)) == [("r2",), ("f2",)]
+    assert keys_of(cluster_articles([rises, falls], AS_OF)) == [("r1",), ("f1",)]
 
 
 def test_a_one_word_or_empty_title_has_shingles_and_nothing_crashes():

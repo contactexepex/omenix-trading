@@ -2665,5 +2665,33 @@
   "file": "fno/ingestion/news/article/article_file.py",
   "old": " or title  # never an empty title",
   "new": "  # never an empty title"
+ },
+ {
+  "id": "F18",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_the_title_form_drops_case_punctuation_and_the_outlet_name_the_feed_gave",
+   "tests/ingestion/news/cluster/test_matching.py::test_a_wrapper_copy_and_its_publisher_copy_of_one_story_are_one_cluster"
+  ],
+  "file": "fno/ingestion/news/cluster/title_text.py",
+  "old": "without_outlet(title, source).casefold()",
+  "new": "without_outlet(title, None).casefold()"
+ },
+ {
+  "id": "F19",
+  "tests": [
+   "tests/ingestion/news/cluster/test_matching.py::test_a_headlines_own_dash_is_never_taken_for_an_outlet_so_opposite_stories_stay_apart"
+  ],
+  "file": "fno/ingestion/news/cluster/title_text.py",
+  "old": "without_outlet(title, source).casefold()",
+  "new": "title.rsplit(\" - \", 1)[0].casefold()"
+ },
+ {
+  "id": "F20",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_no_break_space_folds_to_a_plain_space_so_it_cannot_hide_the_outlet"
+  ],
+  "file": "fno/ingestion/news/text_rules.py",
+  "old": "\"\\u00a0\": \" \"})",
+  "new": "\"\\u00a0\": \"\\u00a0\"})"
  }
 ]
