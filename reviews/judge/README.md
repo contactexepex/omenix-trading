@@ -54,3 +54,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 41 | RUN_LOCATIONS map, lane-2 check | 2 | PASS (round 2, 5f4fd8e) | `judge_41_run-locations.md` |
 | 42 | P2 news and dedup plan (design) | 1 | PASS (round 3, 06e3467; 3 items carried to P2a/P2c) | `judge_42_p2-news-plan.md` |
 | 43 | P2 news and dedup, design (judge #2) | 1 | PASS (round 3, 06e3467) | `judge_43_p2-news-plan-judge2.md` |
+| 44 | P2a news fetch into Staging (code) | 1 | FAIL (round 1, 8a3a45c) | `judge_44_p2a-code.md` |
