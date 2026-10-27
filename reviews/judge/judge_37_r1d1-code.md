@@ -89,3 +89,36 @@ Each test must fail under the matching surviving plant above.
 ## Hard lines
 
 No orders. No secrets. No Groww call: every plant and test uses fakes. No write-once path is touched.
+
+## Addendum 1: round 2, b1bebc4: PASS
+
+Reviewed `b1bebc4139a512a0697dd18ad2f6e576666e8172` (`story/R1d1-groww-r2`).
+
+**Gates:** 555 passed in 2 runs out of 2. ruff, imports (393 files) and size are clean.
+
+**The production delta from 4dcc886 is one line** (`rate_limit.py:101`): starts go into `_slots` only when
+`per_minute` is set. It is behaviour-neutral for every source: `_slots` is read only under `if s.per_minute is not None`.
+NSE, which sets no `per_minute`, now also stops growing it.
+
+**Plants, all caught:**
+
+| Plant | Result |
+|---|---|
+| The quote recorder builds no pacer (round-1 survivor) | caught |
+| Intraday paces at 400 a second (round-1 survivor) | caught |
+| The NIFTY slot paced at 4 a second | caught |
+| `BookFetcher` workers skip `pacer.wait()` | caught |
+| The intraday fetch skips `pacer.wait()` | caught |
+| `_slots` never appended even when `per_minute` is set | caught by the per-minute tests |
+
+The round-1 plants against the unchanged code carry over.
+
+**Story:**
+- The "Groww 429" row now says "one pause per provider" (judge_34 condition 2, met).
+- The scan test is described honestly as a tripwire per file, not a per-process proof.
+- Nit, not blocking: the candle note says "never weaker". Strictly, an overslept sleep of δ can make the next start
+  0.5 − δ s after the previous actual start, so it is "milliseconds, as the intraday pacer always was". It is not
+  literally never.
+
+**Verdict: PASS (strong evidence: gates run, every round-1 survivor now caught, the code read side by side with
+today's).**
