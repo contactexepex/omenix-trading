@@ -105,7 +105,8 @@ changed; **test:** the second request of a news session carries no `Cookie` head
   **one** cluster; a plant that removes the title stage must fail it.
 - **The assignment rule (R6) is explicit and non-chaining:** articles are taken in order of (published time, key); each
   joins an existing cluster only if it is similar to that cluster's **anchor** (its earliest member), never to any other
-  member, else it starts a new cluster.
+  member, else it starts a new cluster. An article similar to two anchors joins the cluster with the **earlier anchor** (ties:
+  the smaller key); the two clusters are not merged, which is what keeps it from chaining.
 - **The cluster id (D5)** is the hash of its earliest article's key, earliest by publication time, ties broken by the smaller
   key. When a later-arriving earlier article, or a merge of two clusters, changes an id, the new file has a
   `previous_cluster_ids` column naming the ids it replaces, so a consumer can follow a story. When the anchor itself ages out of the window, the cluster is re-anchored to its earliest
@@ -115,14 +116,14 @@ changed; **test:** the second request of a news session carries no `Cookie` head
   Deterministic: sorted inputs, no randomness; the same inputs give the same bytes, so a rerun is a no-op.
 - **The window applies to clustering only (N6), and an article belongs to it by `max(published, first seen_at)`** (R2), so a
   late arrival (published three days ago, first seen today) enters a cluster instead of being lost to clustering. **Test:**
-  such an article lands in a cluster. The window length is set in P2c from collected data, not guessed.
+  an article published before the last window and first seen now appears in the next cluster file. The window length is set in P2c from collected data, not guessed.
 - **Articles that leave the window (D7)** stay in the Record for ever under their own ids; they stop appearing in newer
   cluster files, and the older files that listed them stay as they were.
 - **Concurrent runs (N9).** The promotion job has a workflow `concurrency` group with `cancel-in-progress: false` (as
   `global-cues.yml` does), so runs are serial and window ends strictly increase. The file name is the window end; a second
   write to the same name with other bytes is a reported conflict.
-- **"As known at T" (N10).** The latest file holds only the window, so for a story published at time t a reader takes the
-  latest file with window end at or before T **whose window covers t**. A reader helper does exactly this and a test shows it
+- **"As known at T" (N10).** The latest file holds only the window, so for a story with effective time e = `max(published, first seen_at)` (the same time the window rule uses, R2) a reader takes
+  the latest file with window end at or before T **whose window covers e**. A reader helper does exactly this and a test shows it
   reaches a story older than the newest file's window.
 - **Corroboration** = the number of independent outlets in the cluster (a wire story printed twice counts once where a wire
   credit is visible; an owner decision, below).
