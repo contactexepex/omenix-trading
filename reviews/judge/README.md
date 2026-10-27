@@ -122,3 +122,6 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 109 | NP8 material-first reads, code (judge #2) | 1 | PASS (round 2, 770cf76; round 1 FAIL e6aac2a, 18f9111) | `judge_109_np8-material-first-judge2.md` |
 | 110 | NP7c news go-live checklist, doc (judge #2) | 1 | PASS (round 2, 7fc5dd8, merge after NP8; round 1 FAIL 8eeeab8) | `judge_110_np7c-go-live-judge2.md` |
 | 111 | NP9 clean stored title plan (plan doc, judge #1) | 1 | PASS on 2 text conditions (round 1, d346ece) | `judge_111_np9-plan.md` |
+| 112 | NP10 page snippet plan, plan doc (judge #2) | 1 | PASS (round 2, 97b6df6, condition C1; round 1 FAIL cb7cae9) | `judge_112_np10-plan-judge2.md` |
+| 113 | NP11 feed provenance plan, plan doc (judge #2) | 1 | FAIL (round 1, e050a46) | `judge_113_np11-plan-judge2.md` |
+| 114 | NP11 feed provenance plan (plan doc, privacy, judge #1) | 1 | FAIL (round 1, e050a46) | `judge_114_np11-plan.md` |
