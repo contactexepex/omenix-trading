@@ -12,17 +12,19 @@ answer already meant "no filings". The parsing is unchanged since the stage-2 sp
 ## Rule (one place: `listed` in `fno/ingestion/filings/index.py`)
 - Empty answer (`None`, `[]`, `{}`, `""`): no filings (as before).
 - A list: its rows.
-- Anything else: a `ValueError` that names the list, the shape (an object with its first five key names, or the type name) and
-  never a value. The librarian already records that as the company's failure and goes on to the next company.
-- The integrated list is an object with a `data` list; a list there is the same kind of named failure.
+- Anything else (an object, text, a number, or a list whose rows are not objects): a `ValueError` that names the list, the shape
+  (an object with its first five key names, each cut to 40 characters, or the type name) and never a value. The librarian already records that as the company's failure and goes on to the next company.
+- The integrated list is an object with a `data` list: a list instead of the object, or a `data` that is not a list of objects, is
+  the same named failure (judge 58 N1: an object in `data` raised an AttributeError that `LIST_ERRORS` does not catch and ended
+  the whole run).
 
 An unknown answer is a failure to read, not "no filings": reading it as empty would hide missing data from the archive.
 
 ## Pinned by
 `tests/ingestion/filings/test_non_list_answers.py` (offline; NSE is never called): object, text and number bodies for the three
 lists, empty bodies, a normal list, the integrated list given a list, the failure line holds no value, and a run with one odd
-company still checks the next. Six plants (non-list handed on, non-list read as empty, integrated check removed, each of the
-three lists skipping the check, the line leaking a value) each fail a test.
+company still checks the next. Nine plants (non-list handed on, non-list read as empty, integrated check removed, the integrated `data` unchecked, rows not
+checked to be objects, key names not cut, each of the three lists skipping the check, the line leaking a value) each fail a test.
 
 ## Not done
 The real body NSE sent for the two companies is unknown; it is not fetched (politeness). The next full run will name its shape in

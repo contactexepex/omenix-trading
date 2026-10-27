@@ -25,6 +25,7 @@ NSE_SHAREHOLDING = "/api/corporate-share-holdings-master"
 INTEGRATED_FINANCIALS = "Integrated Filing- Financials"  # NSE's type name (the governance filings are not numbers)
 NSE_CONSOLIDATION = {"Consolidated": CONSOLIDATED, "Non-Consolidated": STANDALONE, "Standalone": STANDALONE}
 OLDEST_LATE_FILING = timedelta(days=400)  # a period ending this long before the window cannot be filed inside it
+KEY_NAME_LIMIT = 40  # characters of a key name shown in a failure line
 MAX_PAGES = 20  # NSE pages the integrated list 20 per page; 3 years are about 3 pages
 
 
@@ -70,16 +71,20 @@ def _placeable(row: dict) -> bool:
     return _timed(row) or bool(nse_time(row.get("filingDate"))) or bool(xbrl_link(row.get("xbrl")))
 
 
-def listed(body: object, what: str) -> list:
+def listed(body: object, what: str) -> list[dict]:
     """The rows of a list NSE answered: nothing for an empty answer; a ValueError that says what came instead when
-    the body is not a list (a non-empty object or text), so the run names the odd answer, not a bare TypeError. An
-    unknown answer is a failure to read, never "no filings": that would hide missing data."""
+    the body is not a list of objects (a non-empty object, text, or rows that are not objects), so the run names the
+    odd answer, not a bare TypeError or AttributeError that would end it. An unknown answer is a failure to read,
+    never "no filings": that would hide missing data."""
     if not body:
         return []
-    if isinstance(body, list):
+    if isinstance(body, list) and all(isinstance(row, dict) for row in body):
         return body
-    shape = f"an object with keys {sorted(map(str, body))[:5]}" if isinstance(body, dict) else type(body).__name__
-    raise ValueError(f"{what}: NSE answered {shape}, not a list")
+    if isinstance(body, dict):
+        shape = f"an object with keys {[str(key)[:KEY_NAME_LIMIT] for key in sorted(map(str, body))[:5]]}"
+    else:
+        shape = type(body).__name__ if not isinstance(body, list) else "a list with rows that are not objects"
+    raise ValueError(f"{what}: NSE answered {shape}, not a list of rows")
 
 
 class FilingIndex(ABC):
@@ -145,7 +150,7 @@ class NseIntegratedResultsIndex(FilingIndex):
             answer = self.get_json(NSE_INTEGRATED_RESULTS, {"index": "equities", "symbol": symbol, "page": page})
             if not isinstance(answer, dict):
                 raise ValueError(f"{self.name}: NSE answered {type(answer).__name__}, not an object")
-            new = [r for r in answer.get("data") or [] if r not in rows]
+            new = [r for r in listed(answer.get("data"), self.name) if r not in rows]
             rows += new
             if not new or len(rows) >= int(answer.get("totalCount") or 0):
                 return rows

@@ -38,7 +38,7 @@ def getter(body):
 @pytest.mark.parametrize("index", [NseLegacyResultsIndex, NseInsuranceResultsIndex, NseShareholdingIndex])
 @pytest.mark.parametrize("body", [{"msg": "x"}, "an error page", 7])
 def test_a_body_that_is_not_a_list_is_a_named_failure_not_a_type_error(index, body):
-    with pytest.raises(ValueError, match="not a list"):
+    with pytest.raises(ValueError, match="not a list of rows"):
         index(getter(body)).filings("ACME", SINCE)
 
 
@@ -66,6 +66,34 @@ def test_the_failure_line_names_the_shape_and_the_keys_but_never_a_value():
 def test_the_integrated_list_answered_with_a_list_is_a_named_failure():
     with pytest.raises(ValueError, match="not an object"):
         NseIntegratedResultsIndex(getter([1, 2])).filings("ACME", SINCE)
+
+
+@pytest.mark.parametrize("data", [{"x": 1, "y": 2}, "text", ["a", "b"], 7])
+def test_an_integrated_answer_whose_data_is_not_a_list_of_rows_is_a_named_failure_not_an_attribute_error(data):
+    index = NseIntegratedResultsIndex(getter({"data": data, "totalCount": 5}))
+    with pytest.raises(ValueError, match="not a list of rows"):
+        index.filings("ACME", SINCE)
+
+
+def test_a_list_of_text_rows_is_a_named_failure_for_every_list():
+    for index in (NseLegacyResultsIndex, NseInsuranceResultsIndex, NseShareholdingIndex):
+        with pytest.raises(ValueError, match="rows that are not objects"):
+            index(getter(["a", "b"])).filings("ACME", SINCE)
+
+
+def test_a_very_long_key_name_is_cut_in_the_failure_line():
+    with pytest.raises(ValueError) as error:
+        listed({"k" * 500: 1}, "x")
+    assert len(str(error.value)) < 200
+
+
+def test_one_odd_integrated_company_fails_its_own_read_and_the_run_goes_on():
+    bodies = {"BAD": {"data": {"x": 1}, "totalCount": 5}, "GOOD": {"data": [], "totalCount": 0}}
+    index = NseIntegratedResultsIndex(lambda path, params: bodies[params["symbol"]])
+    now = datetime(2026, 10, 27, 12, 0, tzinfo=IST)
+    librarian = FilingsLibrarian([index], MagicMock(), MagicMock(), lambda: now, log=lambda text: None)
+    report = librarian.run(["BAD", "GOOD"], SINCE, datetime(2026, 10, 27, 23, 0, tzinfo=IST))
+    assert report.checked == ["BAD", "GOOD"] and report.failed == {"BAD"} and len(report.failures) == 1
 
 
 def test_one_odd_company_fails_its_own_read_and_the_run_goes_on_to_the_next():
