@@ -123,3 +123,45 @@ Reviewed `5aa0af341c2d8273828d20792c5d6a83223ecc5b`. The delta is `run.py` (+9),
 **No regression:** the writer-conflict and guard-bypass plants are still caught.
 
 **Verdict: PASS (strong evidence).** Round 1's holds stand. P2d needs judge #2's PASS as well before it merges.
+
+## Addendum 2: the bounded re-check, 2f2355e: PASS
+
+Reviewed `2f2355ecd89a234d14ba33895924f5ca79da8dc9`, which is 5aa0af3 plus F1 and F2 from judge #2's round 1.
+
+**Gates:** 844 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+**F1 is a real bug, and it is fixed.** Under `set -e`, a failure on the left side of `A && B` does not stop the script.
+So a failed `git pull` skipped the push, and `exit "$broken"` (which is 0) still ended the run green with nothing
+pushed. The same line is on `main` today in `news-promote.yml`, so merging P2d fixes it there too. Each command is now
+checked on its own (`|| exit 1`).
+
+| Plant | Result |
+|---|---|
+| The push failure ignored | caught |
+| The `&&` line restored | caught |
+| The pull failure ignored | survives (equivalent; see below) |
+
+**The pull-check equivalence holds (reasoning only).** A pull fails only when:
+- origin cannot be reached, in which case the push fails too;
+- or the fetch brings new commits that cannot be merged (a conflict, untracked files that would be overwritten, or
+  the commit hook refusing the merge commit), in which case `HEAD` does not contain origin's tip and the push is
+  rejected as non-fast-forward.
+
+If the merge itself completed and only a later hook failed, `HEAD` is up to date, the push succeeds, and the run really
+did push. So "green means pushed" holds without the pull check. The story documents this, and keeping the pull check
+as a defence is right.
+
+**F2.** A window end later than the current hour is refused with `window_in_future` (an alert and exit 1) before
+anything runs. The plants "bound widened by one hour" and "check off" are caught.
+
+**No regression:**
+
+| Plant | Result |
+|---|---|
+| R1, listed-but-missing ignored | caught |
+| The writer's own conflict check off | caught |
+| Guard bypassed | caught |
+
+Everything else in Addendum 1 stands.
+
+**Verdict: PASS.** Both judges have now passed P2d, so P2d can merge.
