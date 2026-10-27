@@ -1,4 +1,4 @@
-# Judge 110: NP9 clean stored title (plan doc), round 1 at d346ece: PASS, on two text conditions
+# Judge 111: NP9 clean stored title (plan doc), round 1 at d346ece: PASS, on two text conditions
 
 **Lane 1 plan, sole judge (judge #1).** Branch `story/NP9-plan`, frozen SHA d346ece: one file, `docs/stories/NP9-clean-stored-title.md` (58 lines). I checked the claims against `main` (at the time of review).
 
