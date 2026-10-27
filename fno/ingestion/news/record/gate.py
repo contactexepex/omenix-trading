@@ -12,8 +12,9 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.article.parse_feed import PollRejected
 from fno.ingestion.news.article.read_poll import read_poll
 from fno.ingestion.news.fetcher import SOURCE
+from fno.ingestion.news.record.planner import Outcome
 from fno.ingestion.news.record.report import NO_OPS, RECORDED, REVISIONS, PromotionReport
-from fno.ingestion.news.record.writer import ArticleWriter, Outcome
+from fno.ingestion.news.record.writer import ArticleWriter
 from fno.ingestion.promotion.staging import StagedCopy, StagingArea
 from fno.ingestion.storage.raw_store import RawFileConflict
 

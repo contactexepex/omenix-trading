@@ -12,7 +12,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.record import gate as gate_module
 from fno.ingestion.news.record.gate import NewsGate
 from fno.ingestion.news.record.manifest import FIELDS
-from fno.ingestion.news.record.writer import Outcome
+from fno.ingestion.news.record.planner import Outcome
 from fno.ingestion.storage.raw_store import RawFileConflict
 from fno.ingestion.storage.row_log import TableFileBroken
 from tests.ingestion.news.article.samples import rss, rss_item

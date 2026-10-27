@@ -189,9 +189,9 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_a_new_article_is_recorded_with_a_manifest_row_and_a_receipt",
    "tests/ingestion/news/record/test_writer_and_gate.py::test_running_the_same_range_again_is_all_no_ops_and_writes_nothing_new"
   ],
-  "file": "fno/ingestion/news/record/writer.py",
-  "old": "        if _fixed(held) is not None and _fixed(held) == _fixed(data):\n            self._document(path, held, day, article.key, RECORDED)\n            return Outcome.NO_OP",
-  "new": "        if False:\n            return Outcome.NO_OP"
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "        if _fixed(held) is not None and _fixed(held) == _fixed(data):\n            return Plan(Outcome.NO_OP, path, RECORDED, held)",
+  "new": "        if False:\n            return Plan(Outcome.NO_OP, path, RECORDED, held)"
  },
  {
   "id": "N2",
@@ -200,8 +200,8 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_a_revision_has_its_own_manifest_row_and_receipt_at_once"
   ],
   "file": "fno/ingestion/news/record/writer.py",
-  "old": "        self._save(path, data, day, article.key, REVISION)\n        self.held[path] = data\n        return Outcome.REVISION",
-  "new": "        self.store.put(path, data)\n        self.held[path] = data\n        return Outcome.REVISION"
+  "old": "        self._save(plan.path, data, day, article.key, plan.status)\n        self.planner.held[plan.path] = data",
+  "new": "        self.store.put(plan.path, data)\n        self.planner.held[plan.path] = data"
  },
  {
   "id": "N3",
@@ -227,7 +227,7 @@
    "tests/ingestion/news/record/test_privacy_cli_workflow.py::test_no_title_url_or_query_reaches_the_manifest_receipts_or_the_report",
    "tests/ingestion/news/cluster_record/test_reader_wiring_privacy_cli.py::test_nothing_of_a_story_reaches_the_cluster_file_manifest_receipts_report_logs_or_alert"
   ],
-  "file": "fno/ingestion/news/record/writer.py",
+  "file": "fno/ingestion/news/record/planner.py",
   "old": "        path, data = article_path(article.key), article.to_bytes()\n",
   "new": "        path, data = article_path(article.key), article.to_bytes()\n        import logging\n        logging.getLogger('x').debug(article.title)\n"
  },
