@@ -22,7 +22,7 @@ class Recording(PageFetcher):
     def __init__(self, answers=None):
         self.answers, self.asked = answers or {}, []
 
-    def fetch(self, url):
+    def fetch(self, url, seconds=None):
         self.asked.append(url)
         return Page(self.answers.get(url, model.OK), url)
 
@@ -95,7 +95,7 @@ def test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_
     seen: list[str] = []
 
     class Dies(PageFetcher):
-        def fetch(self, url):
+        def fetch(self, url, seconds=None):
             if url.startswith("https://pub.example"):
                 raise KeyboardInterrupt  # the runner is killed here
             return Page(model.OK, url)
@@ -108,3 +108,8 @@ def test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_
 def test_the_job_timeout_covers_the_worst_case_of_every_request_timing_out():
     steps = workflow()["jobs"]["probe"]
     assert steps["timeout-minutes"] * 60 >= 224 * 20  # ~224 requests, 20 s timeout each
+
+
+def test_the_probe_job_does_not_buffer_its_output_so_a_hard_kill_keeps_the_lines_already_printed():
+    """judge 87: on a runner stdout is a pipe, which is block-buffered unless this is set."""
+    assert workflow()["jobs"]["probe"]["env"]["PYTHONUNBUFFERED"] == "1"

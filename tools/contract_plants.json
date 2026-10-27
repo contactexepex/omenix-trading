@@ -1333,8 +1333,8 @@
    "tests/ingestion/news/pages/test_fetcher.py::test_other_errors_do_not_stop_the_host"
   ],
   "file": "fno/ingestion/news/pages/fetcher.py",
-  "old": "                    self.stopped.add(host)",
-  "new": "                    pass"
+  "old": "                if response.status_code in STOP_STATUSES:\n                    self.stopped.add(host)",
+  "new": "                if response.status_code in STOP_STATUSES:\n                    pass"
  },
  {
   "id": "H8",
@@ -1421,5 +1421,200 @@
   "file": "fno/ingestion/news/pages/fetcher.py",
   "old": "        self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop",
   "new": "        pass"
+ },
+ {
+  "id": "Y1",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_resolved_google_news_article_is_read_at_its_resolved_url_and_one_read_file_is_written",
+   "tests/ingestion/news/reads/test_pass.py::test_a_google_news_article_that_is_not_resolved_yet_is_not_read_and_nothing_is_requested",
+   "tests/ingestion/news/reads/test_pass.py::test_a_publisher_article_is_read_at_its_own_canonical_link"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            if key not in self.resolved.recorded:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Y2",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_an_article_on_an_outlet_we_may_not_read_makes_no_request"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        elif not self.rules.may_fetch(plain_host(urlsplit(url).hostname)):",
+  "new": "        elif False:"
+ },
+ {
+  "id": "Y3",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_probe_fetches_and_extracts_but_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        if not apply:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Y4",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_at_most_eighty_pages_are_fetched_whatever_limit_is_asked"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "min(pages, PAGES)",
+  "new": "pages"
+ },
+ {
+  "id": "Y5",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_run_stops_at_its_time_budget_and_counts_and_alerts_the_pages_it_did_not_reach"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            if self.clock() - started >= budget:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Y6",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_read_cap_counts_what_it_left_unread_and_alerts"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "            elif report.counts[\"examined\"] >= MAX_RECORD_READS:",
+  "new": "            elif False:"
+ },
+ {
+  "id": "Y7",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_the_newest_day_is_read_first",
+   "tests/ingestion/news/reads/test_pass.py::test_an_article_already_read_is_not_fetched_again"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "key=lambda kv: (kv[1], kv[0]), reverse=True)",
+  "new": "key=lambda kv: (kv[1], kv[0]), reverse=False)"
+ },
+ {
+  "id": "Y8",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_reader_that_gets_nothing_is_red_and_alerted_but_robots_and_stops_are_not_faults",
+   "tests/ingestion/news/reads/test_pass.py::test_under_half_of_a_batch_of_ten_read_is_red_and_half_is_not",
+   "tests/ingestion/news/reads/test_pass.py::test_one_or_two_failed_pages_are_not_a_failing_reader"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        if (faults and ok == 0 and faults >= NOTHING_OK_MIN_ASKED) or (",
+  "new": "        if False and (faults and ok == 0 and faults >= NOTHING_OK_MIN_ASKED) or ("
+ },
+ {
+  "id": "Y9",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_a_torn_reads_manifest_stops_the_pass_before_any_request"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "                self.writer.check_ready()",
+  "new": "                pass"
+ },
+ {
+  "id": "Y10",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_that_could_carry_a_body_is_refused",
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_read_file_round_trips_holds_facts_only_and_is_deterministic",
+   "tests/ingestion/news/reads/test_pass.py::test_the_read_file_holds_no_body_and_the_line_holds_no_link_key_or_host"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "        if len(data) > MAX_BYTES:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Y11",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_page_marked_not_free_is_paywalled",
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_the_access_outcome"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), not free_to_read(node),",
+  "new": "clean(publisher.get(\"name\") if isinstance(publisher, dict) else publisher), False,"
+ },
+ {
+  "id": "Y12",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_deeply_nested_or_huge_document_is_bounded_not_followed"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "            if depth < MAX_DEPTH and \"@graph\" in node:",
+  "new": "            if \"@graph\" in node:"
+ },
+ {
+  "id": "Y13",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_workflow_is_dispatch_only_serial_with_the_record_and_never_applies_by_default",
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_workflow_commits_only_its_own_manifest_and_receipts_and_only_with_apply"
+  ],
+  "file": ".github/workflows/news-read-pages.yml",
+  "old": "        if: ${{ !inputs.dry_run && inputs.apply }}",
+  "new": "        if: ${{ !inputs.dry_run }}"
+ },
+ {
+  "id": "H17",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_job_does_not_buffer_its_output_so_a_hard_kill_keeps_the_lines_already_printed"
+  ],
+  "file": ".github/workflows/news-probe-outlets.yml",
+  "old": "      PYTHONUNBUFFERED: \"1\"",
+  "new": "      PYTHONUNBUFFERED_OFF: \"1\""
+ },
+ {
+  "id": "Y14",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_a_page_whose_json_ld_nests_past_what_the_parser_accepts_gives_no_facts_and_raises_nothing",
+   "tests/ingestion/news/reads/test_pass.py::test_a_page_that_makes_the_extractor_fail_is_counted_and_the_run_goes_on"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "        except (ValueError, RecursionError):  # not JSON, or nested past what the parser accepts: this block is skipped",
+  "new": "        except ValueError:  # not JSON, or nested past what the parser accepts: this block is skipped"
+ },
+ {
+  "id": "Y15",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_server_that_drips_bytes_is_cut_off_at_the_total_deadline_not_at_the_per_read_timeout",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_deadline_covers_robots_txt_and_the_hops_together",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_silent_host_is_a_timeout_and_stops_the_host",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_body_is_read_as_it_arrives_through_the_real_library_so_the_deadline_is_checked_between_drips"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                if self._left() <= 0:\n                    return Page(model.TIMEOUT, url)",
+  "new": "                if False:\n                    return Page(model.TIMEOUT, url)"
+ },
+ {
+  "id": "Y16",
+  "tests": [
+   "tests/ingestion/news/reads/test_pass.py::test_each_fetch_is_given_the_time_the_run_has_left",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_fetch_never_runs_longer_than_the_most_a_fetch_may_take",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_requests_own_timeout_is_the_smaller_of_its_limit_and_the_time_left"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "        page = self.fetcher.fetch(url, max(1.0, budget_left))",
+  "new": "        page = self.fetcher.fetch(url)"
+ },
+ {
+  "id": "Y17",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_the_depth_limit_holds_for_lists_as_well_as_graphs"
+  ],
+  "file": "fno/ingestion/news/reads/extract.py",
+  "old": "        if isinstance(node, list) and depth < MAX_DEPTH:",
+  "new": "        if isinstance(node, list):"
+ },
+ {
+  "id": "Y18",
+  "tests": [
+   "tests/ingestion/news/reads/test_extract_and_file.py::test_five_long_names_in_a_three_byte_script_still_fit_the_read_file"
+  ],
+  "file": "fno/ingestion/news/reads/read_file.py",
+  "old": "ensure_ascii=False).encode(\"utf-8\")",
+  "new": "ensure_ascii=True).encode(\"ascii\")"
+ },
+ {
+  "id": "Y19",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_loading_the_command_line_does_not_load_the_html_parser"
+  ],
+  "file": "fno/ingestion/news/reads/cli.py",
+  "old": "from fno.ingestion.news.reads.limits import PAGES",
+  "new": "from fno.ingestion.news.reads.run import PAGES"
  }
 ]

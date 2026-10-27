@@ -145,6 +145,7 @@ def test_the_cap_counts_decoded_bytes_so_a_small_gzip_body_that_inflates_is_too_
     session.get = lambda url, **kw: requests.Session.get(session, url, **kw)
     session.mount("https://", Adapter())
     session.routes = {}
+    fetch.until = 1e9
     page = fetch._follow(PAGE, check_robots=False, limit=100_000, accept=("text/html",))
     assert page.code == model.TOO_LARGE
 
@@ -195,3 +196,76 @@ def test_the_session_takes_no_proxy_or_settings_from_the_environment():
     """judge 88: with trust_env on, a proxy variable could carry a hop the address check never saw."""
     _, session, _ = fetcher()
     assert session.trust_env is False
+
+
+# ---- the TOTAL deadline of one fetch (judge 89 F2) -----------------------------------------------------------------
+
+
+def dripping(clock, seconds_per_drip=0.5, drips=1000):
+    return FakeResponse(chunks=[b"x"] * drips, on_read=lambda: setattr(clock, "now", clock.now + seconds_per_drip))
+
+
+def test_a_server_that_drips_bytes_is_cut_off_at_the_total_deadline_not_at_the_per_read_timeout():
+    fetch, session, clock = fetcher({**ROBOTS_OK})
+    session.routes[PAGE] = dripping(clock)
+    page = fetch.fetch(PAGE, seconds=10)
+    assert page.code == model.TIMEOUT and clock.now <= 10 + 0.5 + 3.0  # the deadline, one drip, the 1.5 s gaps
+    assert "pub.example" in fetch.stopped  # a host that cannot finish in time is not asked again this run
+    assert fetch.fetch(PAGE).code == model.HOST_STOPPED
+
+
+def test_the_deadline_covers_robots_txt_and_the_hops_together():
+    fetch, session, clock = fetcher()
+    session.routes[ROBOTS] = dripping(clock)  # a robots.txt that drips
+    assert fetch.fetch(PAGE, seconds=5).code == model.ROBOTS_UNREADABLE and clock.now < 5 + 0.5 + 3.0
+    fetch, session, clock = fetcher({**ROBOTS_OK, PAGE: FakeResponse(302, {"location": PAGE})})
+    clock.now = 0.0
+    assert fetch.fetch(PAGE, seconds=3).code == model.TIMEOUT  # hops spaced 1.5 s apart run out of 3 s
+
+
+def test_a_silent_host_is_a_timeout_and_stops_the_host():
+    fetch, _, _ = fetcher({**ROBOTS_OK, PAGE: requests.ReadTimeout("slow")})
+    page = fetch.fetch(PAGE)
+    assert page.code == model.TIMEOUT and "pub.example" in fetch.stopped
+
+
+def test_the_requests_own_timeout_is_the_smaller_of_its_limit_and_the_time_left():
+    fetch, session, _ = fetcher({**ROBOTS_OK, PAGE: FakeResponse()})
+    fetch.fetch(PAGE, seconds=4)
+    timeouts = [kw["timeout"] for _, kw in session.requests]
+    assert all(connect <= 4 and read <= 4 for connect, read in timeouts) and all(c > 0 and r > 0 for c, r in timeouts)
+
+
+def test_a_fetch_never_runs_longer_than_the_most_a_fetch_may_take():
+    from fno.ingestion.news.pages.fetcher import FETCH_SECONDS
+
+    fetch, session, clock = fetcher({**ROBOTS_OK})
+    session.routes[PAGE] = dripping(clock)
+    fetch.fetch(PAGE, seconds=100_000)
+    assert clock.now <= FETCH_SECONDS + 0.5 + 3.0
+
+
+def test_the_body_is_read_as_it_arrives_through_the_real_library_so_the_deadline_is_checked_between_drips():
+    """A real requests response: `raw.read1` returns what has arrived, so a drip cannot hide inside one big read."""
+    clock_holder = {}
+
+    class Dripping(io.BytesIO):
+        def read1(self, size=-1):
+            clock_holder["clock"].now += 0.5
+            return super().read1(1)
+
+    class Adapter(requests.adapters.HTTPAdapter):
+        def send(self, request, **kwargs):
+            raw = urllib3.response.HTTPResponse(
+                body=Dripping(b"x" * 1000), status=200, preload_content=False, headers={"content-type": "text/html"}
+            )
+            return self.build_response(request, raw)
+
+    fetch, session, clock = fetcher()
+    clock_holder["clock"] = clock
+    session.get = lambda url, **kw: requests.Session.get(session, url, **kw)
+    session.mount("https://", Adapter())
+    session.routes = {}
+    fetch.until = clock.now + 5
+    page = fetch._follow(PAGE, check_robots=False, limit=10_000, accept=("text/html",))
+    assert page.code == model.TIMEOUT and clock.now < 5 + 1.0

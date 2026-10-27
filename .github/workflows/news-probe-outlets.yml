@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90 # up to ~224 requests at 1.5 s apart, each with a 20 s timeout if a host is silent
     env:
+      PYTHONUNBUFFERED: "1" # stdout is a pipe on a runner: without this a hard-killed run would lose the lines already printed
       INCLUDE_REFUSING: ${{ inputs.include_refusing && '--include-refusing' || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
