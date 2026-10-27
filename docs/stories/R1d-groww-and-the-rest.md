@@ -16,7 +16,7 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 | Piece | Today | Where |
 |---|---|---|
 | Intraday request spacing | `RatePacer(per_second)`: starts spaced `1/rate` apart, thread-safe, no persistence | `intraday/pacing.py` |
-| Quote recorders' pacer | `RatePacer(slot.per_second)`, one per recorder across its attempts; the index slots use 3 workers at 2.5 a second (`INDEX_WORKERS, INDEX_PER_SECOND`); slots without `per_second` are unpaced | `quotes/recorder.py:127`, `quotes/indices.py:25`, `quotes/book_fetch.py` |
+| Quote recorders' pacer | `RatePacer(slot.per_second)`, one per recorder across its attempts; the index slots use one recorder with 3 workers at 2.5 a second in total (`INDEX_WORKERS, INDEX_PER_SECOND`); slots without `per_second` are unpaced | `quotes/recorder.py:127`, `quotes/indices.py:25`, `quotes/book_fetch.py` |
 | Candle source gap | `MIN_GAP_SECONDS = 0.5`, one at a time, **not thread-safe** (by design: one call at a time) | `intraday/candle_source.py:_pace` |
 | Groww 429 | the process pauses all Groww reads for 60 s (`RateLimitPause`), per process, no probe | `providers/groww_rate_guard.py` |
 | Groww sign-in | one sign-in per process and token day; a failure backs off 5 then 10 minutes; at most 3 tries per process per token day; **no cross-process count**: the 150 a day is an estimate (about 38 processes, 114 tries in the worst case, `groww_sign_in.py` docstring) | `providers/groww_sign_in.py` |
@@ -28,21 +28,25 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 
 ## Proposed split (each step small, judged, behaviour-preserving first)
 
-- **R1d1, Groww reads (design ruled by the orchestrator, 27 Oct 2026):**
-  1. **Each caller keeps its own limiter at today's exact spacing**, as the shared `RateLimit`: intraday 4 a second
-     (`PER_SECOND = 4`), index recorders 2.5 a second across 3 workers (`quotes/indices.py:25`), any other recorder slot its
-     `per_second` or none (`quotes/recorder.py:127`), candle source 0.5 s. No caller is replaced by a single host limiter, so
-     concurrent callers stay as fast as today and each caller's politeness is unchanged.
-  2. **No host-wide ceiling in this step.** Today has none; adding one would be new behaviour, and the host's limit (10 a
-     second, 300 a minute in `settings_for("groww")`) stays unused here. Whether to add one is the owner's separate decision
-     with the Groww health feature (R1d2). (Judge 34 found no process holding two Groww callers: each of `intraday/wiring.py:63`, `intraday/feed_wiring.py:51`,
-     `intraday/backfill_wiring.py:46`, `quotes/index_wiring.py:20` and `quotes/window_wiring.py:28` builds one provider; the story
-     re-checks this against `composition.py:53` and `preopen/wiring.py:80` before relying on it, so a ceiling would have
-     nothing to protect in this repository's processes.)
-  3. **Independent 429 pauses, as today:** each provider keeps its own 60 s `RateLimitPause` (`groww.py:142`), in process only, no
-     half-open, no log, no alert. A pause shared across callers would stop the callers that were not refused (less data than
-     today) and is a data-versus-blacklist call for the owner; it is deferred to the Groww health feature with R1d2.
-  4. `RateGuardedGroww` keeps its class and translation (`GrowwRateLimited`, `GrowwRateLimitPaused`, no Groww text carried); the
+- **R1d1, Groww reads: a pure consolidation (design ruled by the orchestrator and both judges, 27 Oct 2026).** The per-caller
+  `RatePacer`s and the per-provider `RateLimitPause` move onto the shared `RateLimit` and breaker with **identical spacing and
+  identical pause topology**. Nothing new is added.
+  1. **Spacing, pinned exactly as today:** intraday 4 a second (`PER_SECOND = 4`); the index recorders **2.5 a second in total**
+     (one recorder with 3 workers, `quotes/indices.py:25`; the slots run one at a time, so the combined rate is 2.5, not 7.5);
+     the main NIFTY recorder **unpaced** (`per_second=None`, `quotes/slot.py:18,30`; no limiter, as today); candle source 0.5 s.
+  2. **No host-wide ceiling.** Today has none, so a ceiling is a new component, not a refactor, and its "never bites" cannot be
+     proven: the unpaced NIFTY recorder's peak rate is unmeasured. A real ceiling needs the true aggregate measured, a number
+     chosen and throttling accepted: an owner decision with the Groww health feature (R1d2). The host numbers in
+     `settings_for("groww")` stay unused here.
+  3. **Pause topology, exactly as today:** one 60 s `RateLimitPause` per `GrowwProvider` instance (`groww.py:142`), in process only,
+     no half-open, no log, no alert. The index recorders share one provider (`quotes/index_wiring.py:20`) and so share its pause;
+     intraday (`intraday/feed_wiring.py:51`) and the quote window (`quotes/window_wiring.py:28`) each have their own. Not
+     "independent per caller" (that would un-share the indices) and not "shared per process" (that over-shares). A pause shared
+     across providers would be a data-versus-blacklist call for the owner, deferred with R1d2.
+  4. **Every Groww composition root builds exactly one provider** (each provider signs in on its own, `groww.py:139`): a named
+     test covers `intraday/wiring.py:63`, `intraday/feed_wiring.py:51`, `intraday/backfill_wiring.py:46`,
+     `quotes/index_wiring.py:20`, `quotes/window_wiring.py:28`, `composition.py:53` and `preopen/wiring.py:80`.
+  5. `RateGuardedGroww` keeps its class and translation (`GrowwRateLimited`, `GrowwRateLimitPaused`, no Groww text carried); the
      quiet-window check stays first, then the pause (pinned).
 - **R1d2, the day budgets (PARKED, see Rulings; shown only so the split is whole):** the 150 sign-ins a day gets a real cross-process count (`FileDayLedger` on `groww_sign_in`, 150 a day),
   **committed and union-merged** (judge 1 and 2: otherwise overlapping runs each miss the others' rows and the count understates, which is
@@ -61,10 +65,10 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
    behaviour change and needs no wait/probe machinery. This must be stated and tested.
 2. The market-hours rule above.
 3. Nothing may make fewer attempts at a live capture than today (R1c's lesson): the same never-weaker test for each moved wait.
-4. Pauses stay one per `GrowwProvider` (`groww.py:142`), as today. Tests: two recorders on one provider share its pause; two
-   providers do not (a 429 in one does not pause the other).
-5. Never-weaker tests: each caller's request starts stay spaced exactly as today (intraday 4/s, index recorders 2.5/s across 3
-   workers, candle 0.5 s, unpaced slots unpaced), and the index recorders' combined rate is unchanged.
+4. Pause topology tests: two index recorders on one provider share its pause; a 429 in one provider does not pause a caller of
+   a different provider.
+5. Never-weaker tests: each caller's request starts stay spaced exactly as today (intraday 4/s, index recorders 2.5/s combined,
+   candle 0.5 s, the NIFTY recorder unpaced), and the composition-root test of R1d1 point 4.
 
 ## Rulings (orchestrator, 27 Oct 2026) and what stays parked
 
