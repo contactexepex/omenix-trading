@@ -1859,9 +1859,9 @@
    "tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file",
    "tests/ingestion/news/test_view.py::test_the_feed_text_a_label_or_a_page_can_never_set_the_url"
   ],
-  "file": "fno/ingestion/news/view.py",
-  "old": "url = resolution.url if resolution else article.canonical_url",
-  "new": "url = article.wrapper_link or article.canonical_url"
+  "file": "fno/ingestion/news/resolve/effective_url.py",
+  "old": "return resolution.url if resolution else article.canonical_url",
+  "new": "return article.wrapper_link or article.canonical_url"
  },
  {
   "id": "U12",

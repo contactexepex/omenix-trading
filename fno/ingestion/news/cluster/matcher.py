@@ -25,6 +25,8 @@ class Prepared:
     shingles: frozenset[str]
     entities: frozenset[str]
     story_time: datetime
+    url: str = ""  # the identity URL (version 2; "" for none, so version 1 never joins by URL)
+    url_refused: bool = False  # there was a link but it identifies no story (counted, never joined)
 
     @classmethod
     def of(cls, article: Article) -> Prepared:
@@ -39,6 +41,10 @@ class Prepared:
 class Matcher:
     def __init__(self, similarity: Similarity):
         self.similarity = similarity
+
+    def same_url(self, a: Prepared, b: Prepared) -> bool:
+        """The same identity URL, within the match window (a page re-published later is split: the safe direction)."""
+        return bool(a.url) and a.url == b.url and abs(a.story_time - b.story_time) <= MATCH_WINDOW
 
     def same_story(self, a: Prepared, b: Prepared) -> bool:
         if a.article.key == b.article.key:

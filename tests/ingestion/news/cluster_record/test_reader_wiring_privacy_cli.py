@@ -131,7 +131,9 @@ NOW = datetime(2026, 10, 27, 12, 41, 7, tzinfo=UTC)  # the clock of the command 
 def run_command(monkeypatch, world, *argv, now=NOW):
     printed, sent = [], []
     monkeypatch.setattr(news_cli, "now_utc", lambda: now)
-    monkeypatch.setattr("fno.ingestion.news.cluster_record.wiring.build_news_cluster", lambda: world.run_object)
+    monkeypatch.setattr(
+        "fno.ingestion.news.cluster_record.wiring.build_news_cluster", lambda algorithm="1": world.run_object
+    )
     monkeypatch.setattr(
         "fno.ingestion.composition.build_alert_sender",
         lambda: type("A", (), {"send": lambda s, m: sent.append(m) or ""})(),
@@ -162,7 +164,7 @@ def test_a_conflict_exits_1_and_the_alert_says_to_investigate(tmp_path, monkeypa
 
 
 def test_an_unexpected_error_prints_only_its_class(monkeypatch):
-    def boom():
+    def boom(algorithm="1"):
         raise ValueError(f"leaks https://{MARK_HOST}/x")
 
     printed = []

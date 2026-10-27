@@ -6,9 +6,12 @@ from collections import Counter
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.cluster.cluster import Clustering
+from fno.ingestion.news.cluster.prepare import GROUPER_VERSION
 from fno.ingestion.news.cluster_record.writer import Written
 
 NOT_WRITTEN = "not_written"
+COUNTS = ("articles", "clusters", "clustered", "outside_window", "repeated_keys")
+URL_COUNTS = ("url_joins", "url_joins_refused", "url_joins_unlike_title")  # version 2 only
 CONFLICT_ALERT = (
     "cluster_conflict: the closed window's cluster file exists with other bytes; the inputs, the algorithm "
     "version or the determinism changed for that window: investigate, nothing was overwritten"
@@ -34,6 +37,9 @@ class ClusterReport:
         self.counts["clustered"] = clustering.clustered
         self.counts["outside_window"] = clustering.outside_window
         self.counts["repeated_keys"] = clustering.repeated_keys
+        if clustering.algorithm_version == GROUPER_VERSION:
+            for name in URL_COUNTS:
+                self.counts[name] = getattr(clustering, name)
 
     def written(self, outcome: Written) -> None:
         self.outcome = outcome.value
@@ -43,9 +49,7 @@ class ClusterReport:
         return not self.rejected
 
     def line(self) -> str:
-        done = ", ".join(
-            f"{k} {self.counts[k]}" for k in ("articles", "clusters", "clustered", "outside_window", "repeated_keys")
-        )
+        done = ", ".join(f"{k} {self.counts[k]}" for k in (*COUNTS, *(u for u in URL_COUNTS if u in self.counts)))
         stuck = "".join(f", {code} {n}" for code, n in sorted(self.rejected.items()))
         return f"news cluster: {done}, {self.outcome}{stuck}"
 

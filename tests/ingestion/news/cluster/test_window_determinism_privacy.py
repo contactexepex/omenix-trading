@@ -103,14 +103,16 @@ def test_the_package_does_no_io_and_reads_no_clock():
     for file in PACKAGE.glob("*.py"):
         for node in ast.walk(ast.parse(file.read_text())):
             if isinstance(node, ast.Import):
-                imported |= {a.name.split(".")[0] for a in node.names}
+                imported |= {a.name for a in node.names}
             elif isinstance(node, ast.ImportFrom):
-                imported.add((node.module or "").split(".")[0])
+                imported.add(node.module or "")
             elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 called.add(node.func.attr)
             elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 called.add(node.func.id)
-    assert not imported & {"requests", "urllib", "socket", "subprocess", "os", "pathlib", "logging", "random", "time"}
+    # `urllib.parse` only splits strings (NP6a's URL identity); the rest of `urllib` opens connections
+    tops = {name.split(".")[0] for name in imported if name != "urllib.parse"}
+    assert not tops & {"requests", "urllib", "socket", "subprocess", "os", "pathlib", "logging", "random", "time"}
     assert not called & {"open", "now", "utcnow", "today", "read_text", "write_text", "print"}
 
 

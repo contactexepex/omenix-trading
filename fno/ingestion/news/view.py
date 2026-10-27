@@ -15,6 +15,7 @@ from fno.ingestion.news.materiality.terms import MaterialTerms
 from fno.ingestion.news.origins.origin import OriginReader
 from fno.ingestion.news.origins.promotional import PromotionalFilter
 from fno.ingestion.news.reads.read_file import ReadFile
+from fno.ingestion.news.resolve.effective_url import effective_url
 from fno.ingestion.news.resolve.resolution_file import Resolution
 from fno.ingestion.news.sources.model import UNLISTED
 from fno.ingestion.news.sources.rules import SourceRules, plain_host
@@ -42,7 +43,7 @@ class ArticleViewer:
         self.origins, self.promotions = OriginReader(rules), PromotionalFilter(rules)
 
     def view(self, article: Article, resolution: Resolution | None = None, read: ReadFile | None = None) -> ArticleView:
-        url = resolution.url if resolution else article.canonical_url
+        url = effective_url(article, resolution)
         parts = urlsplit(url) if url else None
         host = plain_host(parts.hostname) if parts else ""  # the domain a feed CLAIMS is never a host (NP0 s.3)
         provider, authors = (read.provider, read.authors) if read else ("", ())

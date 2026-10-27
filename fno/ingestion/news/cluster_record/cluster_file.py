@@ -11,9 +11,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from fno.ingestion.news.cluster.cluster import Cluster, Clustering
+from fno.ingestion.news.cluster.prepare import GROUPER_VERSION
 from fno.ingestion.news.cluster.window import WINDOW
 
-FORMAT = 1
+FORMAT = 1  # version 1 files
+FORMAT_2 = 2  # version 2 files: the same, plus how the run was fed and what the URL rule did (NP6a)
+FORMATS = (FORMAT, FORMAT_2)
 CLUSTERS_FOLDER = "news/clusters"
 STAMP = "%Y%m%dT%H%M%SZ"
 INPUT_RULE = "first seen at or before the window end; max(published, first seen) within the window before it"
@@ -46,7 +49,7 @@ def path_id(path: str) -> str:
 
 def cluster_file_bytes(clustering: Clustering) -> bytes:
     document = {
-        "format": FORMAT,
+        "format": FORMAT_2 if clustering.algorithm_version == GROUPER_VERSION else FORMAT,
         "algorithm_version": clustering.algorithm_version,
         "window_end": stamp_of(clustering.as_of),
         "window_hours": int(WINDOW / timedelta(hours=1)),
@@ -64,6 +67,14 @@ def cluster_file_bytes(clustering: Clustering) -> bytes:
             for c in clustering.clusters
         ],
     }
+    if document["format"] == FORMAT_2:
+        document |= {
+            "companies_version": clustering.companies_version,
+            "resolutions_used": clustering.resolutions_used,
+            "url_joins": clustering.url_joins,
+            "url_joins_refused": clustering.url_joins_refused,
+            "url_joins_unlike_title": clustering.url_joins_unlike_title,
+        }
     return json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 
@@ -84,7 +95,7 @@ def parse_cluster_file(data: bytes) -> ClusterFile:
             Cluster(c["cluster_id"], c["anchor_key"], tuple(c["member_keys"]), tuple(c["previous_cluster_ids"]))
             for c in document["clusters"]
         )
-        if document["format"] != FORMAT or end is None:
+        if document["format"] not in FORMATS or end is None:
             raise ValueError("unknown format")
         return ClusterFile(document["algorithm_version"], end, int(document["window_hours"]), clusters)
     except (KeyError, TypeError, AttributeError, UnicodeDecodeError) as broken:

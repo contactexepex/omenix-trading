@@ -50,6 +50,8 @@ def add_news_parser(subparsers) -> None:
     cluster = actions.add_parser("cluster", help="recent articles into one write-once cluster file (story P2d)")
     cluster.add_argument("--as-of", dest="as_of", type=_utc_moment, default=None,
                          help="the window end, ISO with a zone (default: now, floored to the hour)")  # fmt: skip
+    cluster.add_argument("--algorithm", choices=("1", "2"), default="1",
+                         help="algorithm version (default 1; 2: company list + resolutions)")  # fmt: skip
     cluster.set_defaults(func=cmd_news_cluster)
     check = actions.add_parser(
         "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
@@ -166,7 +168,7 @@ def cmd_news_cluster(args, out=print) -> int:
     try:
         if as_of > this_hour:  # only a closed window is clustered: a future end would write a file that later conflicts
             raise WindowInFuture
-        report = build_news_cluster().run(as_of)
+        report = build_news_cluster(algorithm=args.algorithm).run(as_of)
         line, ok, alert = report.line(), report.ok, report.alert_text()
     except WindowInFuture:
         line = CLUSTER_STOPPED.format(code=codes.WINDOW_IN_FUTURE)
