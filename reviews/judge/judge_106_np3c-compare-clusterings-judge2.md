@@ -60,3 +60,24 @@ plants:
   noted. The first dispatch will show it, and the 30-minute timeout bounds it.
 
 **Verdict: FAIL** (round 1, `d001816`). B1 is one test and one row.
+
+## Addendum 1
+
+**Re-check at `eb0ac05`.** This head was pushed before my round-1 verdict reached the implementer, so I count it as
+round 1, not as a second round.
+
+**What it adds:**
+- `assert "ZZ" not in text and "Zz" not in text` on `report.line()`;
+- plants J8 (a title in the report) and J9 (the dictionary's symbols in the report).
+
+**My B1 plants, re-run at this head:**
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| L1 | every anchor KEY appended to the v1/v2 line | **survives** (1981 passed). A hex key holds no "ZZ" |
+| L4 | `coverage` prints its symbol counter to stdout | **survives** (1981 passed). The test reads `report.line()`, never stdout |
+
+The new check is a blacklist of the test's invented names. The whitelist over ALL output that B1 asks for would catch
+both plants, and any other name.
+
+**Verdict: FAIL** (round 1 still, `eb0ac05`). B1 is unchanged.

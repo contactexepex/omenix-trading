@@ -63,3 +63,39 @@ The section does not narrow lane 1 and does not touch a hard line.
 **Verdict: FAIL** (round 1, `3142c92`).
 - B1 is provenance only: the text can stand once the owner's words are on record and quoted.
 - N1 should go in the same edit.
+
+## Addendum 1
+
+**Round 2 re-review of `story/SCOPE-ingestion-only` at `7c3c1b3`.** Against main, two files changed: `CLAUDE.md` and
+`conversations/2026-10-27.md`.
+
+**Gates (text only):**
+- The doc-reading tests: 79 passed.
+- `check_numbers`: clean.
+
+**B1 (provenance): fixed, as far as the repository can show.**
+- The log quotes the owner's two 27 Oct messages as written, with the decisions they led to. The heading quotes the
+  second message.
+- The derive question was put to the owner, whose answer, "Option A is right", is recorded verbatim with the Option A
+  definition. The rule cites it.
+- One limit, said plainly: the owner's words reach the repository through the orchestrator, who holds the original
+  messages, and the log says so. That is the best provenance a session can give, and it is now checkable against the
+  orchestrator's record.
+
+**Does the text follow the words?**
+- The first message alone ("fetch ... and store") is narrower than the rule. The owner's Option A answer settles it:
+  derive (resolve, read, tag, cluster) is in scope, and only the consumer, API and dashboard layer is excluded.
+- The text now matches the words.
+
+**N1: fixed.** "corroborate" is dropped from the derive examples, and the four uncalled pieces are named as parked in
+the log's open question (about 400 lines):
+- `ArticleViewer`;
+- `OriginReader`;
+- `PromotionalFilter`;
+- `corroborate()`.
+
+The keep-or-delete call stays with the owner.
+
+**N2** (the NP6 doc lines that still mention the dashboard) stays open, for when the parked items are decided.
+
+**Verdict: PASS** (round 2, `7c3c1b3`).
