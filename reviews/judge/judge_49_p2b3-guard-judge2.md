@@ -115,3 +115,34 @@ lost, so the commit step never runs; then the red job is the signal, and Drive f
 the next run over the same range.
 
 **Verdict: PASS** (lane 1, judge #2). Merging needs judge #1's PASS too.
+
+## Addendum 3: 08a55f5, the newest SHA (PASS stands; one note on news-fetch)
+
+SHA `08a55f5ebfa940335d7d6af6395ba6a6b8068862`, which carries `60d3f1b` (judge #1's judge_50 items). Compared with
+`227f668` it adds:
+- an `if: failure() && !inputs.dry_run` step at the end of `news-promote.yml` that posts a fixed text and the run's
+  URL through `build_alert_sender`, the repo's usual pattern;
+- a test for a row torn inside the size field.
+
+**Gates** (`__pycache__` cleared): 775 passed; ruff, format, imports and size clean.
+
+| Plant | Failed |
+|---|---|
+| F1 the failure-alert step disabled | 1 |
+| G1 the not-whole-rows half removed / G2 the new-line half removed | 1 / 6 |
+| G5 manifest staged on a skip / G7 skip exits 0 / G8 the guard alert removed | 2 / 2 / 3 |
+| C3 overwrite (carried) | 5 |
+
+The failure step's text carries only the promote outcome and the public run URL: no feed, URL or title.
+- It also fires after an ordinary rejection, which the command has already alerted, so that alerts twice. That is
+  noise, not a risk, and it is the repo's usual pattern.
+- The promote step's own failure does not trigger it, because `continue-on-error` gives that step a success
+  conclusion.
+- The commit step's `exit 1` and the final `exit 1` do trigger it, so every red run alerts.
+
+**Note for the orchestrator (not P2b3's scope):** the orchestrator expected the same `failure()` step in
+`news-fetch.yml`. It is not there (`grep failure() .github/workflows/news-fetch.yml`: nothing). A fetch killed by OOM
+or SIGKILL gets no #fno-desk alert, for the same reason as promote. `news-fetch.yml` is merged P2a code, so this is a
+small follow-up of its own.
+
+**Verdict: PASS** on `08a55f5` (lane 1, judge #2).
