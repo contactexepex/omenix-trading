@@ -101,3 +101,14 @@ Reviewed 1a1e5d6. Exclusions are now an allow-list grammar (`EXCLUSION_GRAMMAR`,
 **M1 fixed.** My swap plant (the Nifty 500 name before EQUITY_L) now fails a test.
 
 **Verdict: PASS round 2 at 1a1e5d6.** The "state the limit" condition of Addendum 1 no longer applies: the grammar replaces the heuristic.
+
+## Addendum 3: delta 1a1e5d6..0ffad12: PASS
+
+Reviewed `git diff 1a1e5d6 0ffad12`: one commit that only tightens.
+- **Group cap.** `MAX_GROUPS = 2`, counted as `(?:`. `(?:a|a)` × 3 + `x` is now refused; `Tata (?:Steel|Power)\w*` is still accepted.
+- **Wording.** The docstring and story call it a guard and name NP5's text cap as the hard bound. NP5 must deliver that cap; I hold NP5 to it.
+- **Examples.** The real company names in the seed docs are replaced; `grep` finds none left in `fno/`, `tests/` or the story.
+
+**Gates (locked venv).** 1527 passed; ruff is clean; contract plants all `ok`, Q1 to Q12.
+
+**Verdict: PASS at 0ffad12.**
