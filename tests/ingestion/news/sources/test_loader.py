@@ -108,3 +108,29 @@ def test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_ma
     good = tmp_path / "good.yaml"
     good.write_text("domains:\n  a.com: {tier: tier1, fetch: false}\n")
     assert load_source_rules(good).may_fetch("a.com") is False
+
+
+@pytest.mark.parametrize(
+    "suffix", ["co.in", "co.uk", "com.au", "org.uk", "github.io", "herokuapp.com", "s3.amazonaws.com", "blogspot.com"]
+)
+def test_a_public_suffix_is_refused_as_an_outlet_a_wire_or_a_promotional_domain(suffix):
+    refused({"domains": {suffix: {"tier": "tier1"}}}, "public suffix")
+    refused(doc(wires={"W": {"domains": [suffix]}}), "public suffix")
+    refused(doc(promotional={"domains": [suffix]}), "public suffix")
+
+
+def test_a_name_that_is_empty_once_normalised_is_refused_for_an_outlet_and_for_a_wire():
+    refused({"domains": {"a.com": {"tier": "tier1", "names": ["."]}}}, "empty once normalised")
+    refused({"domains": {"a.com": {"tier": "tier1", "names": ["  "]}}}, "non-empty strings")
+    refused(doc(wires={"W": {"names": ["..."]}}), "empty once normalised")
+
+
+def test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins():
+    refused(doc(wires={"W": {"names": ["Staff"]}, "X": {"names": [" staff. "]}}), "claimed by both W and X")
+    refused(doc(wires={"W": {"domains": ["w.com"]}, "X": {"domains": ["w.com"]}}), "claimed by both W and X")
+    refused(doc(wires={"W": {"names": ["X"]}, "X": {}}), "claimed by both W and X")
+
+
+@pytest.mark.parametrize("prefix", ["/news", "news/", "news", "/news/x"])
+def test_an_opinion_prefix_must_start_and_end_with_a_slash(prefix):
+    refused({"domains": {"a.com": {"tier": "tier1", "opinion_unless_path": prefix}}}, "start and end with /")

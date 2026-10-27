@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from fno.ingestion.news.sources.labels import normalise_label
-from fno.ingestion.news.sources.model import EXTRACTORS, LISTED_TIERS, Outlet, Promotional, Wire
+from fno.ingestion.news.sources.model import EXTRACTORS, LISTED_TIERS, Outlet, Promotional, Wire, is_public_suffix
 from fno.ingestion.news.sources.rules import SourceRules
 from fno.shared.config import ROOT
 
@@ -63,6 +63,7 @@ def build_source_rules(document: object) -> SourceRules:
     _check_same_as(outlets)
     _check_labels(outlets)
     wires = tuple(_wire(n, s, outlets) for n, s in (document.get("wires") or {}).items())
+    _check_wires(wires)
     return SourceRules(outlets, wires, _promotional(document.get("promotional") or {}))
 
 
@@ -75,6 +76,8 @@ def _only(section: dict, allowed: frozenset[str], where: str) -> None:
 def _domain(value: object, where: str) -> str:
     if not isinstance(value, str) or not DOMAIN.match(value):
         raise SourceRulesError(f"{where}: {value!r} is not a lower-case host name")
+    if is_public_suffix(value):
+        raise SourceRulesError(f"{where}: {value!r} is a public suffix, not one organisation's domain")
     return value
 
 
@@ -112,10 +115,19 @@ def _outlet(domain: str, settings: object) -> Outlet:
         fetch=_flag(settings, "fetch", True, domain),
         https_links=_flag(settings, "https_links", False, domain),
         extract=extract,
-        opinion_unless_path=_text(settings, "opinion_unless_path", domain),
+        opinion_unless_path=_prefix(settings, domain),
         same_as=_text(settings, "same_as", domain),
         note=_text(settings, "note", domain),
     )  # fmt: skip
+
+
+def _prefix(settings: dict, domain: str) -> str:
+    prefix = _text(settings, "opinion_unless_path", domain)
+    if prefix and not (prefix.startswith("/") and prefix.endswith("/")):
+        raise SourceRulesError(
+            f"{domain}: opinion_unless_path must start and end with / (so /news/ does not match /newsletter)"
+        )
+    return prefix
 
 
 def _text(settings: dict, key: str, domain: str) -> str:
@@ -143,6 +155,8 @@ def _check_labels(outlets: dict[str, Outlet]) -> None:
     for outlet in outlets.values():
         for name in outlet.names:
             label = normalise_label(name)
+            if not label:
+                raise SourceRulesError(f"{outlet.domain}: the name {name!r} is empty once normalised")
             if owner.setdefault(label, outlet.domain) != outlet.domain:
                 raise SourceRulesError(f"the name {name!r} is claimed by both {owner[label]} and {outlet.domain}")
 
@@ -156,6 +170,24 @@ def _wire(name: str, settings: object, outlets: dict[str, Outlet]) -> Wire:
     )
     return Wire(name, _strings(settings.get("names"), f"wire {name} names"),
                 _strings(settings.get("attribution"), f"wire {name} attribution"), domains)  # fmt: skip
+
+
+def _check_wires(wires: tuple[Wire, ...]) -> None:
+    claimed: dict[str, str] = {}
+    for wire in wires:
+        for name in (wire.name, *wire.names):
+            label = normalise_label(name)
+            if not label:
+                raise SourceRulesError(f"wire {wire.name}: the name {name!r} is empty once normalised")
+            if claimed.setdefault("name:" + label, wire.name) != wire.name:
+                raise SourceRulesError(
+                    f"the wire name {name!r} is claimed by both {claimed['name:' + label]} and {wire.name}"
+                )
+        for domain in wire.domains:
+            if claimed.setdefault("domain:" + domain, wire.name) != wire.name:
+                raise SourceRulesError(
+                    f"the wire domain {domain!r} is claimed by both {claimed['domain:' + domain]} and {wire.name}"
+                )
 
 
 def _promotional(section: object) -> Promotional:

@@ -100,3 +100,30 @@ def test_wire_and_promotional_lookups():
     assert RULES.wire_of_domain("uk.reuters.com") == "Reuters" and RULES.wire_of_domain("notreuters.com") is None
     assert RULES.is_promotional_provider("ZACKS") and not RULES.is_promotional_provider("Mint")
     assert RULES.is_promotional_domain("www.zacks.com") and not RULES.is_promotional_domain("notzacks.com")
+
+
+def test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too():
+    rules = build_source_rules({"domains": {
+        "main.example": {"tier": "tier1", "fetch": False},
+        "alias.example": {"tier": "tier1", "same_as": "main.example"},  # no fetch flag of its own
+        "open.example": {"tier": "tier1"},
+        "open-alias.example": {"tier": "tier1", "same_as": "open.example"},
+    }})  # fmt: skip
+    assert (
+        not rules.may_fetch("main.example")
+        and not rules.may_fetch("alias.example")
+        and not rules.may_fetch("x.alias.example")
+    )
+    assert rules.may_fetch("open.example") and rules.may_fetch("open-alias.example")
+
+
+def test_an_empty_or_dots_only_label_or_name_names_nothing():
+    for value in (None, "", " ", ".", "..."):
+        assert RULES.domain_of_label(value) is None
+        assert RULES.wire_of_name(value) is None
+        assert not RULES.is_promotional_provider(value)
+
+
+def test_the_news_desk_prefix_must_match_at_a_slash_boundary():
+    assert RULES.is_opinion("seekingalpha.com", "/newsletter/today") and RULES.is_opinion("seekingalpha.com", "/news")
+    assert not RULES.is_opinion("seekingalpha.com", "/news/today")

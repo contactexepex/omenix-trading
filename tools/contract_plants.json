@@ -449,8 +449,8 @@
    "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "        return bool(outlet and outlet.fetch)",
-  "new": "        return True"
+  "old": "        if outlet is None or not outlet.fetch:\n            return False",
+  "new": "        if outlet is None:\n            return False"
  },
  {
   "id": "O4",
@@ -514,5 +514,41 @@
   "file": "fno/ingestion/news/sources/rules.py",
   "old": "    if not text.isascii():\n        return \"\"\n",
   "new": ""
+ },
+ {
+  "id": "O11",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_public_suffix_is_refused_as_an_outlet_a_wire_or_a_promotional_domain"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if is_public_suffix(value):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O12",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return main is None or main.fetch  # an alias never bypasses the main domain's fetch: false",
+  "new": "        return True"
+ },
+ {
+  "id": "O13",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if claimed.setdefault(\"name:\" + label, wire.name) != wire.name:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O14",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_empty_or_dots_only_label_or_name_names_nothing"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        domain = self._label_domain.get(key) if key else None  # an empty label names nothing",
+  "new": "        domain = self._label_domain.get(key)"
  }
 ]
