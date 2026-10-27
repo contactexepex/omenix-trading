@@ -17,6 +17,15 @@ PLAN for the orchestrator's check before any code. Pattern: the official-against
 - **What is missing:** no Indian index is a Yahoo cue today (no NIFTY 50, Bank Nifty or India VIX symbol is in the cue list), and the
   comparison has no NSE side.
 
+## Finding (read from the code, 27 Oct 2026): there is nothing to cross-check yet
+
+`global_cues/wiring.py` `WORLD_INDEXES` lists every Yahoo symbol the scheduled job fetches: `^N225`, `^KS11`, `^AXJO`, `^HSI`, `000001.SS`,
+`^STI`, `^TWII`, `^FTSE`, `^GDAXI`, `^STOXX50E`, `^VIX`, `^NDX`. **None is an Indian index.** My recollection of `^NSEI`, `^NSEBANK` and
+`^INDIAVIX` is not in the repository and was never verified. So no Yahoo data for NIFTY 50, Bank Nifty or India VIX is archived, and a
+NSE-against-Yahoo report would have nothing to compare. Fetching one is a change to a live scheduled job (more requests from
+`global-cues.yml`), which the orchestrator ruled is a go-live / two-judge item, not part of P4. This plan is therefore **paused** until
+the owner decides whether to add Indian symbols to the live job.
+
 ## Answers to the orchestrator's three questions
 
 1. **Does P4 archive Yahoo closes to a Record? No new write path.** The existing global-cues collector already archives each Yahoo
