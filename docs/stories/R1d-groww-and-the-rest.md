@@ -54,8 +54,11 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 
 ## Unknowns (to settle with the orchestrator before the story)
 
-- **Where do the Groww callers run and who commits for them?** None of the 13 workflows calls Groww (the 13 are NSE and Drive
-  and global cues). Groww runs in routine containers (A16 and friends). Whether a committed, union-merged sign-in ledger is
+- **Where do the Groww callers run and who commits for them?** None of the 13 workflows calls Groww (checked: `grep` over `.github/workflows/`; the NSE
+  recorder workflow says it runs "beside the Claude routine that records Groww's" quotes and installs no broker SDK). Groww runs in
+  Claude routine containers (A16 and friends). A routine does commit its own outputs: `docs/GROWW_CANDLE_ROUTINE.md` lists "the only
+  paths this routine `git add`s", so a sign-in ledger path would have to be added to each routine's list, a change to routine
+  instructions, not to a workflow. Whether a committed, union-merged sign-in ledger is
   reachable from there, and by which committer, is not recorded in this repository. If it is not, R1d2 stays per-run and says so
   honestly (the story must not claim a cross-process budget it cannot persist).
 - **What is the right number of sign-ins to refuse at?** Groww's limit is 150 a day; the code's own estimate is 38 normal and 114
