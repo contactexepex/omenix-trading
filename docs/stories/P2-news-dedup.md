@@ -1,14 +1,14 @@
 # P2: news into Staging, clustered into one record per story (Phase 2 of docs/PIPELINE_DESIGN.md) — DESIGN
 
-DESIGN for review, round 2: the orchestrator's rulings (27 Oct 2026) and both judges' findings (judge 42 D1-D8, judge 43
-N1-N12) are written in. Lane 1 (a new outside source, Drive writes, write-once data, the privacy rule). Context:
+DRAFT for design round 3 (not frozen; the owner authorises a third round): the orchestrator's rulings (27 Oct 2026) and both judges' findings (judge 42 D1-D8 and its round 2, judge 43
+N1-N12 and R1-R6) are written in. Lane 1 (a new outside source, Drive writes, write-once data, the privacy rule). Context:
 [PIPELINE_DESIGN.md](../PIPELINE_DESIGN.md) ("News: dedup and credibility"), the gate in
 [P1-staging-record-split.md](P1-staging-record-split.md), waits in [R1-resilience.md](R1-resilience.md). This is **new
 capability**, so "never weaker than today" does not apply; the invariants below take its place.
 
 ## Invariants (each shown by a test and a plant)
 
-1. **No headline, title, slug, article URL, search query or feed URL outside Drive.** Not in a committed file, a log line,
+1. **No headline, title, slug, article URL, search query or feed URL in the repository, and none outside Drive.** Not in a committed file, a log line,
    an alert, a receipt, a manifest, a snapshot-log row, a staging or Record path, or a commit message. The repository is
    public and the record scan cannot recognise a headline, so the master test below is the guard.
 2. **One record per item key.** The key is defined per kind of item (D2); two distinct articles never share a key (D3);
@@ -30,11 +30,16 @@ A planted marker headline, marker article URL and marker search query run throug
 the failure paths** (a request error whose message holds the URL, a poll that fails the gate, a block page). Then every
 output that is committed or public is searched for each marker and must not hold it: manifests, receipts, snapshot-log rows,
 staging and Record path names, run logs (captured stdout and stderr), alert text, and the commit message the commit step
-builds. Rules that make it pass:
+builds. The master test captures logging at **DEBUG** (urllib3 logs the full request line, query included, R2-3) and also
+scans `fno/`, `config.yaml`, `.github/` and `docs/` for any feed URL, query or headline marker (R1). Rules that make it pass:
 
-- **Feed ids only.** Each feed has a fixed short id in the code (`gn-nifty`, not its URL). The snapshot-log row, the staging
-  path (`staging/news/<feed id>/<YYYY>/<MM>/<DD>/<HHMMSS>.xml`) and the receipts carry the feed id, never the URL, `form` or
-  `q=` parameter: a Google News query would show the owner's research intent. News gets its own snapshot-log row (feed id,
+- **The feed list lives outside the repository (R1; variant A, the safe default).** Each feed's URL or search query is in a
+  private Drive file, read at run time through the Drive reader (no environment variable, which would show in logs, and no
+  list in code or `config.yaml`). The code knows only opaque ids (`gn-01`, `gn-02`, never `gn-nifty`). A missing or
+  unreadable list stops the run with a fixed reason code; there is no fallback list in code. The snapshot-log row, the staging
+  path (`staging/news/<feed id>/<YYYY>/<MM>/<DD>/<HHMMSS>.xml`) and the receipts carry the opaque id, never the URL, `form` or
+  `q=` parameter: a Google News query would show the owner's research intent. *Variant B (feeds in the repository) is
+  possible only if the owner says publishing the search queries is acceptable; it is listed under the owner decisions.* News gets its own snapshot-log row (feed id,
   path, sha256, size) and its own manifest, `date,article_id,status,sha256,size_bytes`, with no `url` column.
 - **Fixed reason codes, messages withheld.** The P1 gate prints rejection reasons (`runs.py`, `_problem_line`) and a requests
   error carries the full URL. For news, a reason is one of a fixed list (`not_a_feed`, `no_items`, `item_missing_title`,
@@ -60,15 +65,18 @@ builds. Rules that make it pass:
 
 - **The key per kind of item (D2).** A publisher item: SHA-256 of its canonical URL. An unresolved Google News item (its
   link is a redirect wrapper that is not resolved; the orchestrator's ruling): SHA-256 of `google-news:` plus the item's own
-  `guid` when it has one, else of its normalised title, source name and publication date. **Test:** one item seen in two
-  polls gives one article; so does one without a guid.
+  `guid` when it has one, else of the **full published timestamp to the second** plus a hash of the normalised title and
+  the summary plus the source name (R2-2: a date alone would collide two same-title items of one day, such as "Stocks to
+  watch today", and hide the second as a revision). **Test:** one item seen in two polls gives one article; so does one
+  without a guid; two same-title items a minute apart give **two** keys.
 - **Canonical URL (D3).** An explicit allow-list of parameters to remove (`utm_*`, `fbclid`, `gclid`, `igshid`, `mc_cid`,
   `mc_eid`), the fragment and a default port; the host is lower-cased; every other parameter is kept, in sorted order.
   **Gate tests:** two URLs that differ only in tracking parameters give one key; two URLs that differ in a **non-tracking**
   parameter (`id=123` against `id=124`) give **two** keys and the second article is never rejected as a false duplicate.
 - **The article file (D4)** has fixed fields: key, feed id, source name, title, the feed's short summary if it has one,
   canonical URL (publisher items), published time, `time_source`, and the **first** seen_at. A re-poll compares on the fixed
-  fields **without seen_at**: identical is a true no-op.
+  fields **without seen_at and without the feed id** (R4: one guid appearing in two feeds is the same article, not a revision);
+  identical is a true no-op.
 - **Same key, different content (N5).** A later copy whose fixed fields differ (a live blog, a correction, a recurring title
   such as "Stocks to watch today") is **not dropped**: the first copy stays the record and the later one is kept through P1's
   revision pattern (`RevisionSink`, no version lost). Staging holds every poll in any case.
@@ -81,7 +89,10 @@ builds. Rules that make it pass:
 A Google "sorry", CAPTCHA or consent page, answered with HTTP 200 or a redirect, is a **block** as in the Yahoo source (A17e):
 a response that is not a feed (no feed root element), or a redirect to a consent or `sorry` address, stops that host for the
 run, is reported with the `block_page` code, and is never retried with a cookie, another user agent or another address. The
-next scheduled run asks once more the same way. It is not a parse failure that would be re-polled in a loop.
+next scheduled run asks once more the same way. It is not a parse failure that would be re-polled in a loop. Requests are
+sent with `allow_redirects=False` and **any redirect is a block** (R5). The news session carries a **reject-all cookie
+policy** (R3), scoped to the news session only so that NSE's and Yahoo's cookie handling (the shared `PacedSession`) is not
+changed; **test:** the second request of a news session carries no `Cookie` header, and a plant that accepts cookies fails.
 
 ## Clustering (P2c; N7, N9, N10, D5-D7)
 
@@ -92,13 +103,19 @@ next scheduled run asks once more the same way. It is not a parse failure that w
   NIFTY stories on one day stay **two** clusters, and a plant that merges on the entity alone fails it.
 - **Required test:** one story seen through both a Google News wrapper and its publisher feed (different id bases) lands in
   **one** cluster; a plant that removes the title stage must fail it.
+- **The assignment rule (R6) is explicit and non-chaining:** articles are taken in order of (published time, key); each
+  joins an existing cluster only if it is similar to that cluster's **anchor** (its earliest member), never to any other
+  member, else it starts a new cluster.
 - **The cluster id (D5)** is the hash of its earliest article's key, earliest by publication time, ties broken by the smaller
   key. When a later-arriving earlier article, or a merge of two clusters, changes an id, the new file has a
-  `previous_cluster_ids` column naming the ids it replaces, so a consumer can follow a story.
+  `previous_cluster_ids` column naming the ids it replaces, so a consumer can follow a story. When the anchor itself ages out of the window, the cluster is re-anchored to its earliest
+  remaining member and the same column names the old id (R6).
 - **The file header (D6)** states the algorithm version, the window end (the run's as-of time) and the input rule (articles
   with first seen_at at or before the window end and published, or if `time_source=seen` seen, within the window before it).
   Deterministic: sorted inputs, no randomness; the same inputs give the same bytes, so a rerun is a no-op.
-- **The window applies to clustering only (N6).** Its length is set in P2c from collected data, not guessed.
+- **The window applies to clustering only (N6), and an article belongs to it by `max(published, first seen_at)`** (R2), so a
+  late arrival (published three days ago, first seen today) enters a cluster instead of being lost to clustering. **Test:**
+  such an article lands in a cluster. The window length is set in P2c from collected data, not guessed.
 - **Articles that leave the window (D7)** stay in the Record for ever under their own ids; they stop appearing in newer
   cluster files, and the older files that listed them stay as they were.
 - **Concurrent runs (N9).** The promotion job has a workflow `concurrency` group with `cancel-in-progress: false` (as
@@ -132,6 +149,10 @@ repository's logs and Drive.
 ## OWNER decisions (flagged, not assumed by this plan)
 
 - **Which publisher feeds, and their terms.** None are named here; each must be fetched and its terms read first.
+- **R1: the feed list.** Variant A (feeds outside the repository, above) is the plan. Variant B (feeds in the repository) is
+  only acceptable if the owner says that publishing the search queries, which show the research interest, is fine.
+- **Residual risk, named (judge 43):** an article key is the SHA-256 of a public URL, so someone who guesses a URL could
+  confirm it is archived. Very low risk; stated so the owner can accept it.
 - **N12: does owner rule 50a79a43 (source terms do not block private research; values stay in Drive) cover publishers'
   headlines and summaries?** The plan keeps all of it in private Drive; whether that is permitted for news is the owner's.
 - **What counts as independent.** Proposed default: count the *origin* where a wire credit (PTI, Reuters, ANI, Bloomberg) is
