@@ -64,3 +64,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 51 | P2a2 news-fetch failure alert (workflow) | 1 | PASS (11b25db) | `judge_51_p2a2-fetch-alert.md` |
 | 52 | P2c news clustering (code) | 1 | PASS (round 2, d5af65f) | `judge_52_p2c-clustering.md` |
 | 53 | P2d news cluster record (code) | 1 | FAIL (round 1, e1febbd) | `judge_53_p2d-cluster-record.md` |
+| 54 | P2d cluster record and shared commit guard, code (judge #2) | 1 | FAIL (round 1, e1febbd) | `judge_54_p2d-cluster-judge2.md` |
