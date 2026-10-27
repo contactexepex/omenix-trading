@@ -50,7 +50,7 @@ remembered into the next run today.
 ## 3. Why this matters to the resilience layer
 
 - The shared library (`fno/shared/resilience/`) is in-process everywhere. Remembering an NSE pause across runs needs the
-  log to be committed: only the section 1 workflows run `ops/commit_pause_log.sh` today. The sessions of section 2 do commit
+  log to be committed: only the section 1 workflows (all but `data-checks.yml`) run `ops/commit_pause_log.sh` today. The sessions of section 2 do commit
   their own outputs (the candle backfill, the pre-open capture), so a routine could add the same step; none does, and this
   repository does not decide that.
 - Anything in section 2 adopts a change only when its session or routine next fetches `main`; the owner confirms each at
