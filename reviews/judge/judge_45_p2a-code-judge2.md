@@ -59,3 +59,40 @@ Other plants: N3 (no feed-root check) 3 failed; N4 (no host stop) 1; N13 (a cron
    stray file. Add a workflow test that the commit step adds only `$POLLS`.
 
 **Verdict: FAIL** (round 1). S1 and S2 are tests only; the code is sound.
+
+## Addendum 1: the corrected SHA 9f794fe (still FAIL, round 1: S1 and S2 open)
+
+The orchestrator replaced `8a3a45c` with `9f794fe6...` (branch `story/P2a-news-fetch-r2`). It adds detection of a
+feed-list version edited in place: each poll row now records the SHA-256 of the feed-list file used. On the next run,
+a used version whose hash changed is skipped, the next older good one is used, `feed_list_damaged` is counted and
+alerted, and if every version is damaged the run stops.
+
+**Gates** (`__pycache__` cleared): 621 passed; ruff, format, imports and size clean.
+
+**The new field is safe for privacy.** `feed_list_sha256` is `sha256(file bytes)`, a 64-character hex digest of the
+whole JSON file, so it cannot carry the query or the URL. Inverting it would mean guessing the file byte for byte
+(key order, spacing, every id and URL), which is out of reach for any real list. At most, a one-feed list in a
+predictable format could be confirmed by a guess, the same class as the accepted article-id residual (reasoning
+only). Plant H1 (the file's text written in place of the digest) fails 2 tests, the privacy test among them, so the
+master test still catches a marker with the field present.
+
+**New plants:** H2 (the edit-in-place check removed) 3 failed; H3 (a damaged version not counted, so the run reads
+clean) 2 failed.
+
+**Still open:**
+- **S1:** N8, the wiring's store moved to `AreaStore(drive, "raw")`, still passes all 621.
+- **S2:** no test through the real pacer and pause log.
+
+**Notes on the new logic (not blocking):**
+1. **The note-2 hole now covers both guarantees.** A version's hash, like its number, is recorded only on a `fetched`
+   row. A version used only in runs where every poll was unchanged or blocked has no row, so it can later be edited
+   in place, or rolled back below, without detection. Record the version and hash once per run (for example a run
+   row), or accept this in writing.
+2. **The fallback can go below the highest version used.** If the newest used version is edited in place, the code
+   falls back to an older one, even below `lowest_version`. That is a rollback the guard otherwise refuses. It is
+   alerted and not clean, and it seems intended ("the next older good one"). Say it in the story.
+3. **Asymmetry:** a used version edited in place falls back to the last good version, but a new, never-used invalid
+   version still **halts** the run (`parse_feed_list` raises). If the agreed rule is "damaged newest -> last good +
+   alert", it should cover an invalid new version too. My judge 45 note 1 recommends it (reasoning only).
+
+**Verdict: FAIL** (round 1, on 9f794fe): S1 and S2, tests only.
