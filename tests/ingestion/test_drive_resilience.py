@@ -505,6 +505,7 @@ def test_drive_has_no_total_time_bound_as_today_and_nse_keeps_its_own_unchanged(
         120.0,
         0.25,
     )
+    assert settings_for("nse_json").retry.max_total_seconds == 60.0  # and the public-JSON client's, also untouched
 
 
 def _repair_with(copies):

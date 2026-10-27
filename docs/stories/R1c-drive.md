@@ -75,12 +75,12 @@ maps to a row above: `storage/wiring.py`, `fo_masters/wiring.py`, `vix_history/w
 unmapped, and no site disagreed on file-first.
 
 Two cases need a sentence each. **The quote sidecar** (`quotes/drive_only_store.py`): the one row-equivalent that is designed to be writable without its
-file. If the CSV save fails, the sidecar is still written with `RAW_FILE_SAVED=False` (`recorder.py:274`; absent means
+file. If the CSV save fails, the sidecar is still written with `RAW_FILE_SAVED=False` (`recorder.py:273-274`; absent means
 saved). The safety rests on the readers, and this repository has **two** (corrected after judge 1 found the second): the guarded
-`DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`), and `quotes/compare.py:40`, which reads the sidecar directly and
+`DriveOnlyQuoteStore.get` (`drive_only_store.py:49-62`), and `quotes/compare.py:40`, which reads the sidecar directly and
 the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
-`recorder.py:285-286` writes only for a `complete` attempt (`recorder.py:261-263`), and `complete` requires no failures, the
-raw-save error being one (`recorder.py:258-259`): canonical implies complete implies saved; if they ever disagreed the
+`recorder.py:285-286` writes only for a `complete` attempt (`recorder.py:263`), and `complete` requires no failures, the
+raw-save error being one (`recorder.py:260-262`): canonical implies complete implies saved; if they ever disagreed the
 guarded read returns `None` and the comparison fails loudly. For the guarded reader: a flag of false returns `None` without touching Drive (the file
 is not counted and no receipt or row is derived from it); a flag of true with no file in the private store raises
 `RawQuoteMissing`, and a file whose SHA-256 differs from the sidecar's `csv_sha256` raises `RawQuoteHashMismatch`, so the
@@ -201,10 +201,10 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   raised the same way. So at most one re-sign per call and no loop on a persistent 401. Pinned by
   `test_the_401_re_sign_happens_at_most_once_per_call_and_a_persistent_401_cannot_spin` and the existing characterization.
 - **The quote sidecar has two readers in this repository** (the story said one; judge 1 found the second): the guarded
-  `DriveOnlyQuoteStore.get` (`drive_only_store.py:48-62`) and `quotes/compare.py:40`, which reads the sidecar directly and then
+  `DriveOnlyQuoteStore.get` (`drive_only_store.py:49-62`) and `quotes/compare.py:40`, which reads the sidecar directly and then
   the CSV through the guarded store. The comparison is safe because it starts from the canonical marker, which
-  `recorder.py:285-286` writes only when the attempt is `complete`, and `complete` (`recorder.py:261-263`) requires no failures,
-  the raw-save error being one (`recorder.py:258-259`): canonical implies complete implies saved. If they ever disagreed, the
+  `recorder.py:285-286` writes only when the attempt is `complete`, and `complete` (`recorder.py:263`) requires no failures,
+  the raw-save error being one (`recorder.py:260-262`): canonical implies complete implies saved. If they ever disagreed, the
   guarded read returns `None` for a not-saved flag and the comparison fails loudly (`None.decode()`), never a snapshot of a
   missing file. Pinned by `test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_saved` (with the
   reader ignoring the flag, it fails). The writer-side test judge 1 required exists: the recorder's `_attempt` runs offline over the sample provider (a
@@ -240,3 +240,14 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   `ReceiptRefused` and writes no receipt. With the first refusal replaced by a made-up receipt, and with the second
   removed, a test fails.
 - Gates: ruff, imports, numbers, size clean; 522 tests pass.
+
+### Follow-ups (named, not R1c blockers)
+
+- **Lane 2 cleanup:** `quotes/compare.py:40-43` should raise `RawQuoteMissing` (a designed refusal) when the guarded store
+  returns `None` for a quote file whose sidecar says not saved, instead of failing with `AttributeError` from
+  `None.decode()`. The safety property holds today and is test-locked (the comparison raises and never returns a snapshot);
+  the change touches a read-only comparison tool outside R1c.
+- **Cross-repo contract (owner):** whether the dashboard (`exepex/omenix-dashboard`) honours `RAW_FILE_SAVED=False` and
+  verifies the raw quote file before using it is not checked here.
+- **Pre-go-live measurement (go-live list):** Drive-write calls per workflow, which decides whether the 120 s `Retry-After`
+  cap needs tuning.
