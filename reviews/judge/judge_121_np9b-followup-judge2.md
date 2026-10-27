@@ -45,3 +45,19 @@
 
 **Note on my own index entry:** my first push of this verdict (`478dcb5`) added a broken row to `README.md`, with no
 number and no file, because of an error in my script. This commit corrects that row and adds this file.
+
+## Addendum 1
+
+**Re-confirmation at `a0697e3`.** It is the `a3e5c13` I passed, plus main merged in (NP10), plus one docstring word in
+`sources/model.py` (judge 1's N1).
+- Against main, the diff is NP9b's own content only: `text_rules.py`, `sources/model.py`, `test_matching.py`, the
+  stored-title test and plants F21, F22 and F22b.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2010 passed.
+- `ruff check`: clean.
+- `check_imports`: 628 files clean.
+- `check_numbers`: clean.
+- **The full plant runner: 274 of 274 `ok`.**
+
+**Verdict: PASS** (`a0697e3`).
