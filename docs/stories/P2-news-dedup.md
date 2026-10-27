@@ -187,7 +187,10 @@ repository's logs and Drive.
   Record file and does not go through the verified cache); its integrity is checked by the SHA-256 logged when a version is first used. **The list format requires a random `salt`
   of 16 or more characters** (a list without one is refused), so the committed hash cannot confirm a guessed list.
   Cases: a first-time invalid version stops the run (`feed_list_invalid`, so a typo is caught at once and the previous list
-  is not silently used); a version edited after use falls back to the last good one and alerts. Reasoning only for adding a
+  is not silently used); a version edited after use falls back to the last good one and alerts. **The fallback can
+  therefore go below the highest version used** (an alerted rollback): that is intended, because the newer file was damaged
+  and the older one is known-good. The two cases differ on purpose: a never-used invalid version has no known-good meaning
+  and stops the run so an owner's typo is caught at once, while an edited used version had one. Reasoning only for adding a
   version rather than editing: the owner never halts the pipeline and a bad version leaves the previous one in place.
 - **Session:** `NewsSession`, a subclass of the shared `PacedSession` used by the news fetcher alone: a reject-all cookie
   policy and `allow_redirects=False`. NSE's and Yahoo's sessions are unchanged. The session
