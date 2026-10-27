@@ -367,8 +367,8 @@
    "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_source_without_a_rule_is_never_trashed"
   ],
   "file": "fno/ingestion/staging_cleanup/proof.py",
-  "old": "            return self.revisions.holds(copy.path, digest)",
-  "new": "            return True"
+  "old": "        return self.revisions.holds(copy.path, digest)",
+  "new": "        return True"
  },
  {
   "id": "E5",
@@ -377,8 +377,18 @@
    "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_manifest_row_for_other_bytes_keeps_the_staged_copy"
   ],
   "file": "fno/ingestion/staging_cleanup/proof.py",
-  "old": "                return self.fingerprints.sha256_of(copy.path) == digest",
-  "new": "                return True"
+  "old": "            return self.fingerprints.sha256_of(copy.path) == digest",
+  "new": "            return True"
+ },
+ {
+  "id": "E6",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_bug_in_a_proof_is_counted_and_turns_the_run_red_never_swallowed",
+   "tests/ingestion/staging_cleanup/test_cleanup.py::test_a_record_that_cannot_be_read_keeps_the_copy_and_turns_the_run_red"
+  ],
+  "file": "fno/ingestion/staging_cleanup/cleanup.py",
+  "old": "            report.counts[PROOF_ERROR] += 1",
+  "new": "            report.counts[UNPROVEN] += 1"
  },
  {
   "id": "E3",

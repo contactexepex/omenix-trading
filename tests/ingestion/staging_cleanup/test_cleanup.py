@@ -152,7 +152,7 @@ def test_a_copy_already_gone_is_counted_as_such(tmp_path):
     assert w.cleanup(Trash(gone=True)).run(["nse"]).counts["already_gone"] == 1
 
 
-def test_a_record_that_cannot_be_read_keeps_the_copy(tmp_path):
+def test_a_record_that_cannot_be_read_keeps_the_copy_and_turns_the_run_red(tmp_path):
     w = World(tmp_path)
     w.stage(b"good", OLD)
 
@@ -163,7 +163,21 @@ def test_a_record_that_cannot_be_read_keeps_the_copy(tmp_path):
     proof = NseCopyProof(Down(LocalFolderStore(tmp_path / "x"), "raw"), Fingerprints({}), Revisions())
     trash = Trash()
     report = StagingCleanup(w.staging, {"nse": proof}, trash, clock=lambda: NOW).run(["nse"])
-    assert trash.calls == [] and report.counts["unproven"] == 1
+    assert trash.calls == [] and report.counts["proof_error"] == 1 and report.counts["unproven"] == 0 and not report.ok
+
+
+def test_a_bug_in_a_proof_is_counted_and_turns_the_run_red_never_swallowed(tmp_path):
+    w = World(tmp_path)
+    w.stage(b"good", OLD)
+
+    class Buggy(NseCopyProof):
+        def promoted(self, copy):
+            raise TypeError("a logic error")
+
+    trash = Trash()
+    proof = Buggy(w.record, RecordRows(w.record), Revisions())
+    report = StagingCleanup(w.staging, {"nse": proof}, trash, clock=lambda: NOW).run(["nse"])
+    assert trash.calls == [] and report.counts["proof_error"] == 1 and not report.ok
 
 
 def test_the_limit_bounds_the_copies_examined(tmp_path):

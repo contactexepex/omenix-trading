@@ -22,6 +22,7 @@ MAX_AGE = timedelta(days=7)
 DEFAULT_LIMIT = 500
 # the report's fixed keys
 SCANNED, YOUNG, UNPROVEN, NO_RULE, UNREADABLE = "scanned", "young", "unproven", "no_rule", "unreadable"
+PROOF_ERROR = "proof_error"
 WOULD_TRASH, TRASHED, ALREADY_GONE, FAILED, LIMIT_REACHED = (
     "would_trash",
     "trashed",
@@ -29,7 +30,19 @@ WOULD_TRASH, TRASHED, ALREADY_GONE, FAILED, LIMIT_REACHED = (
     "failed",
     "limit_reached",
 )
-KEYS = (SCANNED, YOUNG, UNPROVEN, NO_RULE, UNREADABLE, WOULD_TRASH, TRASHED, ALREADY_GONE, FAILED, LIMIT_REACHED)
+KEYS = (
+    SCANNED,
+    YOUNG,
+    UNPROVEN,
+    NO_RULE,
+    UNREADABLE,
+    PROOF_ERROR,
+    WOULD_TRASH,
+    TRASHED,
+    ALREADY_GONE,
+    FAILED,
+    LIMIT_REACHED,
+)
 
 
 @dataclass
@@ -39,7 +52,7 @@ class CleanupReport:
 
     @property
     def ok(self) -> bool:
-        return not (self.counts[FAILED] or self.counts[UNREADABLE])
+        return not (self.counts[FAILED] or self.counts[UNREADABLE] or self.counts[PROOF_ERROR])
 
     def line(self) -> str:
         mode = "applied" if self.apply else "report only"
@@ -83,7 +96,12 @@ class StagingCleanup:
         if copy is None:
             report.counts[UNREADABLE] += 1
             return
-        if not proof.promoted(copy):
+        try:
+            promoted = proof.promoted(copy)
+        except Exception:  # noqa: BLE001 - the copy stays and the run turns red; only the count is kept (no paths)
+            report.counts[PROOF_ERROR] += 1
+            return
+        if not promoted:
             report.counts[UNPROVEN] += 1
             return
         if self.trash is None:

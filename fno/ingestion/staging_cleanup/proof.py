@@ -15,7 +15,8 @@ from fno.ingestion.storage.raw_store import RawFileStore
 class PromotedProof(ABC):
     @abstractmethod
     def promoted(self, copy: StagedCopy) -> bool:
-        """True only when the Record (or its revisions) provably holds this copy's exact bytes."""
+        """True only when the Record (or its revisions) provably holds this copy's exact bytes. May raise on any
+        doubt it cannot settle (Drive down, a damaged index): the caller keeps the copy and counts the error."""
 
 
 class RevisionHolds(Protocol):
@@ -42,10 +43,7 @@ class NseCopyProof(PromotedProof):
 
     def promoted(self, copy: StagedCopy) -> bool:
         digest = hashlib.sha256(copy.data).hexdigest()
-        try:
-            held = self.record.get(copy.path)
-            if held is not None and held == copy.data:
-                return self.fingerprints.sha256_of(copy.path) == digest
-            return self.revisions.holds(copy.path, digest)
-        except Exception:  # noqa: BLE001 - any doubt (Drive down, an unreadable index) keeps the copy
-            return False
+        held = self.record.get(copy.path)  # a read error propagates: StagingCleanup keeps the copy and reports it
+        if held is not None and held == copy.data:
+            return self.fingerprints.sha256_of(copy.path) == digest
+        return self.revisions.holds(copy.path, digest)

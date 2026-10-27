@@ -117,8 +117,8 @@ def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
 
     proof = NewsPollProof(s.kinds, ArticlePlanner(Down(s.drive, "raw")), NewsManifest(s.manifest_folder))
     trash = Trash()
-    cleanup(s, trash, proof).run([SOURCE])
-    assert trash.calls == []
+    report = cleanup(s, trash, proof).run([SOURCE])
+    assert trash.calls == [] and report.counts["proof_error"] == 1 and not report.ok
 
 
 def test_a_poll_younger_than_seven_days_is_kept_even_when_promoted(tmp_path):
