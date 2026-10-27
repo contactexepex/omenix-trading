@@ -74,6 +74,18 @@ def test_a_list_with_a_mistake_is_refused_with_one_fixed_code(data):
         ".*.*.*Z",
         "a?a?a?a?a?aaaa",
         "x{2,}y{2,}z{2,}",
+        "a.b",
+        "a|b",
+        "[ab]",
+        "a*",
+        r"\w*x",
+        r"\w*\w*",
+        "(?:a|b)?",
+        "(?=a)b",
+        r"\1",
+        "a\\",
+        "(?:a|a)" * 23 + "x",
+        "(?:a|b)(?:c|d)(?:e|f)",
     ],
 )
 def test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused(pattern):

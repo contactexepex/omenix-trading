@@ -166,6 +166,7 @@ The owner's private list of companies (`companies/companies-vN.json` in the Driv
 | Q9 | A row of NSE's lists the list checks would refuse (odd symbol, empty or too long name, a name taken twice) is skipped and counted, never written. | `build_seed` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_rows_the_list_checks_would_refuse_are_skipped_and_counted_so_the_seed_still_passes_them` | bad row written | **tested, plant run** |
 | Q10 | The seed's own bytes are parsed with the consumer's checks before they are returned, so a file every consumer would refuse is never written. | `build_seed` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned` | own check missing | **tested, plant run** |
 | Q11 | A company's name comes from the equity list first, then the Nifty 500, and only last from the abbreviated F&O master. | `build_seed` | `tests/ingestion/news/companies/test_seed_and_cli.py::test_when_the_lists_disagree_the_equity_list_wins_over_the_nifty_500_and_that_over_the_master` | name order swapped | **tested, plant run** |
+| Q12 | An exclusion with more than two `(?:...)` groups is refused (23 chained groups of the same letter took 20 s on 100 characters). | `parse_company_list` | `tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused` | group count unchecked | **tested, plant run** |
 
 ## News link resolver (NP2b)
 

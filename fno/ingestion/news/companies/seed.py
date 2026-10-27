@@ -2,7 +2,7 @@
 SYMBOL), the Nifty 500 (Company Name, Symbol) and the equity list (SYMBOL, NAME OF COMPANY). Pure: bytes in, the
 file's bytes out.
 
-The F&O master's company names are abbreviated by NSE ("APOLLO HOSPITALS ENTER. L", "MOTILAL OSWAL FIN LTD", strong
+The F&O master's company names are abbreviated by NSE ("ZZALPHA HOLDINGS ENTER. L", "ZZDELTA CAPITAL FIN LTD", strong
 evidence: I read a real file), so the name comes from the equity list when it has the symbol, then the Nifty 500 list,
 and only last from the master. A name is then cleaned mechanically: legal suffixes dropped, spaces collapsed, upper
 case turned to title case. That is a starting point the owner edits: aliases and exclusions are empty except for the
@@ -45,7 +45,7 @@ def clean_name(raw: str) -> str:
     while (shorter := LEGAL_SUFFIX.sub("", name)) != name:
         name = shorter
     name = name.strip(" ,.")
-    short_acronym = " " not in name and len(name) <= 5  # ITC, LTM, TCS stay as they are
+    short_acronym = " " not in name and len(name) <= 5  # three-letter acronyms like ZZQ stay as they are
     return name.title() if name.isupper() and not short_acronym else name
 
 

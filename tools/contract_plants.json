@@ -698,8 +698,8 @@
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
   "file": "fno/ingestion/news/companies/parse.py",
-  "old": "        if len(pattern) > MAX_PATTERN or not EXCLUSION_GRAMMAR.fullmatch(pattern) or pattern.count(\"?\") > MAX_OPTIONALS:",
-  "new": "        if len(pattern) > MAX_PATTERN:"
+  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "new": ""
  },
  {
   "id": "Q2",
@@ -876,8 +876,8 @@
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
   "file": "fno/ingestion/news/companies/parse.py",
-  "old": "or pattern.count(\"?\") > MAX_OPTIONALS:",
-  "new": ":"
+  "old": "            or pattern.count(\"?\") > MAX_OPTIONALS\n",
+  "new": ""
  },
  {
   "id": "Q9",
@@ -905,5 +905,14 @@
   "file": "fno/ingestion/news/companies/seed.py",
   "old": "legal.get(symbol) or n500.get(symbol) or master[symbol]",
   "new": "n500.get(symbol) or legal.get(symbol) or master[symbol]"
+ },
+ {
+  "id": "Q12",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
+  "new": ""
  }
 ]
