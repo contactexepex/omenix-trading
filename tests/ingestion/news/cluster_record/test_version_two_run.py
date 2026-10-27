@@ -27,6 +27,7 @@ from tests.ingestion.news.record.helpers import FEED, Setup
 from tests.ingestion.news.tagging.helpers import COMPANIES
 
 STORY = "https://pub.example/news/story-one"
+SHA = "a" * 64
 
 
 class Scripted(CompanyListSource):
@@ -42,7 +43,7 @@ class Scripted(CompanyListSource):
 class WorldTwo(World):
     """The same world, but the run is algorithm version 2 over a scripted company list."""
 
-    companies: CompanyListSource = Scripted(CompanyList(7, COMPANIES))
+    companies: CompanyListSource = Scripted(CompanyList(7, COMPANIES, SHA))
 
     def build(self) -> None:
         super().build()
@@ -78,6 +79,7 @@ def test_a_version_two_run_writes_a_format_two_file_in_its_own_folder_with_what_
     document = world.written()
     assert document["format"] == 2 and document["algorithm_version"] == "2"
     assert (document["companies_version"], document["resolutions_used"]) == (7, 0)
+    assert document["companies_sha256"] == SHA
     assert (document["url_joins"], document["url_joins_unlike_title"], document["url_joins_refused"]) == (0, 0, 1)
     assert "url_joins 0" in report.line() and "url_joins_refused 1" in report.line()
     assert "companies_version 7" in report.line() and "resolutions_used 0" in report.line()
@@ -184,9 +186,10 @@ def test_every_number_the_run_hands_the_file_is_written_under_its_own_name(tmp_p
     from fno.ingestion.news.cluster.cluster import Clustering
     from fno.ingestion.news.cluster_record.cluster_file import cluster_file_bytes
 
-    document = json.loads(cluster_file_bytes(Clustering(AS_OF, "2", (), 1, 2, 3, 4, 5, 6, 7)))
+    document = json.loads(cluster_file_bytes(Clustering(AS_OF, "2", (), 1, 2, 3, 4, 5, 6, 7, "c" * 64)))
     assert (document["url_joins"], document["url_joins_unlike_title"], document["url_joins_refused"]) == (3, 4, 5)
     assert (document["companies_version"], document["resolutions_used"]) == (6, 7)
+    assert document["companies_sha256"] == "c" * 64
     assert (document["outside_window"], document["repeated_keys"], document["format"]) == (1, 2, 2)
     plain = json.loads(cluster_file_bytes(Clustering(AS_OF, "1", (), 0, 0)))
     assert plain["format"] == 1 and "url_joins" not in plain  # version 1 files are byte-for-byte as they were
@@ -229,3 +232,62 @@ def test_a_version_two_run_reads_its_previous_file_from_its_own_folder(tmp_path)
     previous = world.run_object._previous(AS_OF)
     assert previous == parse_cluster_file(v2_bytes).clusters
     assert all(c.cluster_id != "f" * 64 for c in previous)
+
+
+NEXT = AS_OF + timedelta(hours=1)
+
+
+def second_run(tmp_path, companies):
+    """A first version 2 file with list version 7 and bytes SHA, then the next window against `companies`."""
+    world = seeded(tmp_path)
+    assert world.cluster().ok
+    world.companies = Scripted(companies)
+    world.build()
+    return world, world.cluster(NEXT)
+
+
+def test_a_later_run_with_the_same_list_or_a_newer_one_goes_on_and_records_it(tmp_path):
+    world, same = second_run(tmp_path, CompanyList(7, COMPANIES, SHA))
+    assert same.ok
+    world, newer = second_run(tmp_path / "n", CompanyList(8, COMPANIES, "b" * 64))
+    assert newer.ok
+    written = json.loads(world.drive.get(f"raw/{cluster_path('2', NEXT)}"))
+    assert (written["companies_version"], written["companies_sha256"]) == (8, "b" * 64)
+
+
+def test_an_older_list_than_the_last_file_used_stops_the_run_and_writes_nothing(tmp_path):
+    world, report = second_run(tmp_path, CompanyList(6, COMPANIES, "b" * 64))
+    assert report.rejected == {codes.COMPANY_LIST_ROLLED_BACK: 1} and not report.ok
+    assert world.cluster_files() == ["raw/news/clusters/2/20261027T120000Z.json"]
+
+
+def test_the_same_version_with_other_bytes_is_a_list_edited_in_place_and_stops_the_run(tmp_path):
+    world, report = second_run(tmp_path, CompanyList(7, COMPANIES, "b" * 64))
+    assert report.rejected == {codes.COMPANY_LIST_DAMAGED: 1} and not report.ok
+    assert world.cluster_files() == ["raw/news/clusters/2/20261027T120000Z.json"]
+
+
+def test_a_list_used_before_that_is_now_missing_stops_the_run_instead_of_becoming_version_zero(tmp_path):
+    world, report = second_run(tmp_path, CompanyListError(codes.COMPANY_LIST_MISSING))
+    assert report.rejected == {codes.COMPANY_LIST_MISSING: 1} and not report.ok
+
+
+def test_after_a_run_with_no_list_a_list_that_appears_is_accepted(tmp_path):
+    world = seeded(tmp_path, Scripted(CompanyListError(codes.COMPANY_LIST_MISSING)))
+    assert world.cluster().ok
+    world.companies = Scripted(CompanyList(1, COMPANIES, "b" * 64))
+    world.build()
+    assert world.cluster(NEXT).ok
+
+
+def test_the_parser_reads_the_list_a_file_used_and_zero_for_a_file_that_has_none(tmp_path):
+    world = seeded(tmp_path)
+    world.cluster()
+    found = parse_cluster_file(world.drive.get(f"raw/{cluster_path('2', AS_OF)}"))
+    assert (found.companies_version, found.companies_sha256) == (7, SHA)
+    document = world.written()
+    for key in ("companies_version", "companies_sha256"):
+        del document[key]
+    document["format"] = 1
+    none = parse_cluster_file(json.dumps(document).encode())
+    assert (none.companies_version, none.companies_sha256) == (0, "")

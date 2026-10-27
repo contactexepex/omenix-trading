@@ -2138,7 +2138,7 @@
    "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_list_that_exists_but_cannot_be_read_stops_the_run_and_writes_nothing"
   ],
   "file": "fno/ingestion/news/cluster_record/grouping.py",
-  "old": "if str(refused) == codes.COMPANY_LIST_MISSING:",
+  "old": "if str(refused) == codes.COMPANY_LIST_MISSING and not (previous and previous.companies_version):",
   "new": "if True:"
  },
  {
@@ -2203,5 +2203,70 @@
   "file": "fno/ingestion/news/cluster_record/report.py",
   "old": "\"resolutions_used\", \"companies_version\",",
   "new": "\"resolutions_used\","
+ },
+ {
+  "id": "Z17",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_an_older_list_than_the_last_file_used_stops_the_run_and_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "    if companies.version < previous.companies_version:",
+  "new": "    if False:"
+ },
+ {
+  "id": "Z18",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_the_same_version_with_other_bytes_is_a_list_edited_in_place_and_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "if companies.version == previous.companies_version and companies.sha256 != previous.companies_sha256:",
+  "new": "if False:"
+ },
+ {
+  "id": "Z19",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_list_used_before_that_is_now_missing_stops_the_run_instead_of_becoming_version_zero",
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_after_a_run_with_no_list_a_list_that_appears_is_accepted"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "if str(refused) == codes.COMPANY_LIST_MISSING and not (previous and previous.companies_version):",
+  "new": "if str(refused) == codes.COMPANY_LIST_MISSING:"
+ },
+ {
+  "id": "Z20",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_the_adapter_hands_over_the_sha256_of_the_bytes_it_read"
+  ],
+  "file": "fno/ingestion/news/companies/private_file.py",
+  "old": "replace(parse_company_list(picked.data, picked.version), sha256=picked.sha256)",
+  "new": "parse_company_list(picked.data, picked.version)"
+ },
+ {
+  "id": "Z21",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_version_two_run_writes_a_format_two_file_in_its_own_folder_with_what_fed_it",
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_every_number_the_run_hands_the_file_is_written_under_its_own_name"
+  ],
+  "file": "fno/ingestion/news/cluster_record/cluster_file.py",
+  "old": "\"companies_sha256\": clustering.companies_sha256,",
+  "new": "\"companies_sha256\": \"\","
+ },
+ {
+  "id": "Z22",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_the_parser_reads_the_list_a_file_used_and_zero_for_a_file_that_has_none"
+  ],
+  "file": "fno/ingestion/news/cluster_record/cluster_file.py",
+  "old": "str(document.get(\"companies_sha256\", \"\"))",
+  "new": "\"\""
+ },
+ {
+  "id": "Z23",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_an_older_list_than_the_last_file_used_stops_the_run_and_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/cluster_record/run.py",
+  "old": "self.grouping.inputs(found.articles, as_of, earlier)",
+  "new": "self.grouping.inputs(found.articles, as_of)"
  }
 ]

@@ -14,6 +14,7 @@ from fno.ingestion.news.cluster import cluster as clustering_module
 from fno.ingestion.news.cluster.cluster import Cluster, Clustering, cluster_articles
 from fno.ingestion.news.cluster_record.article_source import ArticleSource
 from fno.ingestion.news.cluster_record.cluster_file import (
+    ClusterFile,
     cluster_file_bytes,
     cluster_folder,
     cluster_path,
@@ -60,8 +61,9 @@ class ClusterRun:
         found = self.source.candidates(as_of)
         report.read(len(found.articles), found.unreadable)
         try:
-            previous = self._previous(as_of)
-            inputs = self.grouping.inputs(found.articles, as_of) if self.grouping else None
+            earlier = self._previous_file(as_of)
+            previous = earlier.clusters if earlier else ()
+            inputs = self.grouping.inputs(found.articles, as_of, earlier) if self.grouping else None
         except ValueError:
             report.reject(codes.PREVIOUS_UNREADABLE)
             return report
@@ -71,7 +73,10 @@ class ClusterRun:
         clustering = cluster_articles(found.articles, as_of, previous, preparer=inputs.preparer if inputs else None)
         if inputs:
             clustering = replace(
-                clustering, companies_version=inputs.companies_version, resolutions_used=inputs.resolutions_used
+                clustering,
+                companies_version=inputs.companies_version,
+                resolutions_used=inputs.resolutions_used,
+                companies_sha256=inputs.companies_sha256,
             )
         report.clustered(clustering)
         if not reconciles(clustering, found.articles):
@@ -81,18 +86,22 @@ class ClusterRun:
         return report
 
     def _previous(self, as_of: datetime) -> tuple[Cluster, ...]:
-        """The clusters of the latest earlier file of this version (ValueError when that file is damaged)."""
+        earlier = self._previous_file(as_of)
+        return earlier.clusters if earlier else ()
+
+    def _previous_file(self, as_of: datetime) -> ClusterFile | None:
+        """The latest earlier file of this version (ValueError when that file is damaged)."""
         version = self.grouping.version if self.grouping else clustering_module.ALGORITHM_VERSION
         folder = cluster_folder(version)
         earlier = [
             (end, name) for name in self.record.checksums(folder) if (end := window_end_of(name)) and end < as_of
         ]
         if not earlier:
-            return ()
+            return None
         data = self.record.get(f"{folder}/{max(earlier)[1]}")
         if data is None:
             raise ValueError("listed but unreadable")
-        return parse_cluster_file(data).clusters
+        return parse_cluster_file(data)
 
     def _write(self, clustering: Clustering, report: ClusterReport) -> None:
         try:
