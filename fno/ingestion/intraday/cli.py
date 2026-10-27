@@ -14,6 +14,7 @@ from fno.ingestion.intraday.dry_run import inside_repository
 from fno.ingestion.intraday.feed_cli import FEED_PROBE, add_feed_probe_parser, cmd_feed_probe
 from fno.ingestion.intraday.recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
 from fno.ingestion.research_data.calendar import CalendarError
+from fno.ingestion.storage.manifest_commit import exit_for_commit
 from fno.shared.alerts.output import announce
 from fno.shared.models import IST, now_ist
 
@@ -65,8 +66,9 @@ def cmd_intraday(args) -> int:
     try:
         recorder = build_intraday_recorder(load_app_config(args.config), folder)
         if args.intraday_cmd == "rv":
-            print("\n".join(recorder.settle_day(args.day)))
-            return 0
+            settled = recorder.settle_day(args.day)
+            print("\n".join(settled))
+            return exit_for_commit(settled, 0, lambda text: announce(alerts, text), "intraday rv")
         outcomes = [recorder.snapshot()] if args.intraday_cmd == "snapshot" else recorder.run(covered_until(args.until))
     except CalendarError as error:
         return _calendar_stop(error, alerts)
@@ -78,13 +80,15 @@ def cmd_intraday(args) -> int:
         print(message)
         announce(alerts, message)
         return 1
-    return report(outcomes)
+    return report(outcomes, alerts)
 
 
-def report(outcomes: list[SlotOutcome]) -> int:
+def report(outcomes: list[SlotOutcome], alerts) -> int:
     for outcome in outcomes:
         print("\n".join([outcome.summary(), *outcome.lines]))
-    return 0 if all(o.status in GOOD_OUTCOMES for o in outcomes) else 1
+    code = 0 if all(o.status in GOOD_OUTCOMES for o in outcomes) else 1
+    lines = [line for outcome in outcomes for line in outcome.lines]
+    return exit_for_commit(lines, code, lambda text: announce(alerts, text), "intraday recorder")
 
 
 def heartbeat_check(heartbeat, calendar, alerts, now: datetime) -> int:

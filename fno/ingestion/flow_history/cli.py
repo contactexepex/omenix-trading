@@ -7,6 +7,7 @@ from __future__ import annotations
 import calendar
 from datetime import date, datetime, timedelta
 
+from fno.ingestion.storage.manifest_commit import exit_for_commit
 from fno.shared.models import today_local
 
 SUMMARY = "flows table {name}: {entered} session(s) entered ({rewritten} rewritten), {waiting} waiting"
@@ -85,12 +86,14 @@ def cmd_nsdl_backfill(args, out=print, today=None) -> int:
                             skipped=len(result.skipped), failed=len(result.failed)))  # fmt: skip
     for month, why in sorted(result.failed.items()):
         out(NSDL_FAILED.format(month=month, why=why))
-    out(build_receipt_committer().commit("nsdl-backfill"))
-    if not result.failed:
-        return 0
-    months = ", ".join(f"{m:%Y-%m}" for m in sorted(result.failed))
-    out(build_alerts().send(NSDL_ALERT.format(count=len(result.failed), months=months, where=run_location())))
-    return 1
+    committed = build_receipt_committer().commit("nsdl-backfill")
+    out(committed)
+    code = 0
+    if result.failed:
+        months = ", ".join(f"{m:%Y-%m}" for m in sorted(result.failed))
+        out(build_alerts().send(NSDL_ALERT.format(count=len(result.failed), months=months, where=run_location())))
+        code = 1
+    return exit_for_commit([committed], code, lambda text: out(build_alerts().send(text)), "nsdl-backfill")
 
 
 def _month(text: str) -> date:

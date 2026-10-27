@@ -65,3 +65,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 52 | P2c news clustering (code) | 1 | PASS (round 2, d5af65f) | `judge_52_p2c-clustering.md` |
 | 53 | P2d news cluster record (code) | 1 | PASS (round 2, 5aa0af3; bounded re-check 2f2355e) | `judge_53_p2d-cluster-record.md` |
 | 54 | P2d cluster record and shared commit guard, code (judge #2) | 1 | PASS (round 2, 2f2355e) | `judge_54_p2d-cluster-judge2.md` |
+| 55 | CF1 commit-failure signalling, code (judge #2) | 1 | PASS (round 2, a34b886) | `judge_55_cf1-commit-failure-judge2.md` |
+| 56 | P5 Record contract (doc + tests) | 1 | PASS (round 2, 31796d7) | `judge_56_p5-record-contract.md` |

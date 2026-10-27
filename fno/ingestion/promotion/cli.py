@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from fno.ingestion.storage.librarian_cli import SIGN_IN_REFUSED, print_now
+from fno.ingestion.storage.manifest_commit import exit_for_commit
 from fno.ingestion.storage.owner_token import DriveSignInRefused
 from fno.ingestion.storage.raw_source import RawSourceUnavailable
 from fno.shared.config import load_app_config
@@ -51,17 +52,24 @@ def cmd_promote(args, out=print_now) -> int:
     from fno.ingestion.promotion.wiring import build_promotion_run
     from fno.ingestion.storage.wiring import build_manifest_recorder
 
-    recorder = build_manifest_recorder()
+    recorder, what, committed, refused = build_manifest_recorder(), f"promote {args.dataset}", [], False
     try:
         run = build_promotion_run(args.dataset, load_app_config(args.config).get("promotion", {}).get("max_lag_days"))
         report = run.promote(args.start, args.end)
     except DriveSignInRefused as exc:
         out(SIGN_IN_REFUSED.format(reason=exc.reason))
-        return 1
+        refused = True
     finally:
-        out(recorder.commit(f"promote {args.dataset}"))
+        committed.append(recorder.commit(what))
+        out(committed[0])
+
+    def alert(text: str) -> None:
+        out(build_alert_sender().send(text))
+
+    if refused:
+        return exit_for_commit(committed, 1, alert, what)
     out("\n".join(report.lines()))
     if report.problems():  # notes (failed copies on days the Record holds) are log lines only
         lines = "; ".join(report.problems()[:ALERT_LINES])
-        out(build_alert_sender().send(REJECTED_ALERT.format(dataset=args.dataset, lines=lines)))
-    return 0 if report.complete else 1
+        alert(REJECTED_ALERT.format(dataset=args.dataset, lines=lines))
+    return exit_for_commit(committed, 0 if report.complete else 1, alert, what)
