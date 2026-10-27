@@ -191,3 +191,9 @@ def test_a_row_torn_inside_the_size_field_with_no_new_line_is_caught_by_the_newl
     """judge 50 G1: `…,recorded,<64 hex>,12` is a whole row to the row check; only the missing new line shows it."""
     manifest = NewsManifest(_manifest_file(tmp_path, HEADER + WHOLE_ROW.rsplit(",", 1)[0] + ",12"))
     assert manifest.skipped == 0 and manifest.problem() == "manifest_broken"
+
+
+def test_check_manifest_exits_1_for_a_final_row_torn_inside_the_size_field(tmp_path, monkeypatch):
+    """judge 50 G1, at the command: the exit code, the printed code and the alert for `…,recorded,<64 hex>,12`."""
+    code, printed, sent = _alert_for(tmp_path, monkeypatch, HEADER + WHOLE_ROW.rsplit(",", 1)[0] + ",12")
+    assert (code, printed[0]) == (1, "news manifest: manifest_broken") and len(sent) == 1
