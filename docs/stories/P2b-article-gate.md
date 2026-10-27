@@ -129,10 +129,26 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   missing-row repair then re-adds it). The load skips and counts rows that are not whole (5 cells, a 64-hex article id and SHA-256, a known status, a numeric size:
   `manifest_row_skipped`, alerted); a torn line is never truncated silently, because it means a crash the owner should see.
   The workflow keeps committing the good rows and receipts when the promotion exits 1 (pinned by a test), then fails the run.
+- **Commit guard (follow-up P2b3, criteria of both judges):** the commit step runs `python -m fno news check-manifest <folder>`,
+  which uses the loader's own rule (`well_formed`: `check_appendable` plus the per-row checks), never a second copy in YAML.
+  It judges the FILE, never promote's exit code: a whole manifest with a mere rejection still commits its good rows. A broken
+  one (a promote killed mid-write, for instance out of memory) is **loud**: the command alerts #fno-desk, the torn file is
+  discarded from the working tree, the manifest is NOT committed and the step exits 1 (the run is red). **Receipts are still
+  committed**: they keep the real evidence time of each Drive file (a receipt rewritten by a later repair would carry the later
+  time), and a receipt without its row is harmless. Tested with real git against a bare origin.
+- **The workflow also ends with the repo-standard failure alert** (`failure()`, fixed text and the run link), because a killed
+  promote cannot alert by itself; a test pins it.
+- **Healing is range-bound (runbook):** the rows of a killed run are re-added only by a later promote whose `--from`..`--to`
+  covers those days (the idempotent re-promote); a plain daily run does not heal an older gap. The alert says so: "re-run the
+  same --from..--to range" for a torn file (`manifest_broken`), and "fix by hand" for a not-whole row in a complete file
+  (`manifest_row_skipped`); fixed texts, codes only. A last row that is whole but has no new line is also `manifest_broken`. The owner's schedule should cover recent days.
+- **Follow-up, not blocking (judge 48):** `kinds_ever_listed` reads every feed-list version without checking each against the
+  hashes in `feed_lists.csv`, so an edited version could change a kind silently. The list is private and write-once, the fetch job
+  owns the ledger, and a wrong kind gives a duplicate, not a loss. Decide later whether to harden it.
 - **Wiring (judge 48 S1):** `build_news_promotion` itself runs on a recording fake Drive: every write lands under
   `raw/news/articles|revisions`, every read under `staging/news`, `config/feeds` or `raw/news`, and a second process reads the
   Record back (all no-ops); plants that swap the writer, the reader or the gate onto the wrong area fail.
-- **Proof:** 42 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
+- **Proof:** 48 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
   file-before-row order, the manifest conflict check, the conflict catch, the unknown-feed check, the poll-reject count, and the
   reconciliation sum. The master privacy test runs a marker headline, host, path and query through the article file, manifest,
   receipts, report line and DEBUG logs, including a refused poll.

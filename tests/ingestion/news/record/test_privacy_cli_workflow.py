@@ -94,7 +94,7 @@ def test_the_promote_step_may_fail_without_stopping_the_commit_and_the_commit_ha
     """judge 48 S3: good rows and receipts are committed even when the promotion exits 1; then the run fails."""
     steps = _steps()
     promote = steps["Promote staged polls through the article gate"]
-    commit = steps["Commit the news manifest and receipts"]
+    commit = steps["Commit the news manifest and receipts (the manifest only when it is whole)"]
     final = next(s for n, s in steps.items() if n.startswith("Fail the run"))
     assert promote["continue-on-error"] is True
     assert (

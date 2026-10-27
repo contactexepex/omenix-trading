@@ -60,12 +60,28 @@ jobs:
         run: |
           set -o pipefail
           python -m fno news promote --from "$FROM_DATE" | tee promote.log
-      - name: Commit the news manifest and receipts
+      - name: Commit the news manifest and receipts (the manifest only when it is whole)
         if: ${{ !inputs.dry_run }}
         run: |
-          git add "$MANIFEST" "$RECEIPTS"
+          # A promote killed mid-write can leave a torn last line; it must never reach main. The guard judges the
+          # file, not promote's exit code, so a mere rejection still commits the good rows. Receipts are always
+          # committed: they keep the original evidence time, and the next run re-adds the missing rows.
+          if python -m fno news check-manifest research/data/manifests/news; then
+            git add "$MANIFEST" "$RECEIPTS"
+            broken=0
+          else
+            git checkout -- "$MANIFEST" 2>/dev/null || rm -f "$MANIFEST"
+            git add "$RECEIPTS"
+            broken=1
+          fi
           git diff --cached --quiet || git commit -m "P2b2 Actions: news record $(date -u +%FT%TZ)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+          exit "$broken"
       - name: Fail the run when the promotion was not clean (the alert was sent by the command)
         if: ${{ steps.promote.outcome != 'success' && !inputs.dry_run }}
         run: exit 1
+      - name: Alert the desk channel when the job failed (a killed promote cannot alert by itself)
+        if: ${{ failure() && !inputs.dry_run }} # O10's watcher sees an alert step on every failure
+        run: |
+          python -c "import sys; from fno.ingestion.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O news promote: the job failed (promote ${{ steps.promote.outcome }}); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
