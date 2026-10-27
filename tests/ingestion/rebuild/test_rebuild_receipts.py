@@ -140,3 +140,61 @@ def test_report_only_through_the_command_commits_nothing(tmp_path):
     boom = type("C", (), {"commit": lambda self, what: pytest.fail("a report-only run must not commit")})()
     args = Namespace(prefixes=PREFIXES, apply=False)
     assert repair_cli.cmd_rebuild_receipts(args, out=lambda line: None, rebuild=rebuild, committer=boom) == 0
+
+
+# ---- judge 65: a wrong receipt is permanent, so a doubt writes none -------------------------------------------
+
+
+def test_bytes_that_are_not_the_ones_drive_listed_get_no_receipt_and_are_reported(tmp_path):
+    drive, receipts, _ = world(tmp_path, CIRCULARS)
+
+    class ShortRead(LocalFolderStore):
+        def get(self, path):
+            data = super().get(path)
+            return data[:-3]  # a short body
+
+    report = ReceiptRebuild(ShortRead(tmp_path / "drive"), receipts, RUN, clock=lambda: NOW).run(
+        PREFIXES[:1], apply=True
+    )
+    assert report.counts["written"] == 0 and report.counts["unreadable"] == len(CIRCULARS) and not report.ok
+    assert not list((tmp_path / "receipts").rglob("*.sha256")) and "not the ones Drive lists" in report.problems[0]
+
+
+def test_a_file_replaced_between_the_listing_and_the_download_gets_no_receipt(tmp_path):
+    drive, receipts, _ = world(tmp_path, CIRCULARS)
+
+    class Replaced(LocalFolderStore):
+        def get(self, path):
+            return b"a newer revision of the same file"
+
+    report = ReceiptRebuild(Replaced(tmp_path / "drive"), receipts, RUN, clock=lambda: NOW).run(
+        PREFIXES[:1], apply=True
+    )
+    assert report.counts["written"] == 0 and not report.ok
+
+
+def test_a_listing_without_a_checksum_writes_no_receipt(tmp_path):
+    drive, receipts, _ = world(tmp_path, CIRCULARS)
+
+    class NoMd5(LocalFolderStore):
+        def checksums(self, folder):
+            return {name: "" for name in super().checksums(folder)}
+
+    report = ReceiptRebuild(NoMd5(tmp_path / "drive"), receipts, RUN, clock=lambda: NOW).run(PREFIXES[:1], apply=True)
+    assert report.counts["written"] == 0 and not report.ok
+
+
+def test_a_doubled_folder_name_is_reported_with_the_way_out_and_the_other_prefixes_still_run(tmp_path):
+    from fno.ingestion.storage.raw_store import RawFileConflict
+
+    drive, receipts, _ = world(tmp_path)
+
+    class Doubled(LocalFolderStore):
+        def checksums(self, folder):
+            if folder == "data/circulars/list":
+                raise RawFileConflict("2 items named 'x' in one Drive folder")
+            return super().checksums(folder)
+
+    report = ReceiptRebuild(Doubled(tmp_path / "drive"), receipts, RUN, clock=lambda: NOW).run(PREFIXES, apply=True)
+    assert not report.ok and any("merge-folders" in p and "data/circulars/list" in p for p in report.problems)
+    assert report.counts["written"] == len(FLOWS)  # the flow tables were still receipted

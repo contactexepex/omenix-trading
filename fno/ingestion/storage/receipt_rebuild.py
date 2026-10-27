@@ -27,6 +27,10 @@ WRITER = "rebuild-receipts"
 FILES, ALREADY, WRITTEN, WOULD_WRITE, DIFFERS, UNREADABLE = (
     "files", "already_receipted", "written", "would_write", "differs_from_receipt", "unreadable")  # fmt: skip
 KEYS = (FILES, ALREADY, WOULD_WRITE, WRITTEN, DIFFERS, UNREADABLE)
+NOT_THE_LISTED_BYTES = (
+    "{path}: the bytes read are not the ones Drive lists (a short or changed read); no receipt written"
+)
+FOLDER_UNREADABLE = "{folder}: cannot be listed ({kind}); a doubled folder name needs `data-repair merge-folders` first"
 DIFFERS_MESSAGE = "{path}: the Drive file no longer matches its receipt; the receipt is kept, nothing is changed"
 UNREADABLE_MESSAGE = "{path}: could not be read from Drive ({kind}); no receipt written"
 
@@ -59,13 +63,18 @@ class ReceiptRebuild:
         return report
 
     def _walk(self, folder: str, apply: bool, report: RebuildReport) -> None:
-        for name in sorted(self.drive.checksums(folder)):
+        try:
+            listed, children = self.drive.checksums(folder), self.drive.folders(folder)
+        except Exception as error:  # noqa: BLE001 - e.g. two items with one name in a folder (the DR1 race)
+            report.problems.append(FOLDER_UNREADABLE.format(folder=folder, kind=type(error).__name__))
+            return
+        for name, md5 in sorted(listed.items()):
             if not name.startswith("."):  # dot-files are partial writes, not data
-                self._file(f"{folder}/{name}", apply, report)
-        for child in self.drive.folders(folder):
+                self._file(f"{folder}/{name}", md5, apply, report)
+        for child in children:
             self._walk(f"{folder}/{child}", apply, report)
 
-    def _file(self, path: str, apply: bool, report: RebuildReport) -> None:
+    def _file(self, path: str, md5: str, apply: bool, report: RebuildReport) -> None:
         report.counts[FILES] += 1
         try:
             data = self.drive.get(path)
@@ -77,6 +86,10 @@ class ReceiptRebuild:
         if data is None:
             report.counts[UNREADABLE] += 1
             report.problems.append(UNREADABLE_MESSAGE.format(path=path, kind=kind))
+            return
+        if hashlib.md5(data).hexdigest() != md5:  # noqa: S324 - Drive's own transfer checksum, not security
+            report.counts[UNREADABLE] += 1  # a wrong receipt is permanent (write-once), so a doubt writes none
+            report.problems.append(NOT_THE_LISTED_BYTES.format(path=path))
             return
         digest = hashlib.sha256(data).hexdigest()
         existing = self.receipts.read(path)
