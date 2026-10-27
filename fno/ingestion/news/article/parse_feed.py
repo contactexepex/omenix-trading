@@ -34,6 +34,11 @@ def _atom_link(entry) -> str:
     return (chosen.get("href") or "").strip() if chosen is not None else ""
 
 
+def _source_url(item) -> str:
+    source = item.find("source")
+    return (source.get("url") or "").strip() if source is not None else ""
+
+
 def _rss_item(item) -> RawItem:
     return RawItem(
         title=_text(item, "title", f"{RSS1}title"),
@@ -42,6 +47,7 @@ def _rss_item(item) -> RawItem:
         published=_text(item, "pubDate", f"{DC}date"),
         summary=_text(item, "description", f"{RSS1}description"),
         source=_text(item, "source"),
+        source_url=_source_url(item),
     )
 
 

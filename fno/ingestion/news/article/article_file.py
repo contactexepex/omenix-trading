@@ -10,11 +10,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from fno.ingestion.news.article.canonical import canonical_url
+from fno.ingestion.news.article.formats import read_document
 from fno.ingestion.news.article.keys import PUBLISHER, item_key
 from fno.ingestion.news.article.raw_item import RawItem
+from fno.ingestion.news.article.source_facts import source_facts
 from fno.ingestion.news.article.times import parse_time
 
-FORMAT = 1
+FORMAT = 2  # 1: the first files; 2 adds the source facts below. Both are read (formats.py); only 2 is written.
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,8 @@ class Article:
     published_at: str  # UTC ISO, "" when the item gave none
     time_source: str
     first_seen_at: str
+    source_domain: str = ""  # the outlet's plain host ("" unknown); a fact, never a tier
+    wrapper_link: str = ""  # a Google News item's redirect link, kept so it can be resolved later (NP2c)
 
     def fixed_fields(self) -> tuple:
         """What a re-poll is compared on: everything but when it was first seen."""
@@ -41,6 +45,7 @@ class Article:
 def build_article(kind: str, item: RawItem, seen_at: datetime) -> Article:
     published, time_source = parse_time(item.published)
     link = canonical_url(item.link) if kind == PUBLISHER and item.link.strip() else ""
+    facts = source_facts(kind, link, item.link, item.source_url)
     return Article(
         key=item_key(kind, item, published),
         kind=kind,
@@ -51,4 +56,16 @@ def build_article(kind: str, item: RawItem, seen_at: datetime) -> Article:
         published_at=published.isoformat(timespec="seconds") if published else "",
         time_source=time_source,
         first_seen_at=seen_at.isoformat(timespec="seconds"),
+        source_domain=facts.domain,
+        wrapper_link=facts.wrapper_link,
     )
+
+
+def article_from_bytes(data: bytes) -> Article:
+    """An article file of ours, of any readable format. ValueError for anything else (formats.read_document): an unknown
+    or non-integer format, a missing key, an unknown extra key, text that is not JSON. A format 1 file has no source
+    facts; they read as empty."""
+    document = read_document(data)
+    if document is None:
+        raise ValueError("not an article file")
+    return Article(**document[1])

@@ -6,11 +6,10 @@ or damaged is counted, never skipped silently (the run then writes nothing).
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from fno.ingestion.news.article.article_file import FORMAT, Article
+from fno.ingestion.news.article.article_file import Article, article_from_bytes
 from fno.ingestion.news.cluster.window import WINDOW
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.planner import article_path
@@ -23,13 +22,6 @@ MARGIN = timedelta(days=2)  # a poll's day is recorded in UTC, a window edge can
 class Candidates:
     articles: tuple[Article, ...]
     unreadable: int
-
-
-def article_from_bytes(data: bytes) -> Article:
-    document = json.loads(data)
-    if document.pop("format") != FORMAT:
-        raise ValueError("unknown format")
-    return Article(**document)
 
 
 class ArticleSource:
