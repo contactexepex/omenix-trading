@@ -149,6 +149,18 @@ The article file gains `source_domain` and, for a Google News item, `wrapper_lin
 | F12 | The format must be an integer we know (not `true`, not `1.0`); a test also ties the format 2 field set to the `Article` fields, so a new field needs a new format. | `formats.read_document` | `tests/ingestion/news/record/test_format_compat.py::test_a_format_must_be_an_integer_we_know_so_true_and_one_point_zero_and_three_are_refused` | type of format not checked | **tested, plant run** |
 | F13 | A revision whose name is already held is the same version (NO_OP) when the files are the same version, even if the folder listing did not show it; only a DIFFERENT version under the same 8 hex characters is a conflict. | `ArticlePlanner.plan` | `tests/ingestion/news/record/test_format_compat.py::test_a_lagging_listing_gives_no_op_for_the_same_version_and_a_conflict_only_for_a_different_one` | the name is called a collision without comparing | **tested, plant run** |
 
+### The stored title (NP9)
+
+A Google News item is stored with the clean headline: the " - Outlet" Google News appends is dropped at ingestion, so the Record never holds it. **The rule is frozen** (`text_rules.without_outlet`): a change to it changes the bytes of every re-polled item, so it is a lane 1 Record change (a format bump, or a stated note that re-polls will record revisions). The Record was empty when this was built, so nothing was migrated.
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| F14 | A Google News item's stored title has the trailing " - Outlet" removed, and the same item gives the same bytes on every poll. | `build_article`, `without_outlet` | `tests/ingestion/news/article/test_stored_title.py::test_a_wrapper_titles_outlet_suffix_is_dropped_from_the_stored_title` | the cut removed | **tested, plant run** |
+| F15 | A publisher item keeps its title whatever its ending. | `build_article` | `tests/ingestion/news/article/test_stored_title.py::test_a_publisher_item_keeps_its_title_whatever_the_ending` | the cut applied to every kind | **tested, plant run** |
+| F15b | Only the outlet the feed itself names is cut (cleaning verifies nothing; the verified publisher stays the resolved host). | `text_rules.without_outlet` | `tests/ingestion/news/article/test_stored_title.py::test_a_suffix_that_is_not_the_feeds_claimed_outlet_is_kept` | any trailing outlet cut | **tested, plant run** |
+| F16 | The item key is computed from the raw item, so cleaning the title never makes a revision. | `build_article` | `tests/ingestion/news/article/test_stored_title.py::test_the_key_comes_from_the_raw_item_so_cleaning_never_makes_a_revision` | key from the cleaned item | **tested, plant run** |
+| F17 | A title that the cut would empty (for example "- Outlet") is stored as given. | `build_article` | `tests/ingestion/news/article/test_stored_title.py::test_a_stored_title_is_never_emptied_by_the_cut` | the empty-title guard removed | **tested, plant run** |
+
 ## The company list (NP3a)
 
 The owner's private list of companies (`companies/companies-vN.json` in the Drive config area) and its seed. It is content, not code: the count is whatever the file holds, and nothing about it is ever committed or printed.
@@ -315,8 +327,8 @@ Which of the owner's companies an article is about, computed when the article is
 | T13 | A trailing possessive is dropped from names and text alike, so "Acme's profit" tags Acme. | `words` | `tests/ingestion/news/tagging/test_tagger.py::test_a_possessive_is_the_company_and_a_plural_word_is_not` | possessive misses | **tested, plant run** |
 | T14 | The outlet name after a separator at the end of a title never tags; the same word in the headline does. | `without_outlet`, `Tagger.tag` | `tests/ingestion/news/tagging/test_tagger.py::test_the_outlet_name_after_a_separator_never_tags_but_the_same_word_in_the_headline_does` | outlet tags | **tested, plant run** |
 | T15 | An exchange label (NSE, BSE) beside another part of a colon bracket is never the symbol. | `_candidates` | `tests/ingestion/news/tagging/test_tagger.py::test_an_exchange_label_in_a_colon_bracket_is_not_a_symbol` | exchange tags | **tested, plant run** |
-| T16 | A separator must stand apart from the outlet name: a hyphen inside a word is not one. | `without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | separator check dropped | **tested, plant run** |
-| T17 | The outlet name is matched without regard to case. | `without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | case-sensitive match | **tested, plant run** |
+| T16 | A separator must stand apart from the outlet name: a hyphen inside a word is not one. | `text_rules.without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | separator check dropped | **tested, plant run** |
+| T17 | The outlet name is matched without regard to case. | `text_rules.without_outlet` | `tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says` | case-sensitive match | **tested, plant run** |
 
 ## Origins, promotion and materiality (NP5b)
 

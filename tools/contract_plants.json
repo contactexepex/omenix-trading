@@ -1905,7 +1905,7 @@
   "tests": [
    "tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says"
   ],
-  "file": "fno/ingestion/news/tagging/text.py",
+  "file": "fno/ingestion/news/text_rules.py",
   "old": "if head.rstrip() != head and head.rstrip().endswith(",
   "new": "if head.rstrip().endswith("
  },
@@ -1914,9 +1914,9 @@
   "tests": [
    "tests/ingestion/news/tagging/test_tagger.py::test_a_source_name_glued_to_a_word_or_in_another_case_is_handled_as_the_outlet_rule_says"
   ],
-  "file": "fno/ingestion/news/tagging/text.py",
-  "old": "if name and title.lower().endswith(name.lower()):",
-  "new": "if name and title.endswith(name):"
+  "file": "fno/ingestion/news/text_rules.py",
+  "old": "if name and fold(title)[-len(name) :].lower() == name.lower():",
+  "new": "if name and fold(title)[-len(name) :] == name:"
  },
  {
   "id": "U16",
@@ -2620,5 +2620,50 @@
   "file": "fno/ingestion/news/reads/order.py",
   "old": "self.tagger.tag(article.title, None, article.source)",
   "new": "self.tagger.tag(article.title, None)"
+ },
+ {
+  "id": "F14",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_wrapper_titles_outlet_suffix_is_dropped_from_the_stored_title"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "title = without_outlet(title, item.source.strip()) or title",
+  "new": "title = title"
+ },
+ {
+  "id": "F15",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_publisher_item_keeps_its_title_whatever_the_ending"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "if kind == WRAPPER:",
+  "new": "if True:"
+ },
+ {
+  "id": "F15b",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_suffix_that_is_not_the_feeds_claimed_outlet_is_kept"
+  ],
+  "file": "fno/ingestion/news/text_rules.py",
+  "old": "if name and fold(title)[-len(name) :].lower() == name.lower():",
+  "new": "if name:"
+ },
+ {
+  "id": "F16",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_the_key_comes_from_the_raw_item_so_cleaning_never_makes_a_revision"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "key=item_key(kind, item, published),",
+  "new": "key=item_key(kind, __import__(\"dataclasses\").replace(item, title=title), published),"
+ },
+ {
+  "id": "F17",
+  "tests": [
+   "tests/ingestion/news/article/test_stored_title.py::test_a_stored_title_is_never_emptied_by_the_cut"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": " or title  # never an empty title",
+  "new": "  # never an empty title"
  }
 ]

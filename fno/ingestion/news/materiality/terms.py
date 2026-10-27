@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from fno.ingestion.news import codes
 from fno.ingestion.news.safe_pattern import compile_safe
 from fno.ingestion.news.tagging.tagger import HIGH, Tag
-from fno.ingestion.news.tagging.text import capped, without_outlet
+from fno.ingestion.news.tagging.text import capped
+from fno.ingestion.news.text_rules import without_outlet
 
 FORMAT = 1
 MAX_TERMS = 200

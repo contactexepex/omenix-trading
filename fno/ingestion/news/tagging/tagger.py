@@ -22,7 +22,8 @@ import re
 from dataclasses import dataclass
 
 from fno.ingestion.news.tagging.dictionary import NameDictionary
-from fno.ingestion.news.tagging.text import MAX_TEXT, capped, plain_text, spans, without_outlet, words
+from fno.ingestion.news.tagging.text import MAX_TEXT, capped, plain_text, spans, words
+from fno.ingestion.news.text_rules import without_outlet
 
 HIGH, LOW, NONE = "high", "low", ""
 _VERSUS = re.compile(r"\b(?:vs\.?|versus|v/s)(?=\s|$)", re.IGNORECASE)
