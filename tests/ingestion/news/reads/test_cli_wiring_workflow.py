@@ -108,3 +108,13 @@ def test_the_workflow_commits_only_its_own_manifest_and_receipts_and_only_with_a
     commit = next(s for n, s in steps.items() if n.startswith("Commit the reads manifest"))
     assert "inputs.apply" in commit["if"] and "!inputs.dry_run" in commit["if"]
     assert "--no-verify" not in text and "core.hooksPath .githooks" in text and "schedule:" not in text
+
+
+def test_loading_the_command_line_does_not_load_the_html_parser():
+    """judge 91 M1: the commit guard runs `news check-manifest`; it must not depend on an extractor-only package."""
+    import subprocess
+    import sys
+
+    code = "import sys, fno.ingestion.cli; sys.exit(1 if 'selectolax' in sys.modules else 0)"
+    done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr

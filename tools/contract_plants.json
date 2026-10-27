@@ -1607,5 +1607,14 @@
   "file": "fno/ingestion/news/reads/read_file.py",
   "old": "ensure_ascii=False).encode(\"utf-8\")",
   "new": "ensure_ascii=True).encode(\"ascii\")"
+ },
+ {
+  "id": "Y19",
+  "tests": [
+   "tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_loading_the_command_line_does_not_load_the_html_parser"
+  ],
+  "file": "fno/ingestion/news/reads/cli.py",
+  "old": "from fno.ingestion.news.reads.limits import PAGES",
+  "new": "from fno.ingestion.news.reads.run import PAGES"
  }
 ]
