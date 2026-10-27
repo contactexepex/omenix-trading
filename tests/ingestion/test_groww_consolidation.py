@@ -228,3 +228,56 @@ def test_the_candle_source_has_no_per_minute_or_per_day_budget_and_no_wait_cap()
     assert clock.now == pytest.approx(60.0)
     settings = source._gap.settings
     assert (settings.per_minute, settings.per_day) == (None, None) and settings.max_wait_seconds == float("inf")
+
+
+# ---- the callers' own pacers, wired as today (judge 37) ----------------------------------------------------------
+
+
+class _Starts:
+    """A pacer stand-in counting `wait()` calls."""
+
+    def __init__(self):
+        self.waits = 0
+
+    def wait(self):
+        self.waits += 1
+
+
+def test_the_intraday_source_paces_at_4_a_second_with_one_wait_per_request():
+    from fno.ingestion.intraday.groww_source import GrowwIntradaySource
+
+    assert GrowwIntradaySource(object(), object(), 75).pacer.interval == 0.25
+    counting = _Starts()
+    source = GrowwIntradaySource(object(), object(), 75, pacer=counting)
+    source._call("quote", lambda client: {})
+    source._call("quote", lambda client: {})
+    assert counting.waits == 2
+
+
+def _recorder(monkeypatch, slot):
+    from fno.ingestion.quotes import recorder as recorder_module
+
+    monkeypatch.setattr(
+        recorder_module, "RatePacer", lambda per_second: RatePacer(per_second, lambda: 0.0, lambda seconds: None)
+    )  # a clock that never moves: every reserved start is visible, nothing sleeps
+    return recorder_module.QuoteSnapshotRecorder(provider=None, store=None, slot=slot)
+
+
+def test_an_index_recorder_paces_at_2_5_a_second_and_its_3_workers_share_that_one_pacer(monkeypatch):
+    from datetime import date
+
+    from fno.ingestion.quotes.indices import index_slot
+
+    recorder = _recorder(monkeypatch, index_slot("BANKNIFTY"))
+    assert recorder.pacer.interval == 0.4
+    quoted = []
+    provider = types.SimpleNamespace(quote_book=lambda chain, strike, kind: quoted.append(strike))
+    recorder.provider = provider
+    fetcher = recorder._fetcher(date(2026, 10, 27))
+    assert fetcher.workers == 3 and fetcher.pacer is recorder.pacer
+    fetcher.fetch(None, [(float(n), "CE") for n in range(11)])
+    assert len(quoted) == 11 and recorder.pacer._limit._last == pytest.approx(10 * 0.4)  # 11 starts, 0.4 s apart
+
+
+def test_the_main_nifty_recorder_has_no_pacer(monkeypatch):
+    assert _recorder(monkeypatch, NIFTY_SLOT).pacer is None

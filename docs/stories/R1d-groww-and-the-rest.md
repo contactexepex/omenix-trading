@@ -60,6 +60,17 @@ evening, exactly as R1b. The post-merge comparison reads logs only. A Groww dry-
 - **R1d4, global cues and preopen:** characterization is **missing** (the attempt log and the preopen waits are not pinned): pin them first
   (the orchestrator's rule), then decide whether the attempt log needs any change at all (it already is a committed day ledger).
 
+## R1d1 as built (notes from the judges)
+
+- **FixedPause, not the breaker:** the plan's "shared breaker" is built as `FixedPause` (`fno/shared/resilience/pause.py`);
+  `CircuitBreaker` would defer concurrent readers behind one probe, which condition 1 forbids.
+- **Candle gap:** the 0.5 s now counts from the scheduled start of the previous call, not from its actual start after the
+  sleep; the intraday pacer always worked that way, so it is a millisecond difference and never weaker.
+- **The one-provider scan is a tripwire:** it checks files, not processes (a builder in a loop, or two files used by one
+  command, would escape it). It stops a new Groww site being added unnoticed; it is not a proof for a process.
+- **No ceiling is pinned:** each caller's settings are tested to have no per-minute or per-day budget and no wait cap, and
+  fake-clock tests run 241 intraday starts and 121 candle calls through one minute without a delay.
+
 ## Conditions carried from the judges
 
 1. The Groww half-open probe would defer concurrent snapshot reads during the probe, where today all reads resume after 60 s
