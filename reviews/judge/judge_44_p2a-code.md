@@ -117,3 +117,49 @@ choose, the story must say it exactly and a test must pin it.
 No orders. No secrets: the Drive sign-in is through the existing owner settings and nothing is printed. No live call:
 everything is offline (a local server only in my probe). Nothing reaches the Record. The poll log is the only
 committed file.
+
+## Addendum 1: SHA corrected to 9f794fe: FAIL stands; the feed-list behaviour is now right
+
+The orchestrator corrected the SHA to `9f794fe27475aeb5967417aff147bb4254b58bad` (`story/P2a-news-fetch-r2`), which is
+8a3a45c plus one commit. Gates: 621 passed.
+
+**The agreed edit-in-place behaviour now holds (strong evidence: code read, plants).**
+- Each poll row logs the SHA-256 of the feed-list file it used.
+- On a later run, a used version whose file hash differs is skipped. The next older good version is used, and the
+  report counts `feed_list_damaged`, so the run is not clean and is alerted, never silent.
+- If every version is damaged, the run stops before any request.
+
+| Plant | Result |
+|---|---|
+| Damaged check off | caught |
+| Damaged not reported | caught |
+| List hash not logged | caught |
+
+Two edges, not blocking:
+- A version used only in runs that fetched nothing (all unchanged or failed) has no row. A later edit of it is not
+  detected.
+- A *new, malformed* version still stops all news (`feed_list_invalid`): only *edited* versions fall back. That matches
+  the orchestrator's locked rule, which covered edited versions only. My earlier recommendation to fall back for an
+  invalid new version too is the orchestrator's call.
+
+**New, introduced by this commit (privacy, small): the full list hash can confirm a guess.**
+
+`feed_list_sha256` is the SHA-256 of the whole JSON file, committed in every poll row. I said in F2 that such a hash
+"cannot practically be reversed". That holds only when the file holds enough that cannot be guessed. A one-feed list
+in standard `json.dumps` form, such as `{"feeds": [{"id": "feed-01", "url": "https://news.google.com/rss/search?q=NIFTY"}]}`,
+can be confirmed by anyone who hashes candidate queries. That reveals the research intent invariant 1 protects. I
+correct my earlier statement.
+
+Fix (about 3 lines plus a test): the list format carries a required random `salt` field (at least 16 characters),
+and `parse_feed_list` rejects a list without one, so the hash cannot be guessed. Alternatively, log an HMAC keyed by a
+value stored only in Drive.
+
+**Still open from round 1, unchanged at 9f794fe:**
+- **F1:** the privacy test still uses the fake session, so urllib3 never runs. There is no `urllib3` level pin in
+  `fno/ingestion/news`. My local-server probe still shows the query in urllib3's DEBUG log.
+- **F2 (text):** story line 186 still says "no unverified 'config' path". The feed list is read directly from Drive.
+  The added hash check makes that direct read safe, so say so.
+- **F3:** a news host can still be committed through the pause log (`TransitionLog` `source`, and `commit_pause_log.sh`
+  in `news-fetch.yml`). The owner's choice is still pending.
+
+**Verdict at 9f794fe: FAIL.** F1, F2 and F3 remain, plus the salt item. The orchestrator rules on round counting.
