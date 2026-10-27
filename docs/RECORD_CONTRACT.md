@@ -414,7 +414,7 @@ The plan called these rows W1 to W12; `W0` to `W6` already belong to the write-o
 | M18 | A not-whole row in the pass-note manifest is counted and nothing is read or written. | `ReadPass._ready` | `tests/ingestion/news/reads/test_material_first.py::test_a_note_manifest_row_that_is_not_whole_is_counted_and_nothing_is_read_or_written` | note rows hidden | **tested, plant run** |
 | M19 | A torn pass-note manifest stops an applied pass before it reads or writes anything. | `ReadPass._ready` | `tests/ingestion/news/reads/test_material_first.py::test_a_torn_note_manifest_stops_the_pass_before_any_request` | torn note manifest ignored | **tested, plant run** |
 | M20 | Production wires the read planner and the pass notes into the pass; without them the materiality file would again do nothing. | `build_read_pass` | `tests/ingestion/news/reads/test_cli_wiring_workflow.py::test_the_wiring_builds_a_pass_that_reads_the_record_and_writes_only_read_files` | planner not wired | **tested, plant run** |
-| M21 | The material-first order hands the article's source to the tagger, so an outlet name never makes a headline material. | `MaterialFirst.material` | `tests/ingestion/news/reads/test_material_first.py::test_the_outlet_name_after_a_separator_never_makes_a_headline_material` | source dropped | **tested, plant run** |
+| M21 | The material-first order hands the article's source to the tagger, so an outlet name never makes a headline material. | `MaterialFirst.material` | `tests/ingestion/news/reads/test_material_first.py::test_the_order_hands_the_source_to_the_tagger_so_an_outlet_name_is_not_a_second_company` | source dropped | **tested, plant run** |
 
 ## Clustering comparison (NP3c)
 

@@ -363,9 +363,12 @@ def test_the_page_cap_holds_on_the_material_first_path_too(tmp_path, monkeypatch
     assert report.order == "material_first" and report.counts["asked"] == 2
 
 
-def test_the_outlet_name_after_a_separator_never_makes_a_headline_material():
-    """Judge 109 N1: the order hands the article's source to the tagger, as the tagger and the terms do."""
-    order = MaterialFirst(Tagger(NameDictionary(companies())), terms())
-    outlet = Scored("a", "Markets close higher - Zzpub", "Zzpub", "", False)
-    assert order.rank([outlet]) == ([outlet], 0)
-    assert order.rank([Scored("b", "Zzpub names a new chief", "Pub Daily", "", False)])[1] == 1
+def test_the_order_hands_the_source_to_the_tagger_so_an_outlet_name_is_not_a_second_company():
+    """Judge 109 N1: "Zzbeta rises - Zzpub" from the outlet Zzpub names ONE company, so it can be material; without
+    the source the tagger would see two companies and never call it material (the terms alone strip the suffix)."""
+    two = CompanyList(1, (Company("ZZPB", "Zzpub"), Company("ZZBE", "Zzbeta")))
+    rises = parse_terms(b'{"format":1,"terms":[{"pattern":"rises","weight":1}]}', 1)
+    order = MaterialFirst(Tagger(NameDictionary(two)), rises)
+    from_outlet = Scored("a", "Zzbeta rises - Zzpub", "Zzpub", "", False)
+    assert order.rank([from_outlet]) == ([from_outlet], 1)
+    assert order.rank([Scored("b", "Zzbeta rises - Zzpub", "Pub Daily", "", False)])[1] == 0  # two companies: not high

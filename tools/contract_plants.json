@@ -2615,7 +2615,7 @@
  {
   "id": "M21",
   "tests": [
-   "tests/ingestion/news/reads/test_material_first.py::test_the_outlet_name_after_a_separator_never_makes_a_headline_material"
+   "tests/ingestion/news/reads/test_material_first.py::test_the_order_hands_the_source_to_the_tagger_so_an_outlet_name_is_not_a_second_company"
   ],
   "file": "fno/ingestion/news/reads/order.py",
   "old": "self.tagger.tag(article.title, None, article.source)",
