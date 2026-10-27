@@ -49,3 +49,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 36 | R1d1 Groww consolidation, code (judge #2) | 1 | PASS (round 2, b1bebc4) | `judge_36_r1d1-code-judge2.md` |
 | 37 | R1d1 Groww reads on the shared primitives (code) | 1 | PASS (round 2, b1bebc4) | `judge_37_r1d1-code.md` |
 | 38 | R1d3 close read and NSDL waits (code) | 1 | PASS (round 1, b4f1fc6) | `judge_38_r1d3-code.md` |
+| 39 | R1d3 close read and NSDL waits, code (judge #2) | 1 | PASS (round 1, b4f1fc6) | `judge_39_r1d3-code-judge2.md` |
