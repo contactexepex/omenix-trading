@@ -504,27 +504,27 @@
    "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_extra_key_is_refused_so_a_future_field_is_never_silently_dropped",
    "tests/ingestion/news/article/test_source_facts.py::test_an_unknown_format_a_missing_key_or_text_that_is_not_an_article_is_refused"
   ],
-  "file": "fno/ingestion/news/article/article_file.py",
-  "old": "READABLE_FORMATS = (1, 2)",
-  "new": "READABLE_FORMATS = (2,)"
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "FIELDS_OF = {1: V1_FIELDS, 2: V2_FIELDS}",
+  "new": "FIELDS_OF = {2: V2_FIELDS}"
  },
  {
   "id": "F2",
   "tests": [
    "tests/ingestion/news/record/test_format_compat.py::test_a_format_1_file_and_the_same_article_as_format_2_are_a_no_op_not_a_revision"
   ],
-  "file": "fno/ingestion/news/record/planner.py",
-  "old": "    return bool(shared) and all(a[k] == b[k] for k in shared)",
-  "new": "    return a == b"
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return all(first[1][k] == second[1][k] for k in compared)",
+  "new": "    return first[1] == second[1]"
  },
  {
   "id": "F3",
   "tests": [
    "tests/ingestion/news/record/test_format_compat.py::test_two_format_2_files_that_differ_in_the_source_domain_are_a_revision",
-   "tests/ingestion/news/record/test_format_compat.py::test_a_damaged_held_file_or_files_sharing_no_field_are_never_the_same_version"
+   "tests/ingestion/news/record/test_format_compat.py::test_a_same_format_title_difference_is_not_hidden_by_a_missing_title"
   ],
-  "file": "fno/ingestion/news/record/planner.py",
-  "old": "    return bool(shared) and all(a[k] == b[k] for k in shared)",
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return all(first[1][k] == second[1][k] for k in compared)",
   "new": "    return True"
  },
  {
@@ -607,7 +607,7 @@
    "tests/ingestion/news/article/test_source_facts.py::test_a_wrapper_link_that_is_not_a_plain_https_link_is_not_kept"
   ],
   "file": "fno/ingestion/news/article/source_facts.py",
-  "old": "    wrapper = link.strip() if https_host(link) else \"\"",
+  "old": "    wrapper = clean_https_link(link)",
   "new": "    wrapper = link.strip()"
  },
  {
@@ -615,9 +615,9 @@
   "tests": [
    "tests/ingestion/news/record/test_format_compat.py::test_a_changed_redirect_link_is_not_a_new_version_so_a_moving_token_never_makes_revisions"
   ],
-  "file": "fno/ingestion/news/record/planner.py",
-  "old": "UNCOMPARED = (\"first_seen_at\", \"format\", \"wrapper_link\")",
-  "new": "UNCOMPARED = (\"first_seen_at\", \"format\")"
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "UNCOMPARED = frozenset({\"first_seen_at\", \"wrapper_link\"})",
+  "new": "UNCOMPARED = frozenset({\"first_seen_at\"})"
  },
  {
   "id": "F8",
@@ -645,5 +645,42 @@
   "file": "fno/ingestion/news/sources/loader.py",
   "old": "DOMAIN.fullmatch(value)",
   "new": "DOMAIN.match(value)"
+ },
+ {
+  "id": "F9",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_revision_kept_in_format_1_is_not_written_again_when_the_same_version_is_seen_in_format_2"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "            if kept is not None and same_version(kept, data):",
+  "new": "            if False:"
+ },
+ {
+  "id": "F10",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_same_format_file_missing_a_key_is_not_the_same_version_as_a_whole_one",
+   "tests/ingestion/news/record/test_format_compat.py::test_a_file_with_an_unknown_extra_key_or_a_stub_is_not_the_same_version"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    return (format_number, fields) if set(fields) == FIELDS_OF[format_number] else None",
+  "new": "    return (format_number, fields)"
+ },
+ {
+  "id": "F11",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_redirect_link_with_whitespace_a_control_character_a_port_or_credentials_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "    if not text or \"\\\\\" in text or any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in text):",
+  "new": "    if not text:"
+ },
+ {
+  "id": "F12",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_format_must_be_an_integer_we_know_so_true_and_one_point_zero_and_three_are_refused"
+  ],
+  "file": "fno/ingestion/news/article/formats.py",
+  "old": "    if type(format_number) is not int or format_number not in FIELDS_OF:",
+  "new": "    if format_number not in FIELDS_OF:"
  }
 ]

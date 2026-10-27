@@ -125,3 +125,30 @@ def test_an_unknown_extra_key_is_refused_so_a_future_field_is_never_silently_dro
 def test_build_article_is_pure_over_its_inputs():
     (item,) = parse_poll(rss(rss_item(link="https://pub.example/a/9")))
     assert build_article(PUBLISHER, item, SEEN) == build_article(PUBLISHER, item, SEEN)
+
+
+# ---- judge 73 B2: the redirect link is written once, so it is cleaned first ---------------------------------
+
+
+@pytest.mark.parametrize(
+    "link",
+    ["https://a.example\n/x", "https://news.example/a\nb", "https://a.example/x y", "https://a.example/x\ty", "https://a.example:443/x",
+     "https://a.example:8443/x", "https://a.example\\@b.example/x", "https://a.example/x\x00y", "https://a.example/\x7fx",
+     "https://u@a.example/x", "ftp://a.example/x", "//a.example/x", "https://", "https://a.example /x"],
+)  # fmt: skip
+def test_a_redirect_link_with_whitespace_a_control_character_a_port_or_credentials_is_not_kept(link):
+    from fno.ingestion.news.article.source_facts import clean_https_link
+
+    assert clean_https_link(link) == ""
+
+
+def test_a_redirect_link_is_kept_lower_cased_in_scheme_and_host_without_its_fragment_and_trimmed_at_the_ends():
+    from fno.ingestion.news.article.source_facts import clean_https_link
+
+    assert clean_https_link("HTTPS://A.Example/Path/X?Q=1&r=2#frag") == "https://a.example/Path/X?Q=1&r=2"
+    assert clean_https_link("  https://a.example/x\n") == "https://a.example/x"
+
+
+def test_what_the_article_file_stores_as_wrapper_link_is_the_cleaned_link():
+    article = built(WRAPPER, link="HTTPS://WRAP.Example/rss/a?oc=5", guid="g-9", source="Outlet")
+    assert article.wrapper_link == "https://wrap.example/rss/a?oc=5"

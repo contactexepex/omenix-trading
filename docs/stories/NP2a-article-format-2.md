@@ -14,7 +14,7 @@ owner's terms and decoder answers) and makes no request.
 - **`source_facts.py`** (pure): a publisher item's `source_domain` is the host of its https link; a Google News item's is the host of its
   `<source url>` when that is an https plain host with no credentials and no port. A Google News item also keeps its redirect link as
   `wrapper_link` when it is a plain https link, **so the resolve pass (NP2c) can work from the Record alone**.
-- **`planner.same_version`**: two article files are compared on the fields both carry; `wrapper_link` is not compared at all.
+- **`formats.same_version`**: see Round 2; `wrapper_link` is not compared at all.
 
 ## Decisions and why
 - **Facts only.** No tier, wire, promotional flag, tickers, priority, resolved URL or URL status in the file (NP0 section 3, row F5).
@@ -35,6 +35,21 @@ owner's terms and decoder answers) and makes no request.
   syndication; reasoning only, judges may overrule).
 - **Reversal of a P2 test assertion:** `test_a_wrapper_article_holds_no_url...` used to assert the redirect link is not in the file at all.
   It now asserts it is only in `wrapper_link` and not in `canonical_url`. This is NP0's approved N3 mechanism, not a slip.
+
+## Round 2 (judge 73 and judge 74 FAIL of 20c8c32; each reproduced)
+- **`same_version` was too lenient (73 B1, 74 F2):** it compared whatever keys two files shared, so a stub `{"format":2,"key":"k"}` was
+  "the same" as a whole article, and so was a file with an unknown key; a NO_OP is what S1 uses to trash a poll. Now `formats.py` is the one
+  definition: a file is ours only with an integer format we know and exactly that format's keys; same format compares every field
+  except `first_seen_at` and `wrapper_link`; different formats compare the older format's fields. `read_document` also serves
+  `article_from_bytes`, which now refuses `"format": true`, `1.0`, a format 1 file with format 2 keys and a format 2 file without them
+  (rows F1, F3, F10, F12).
+- **Third migration trap (74 F1):** a revision's name was a hash of the fixed fields, which include the new fields, so the same version
+  seen under format 2 would be written again beside its format 1 copy. The planner now looks through the key's existing revisions with
+  `same_version` before it names a new one (row F9). Cost: one Drive listing for an article that differs from the held file, which is
+  rare. Two format 2 versions differing only in `source_domain` keep two names (tested).
+- **`wrapper_link` was stored as given (73 B2):** `urlsplit` silently drops line breaks and tabs, so `https://a.example\n/x`, a port, an
+  upper-case scheme or host were all stored for ever. `clean_https_link` rejects whitespace and control characters anywhere, a
+  backslash, credentials and any port (also 443), lower-cases scheme and host, drops the fragment (row F11).
 
 ## Known limits (intended, stated so they are not silent gaps)
 - **Every Google article recorded before this story has no `wrapper_link` and can never be resolved**: its source URL stays empty and its

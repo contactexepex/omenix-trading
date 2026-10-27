@@ -14,7 +14,7 @@ never into the article or its key.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from fno.ingestion.news.article.keys import PUBLISHER
 from fno.ingestion.news.sources.rules import plain_host
@@ -41,10 +41,30 @@ def https_host(url: str) -> str:
         return ""
 
 
+def clean_https_link(url: str) -> str:
+    """The link to keep, or "". It is written once and never changed, so it is stricter than `https_host`: no
+    whitespace or control character anywhere (urlsplit would silently drop a line break inside it), no backslash, no
+    credentials, no port (not even 443), a plain ASCII host. The scheme and host are lower-cased; the fragment (never
+    sent) is dropped."""
+    text = url.strip()
+    if not text or "\\" in text or any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return ""
+    try:
+        parts = urlsplit(text)
+        host = plain_host(parts.hostname)
+        if parts.scheme.lower() != HTTPS or parts.username is not None or parts.password is not None or not host:
+            return ""
+        if parts.port is not None:
+            return ""
+    except ValueError:
+        return ""
+    return urlunsplit((HTTPS, host, parts.path, parts.query, ""))
+
+
 def source_facts(kind: str, link_canonical: str, link: str, source_url: str) -> SourceFacts:
     """`link_canonical`: the canonical form of a publisher item's link ("" for none); `link`: the item's link as given;
     `source_url`: the `url` of its <source> element."""
     if kind == PUBLISHER:
         return SourceFacts(https_host(link_canonical) if link_canonical else "")
-    wrapper = link.strip() if https_host(link) else ""
+    wrapper = clean_https_link(link)
     return SourceFacts(https_host(source_url), wrapper)

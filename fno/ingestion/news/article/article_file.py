@@ -10,13 +10,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from fno.ingestion.news.article.canonical import canonical_url
+from fno.ingestion.news.article.formats import read_document
 from fno.ingestion.news.article.keys import PUBLISHER, item_key
 from fno.ingestion.news.article.raw_item import RawItem
 from fno.ingestion.news.article.source_facts import source_facts
 from fno.ingestion.news.article.times import parse_time
 
-FORMAT = 2  # 1: the first files; 2 adds the source facts below. Both are read; only 2 is written.
-READABLE_FORMATS = (1, 2)
+FORMAT = 2  # 1: the first files; 2 adds the source facts below. Both are read (formats.py); only 2 is written.
 
 
 @dataclass(frozen=True)
@@ -62,12 +62,10 @@ def build_article(kind: str, item: RawItem, seen_at: datetime) -> Article:
 
 
 def article_from_bytes(data: bytes) -> Article:
-    """An article file of any readable format. ValueError for anything else: an unknown format, an unknown or missing
-    key, text that is not JSON. A format 1 file has no source facts; they read as empty."""
-    try:
-        document = json.loads(data)
-        if document.pop("format") not in READABLE_FORMATS:
-            raise ValueError("unknown format")
-        return Article(**document)
-    except (KeyError, TypeError, AttributeError, UnicodeDecodeError) as broken:
-        raise ValueError("not an article file") from broken
+    """An article file of ours, of any readable format. ValueError for anything else (formats.read_document): an unknown
+    or non-integer format, a missing key, an unknown extra key, text that is not JSON. A format 1 file has no source
+    facts; they read as empty."""
+    document = read_document(data)
+    if document is None:
+        raise ValueError("not an article file")
+    return Article(**document[1])
