@@ -87,3 +87,54 @@ That makes it a correctness defect in write-once content, not a safety one. The 
 **Verdict: FAIL** (round 1, `cfb87c6`). Both must be fixed:
 - my B1, unescape before stripping tags;
 - judge 120's B1, the linear split.
+
+## Addendum 2
+
+**Round 2 re-review at `886feb8`.**
+
+**What changed since `cfb87c6`:**
+- `clean()` now runs `_TAGS.sub(" ", html.unescape(body[:MAX_SCAN]))`, that is, it unescapes first.
+- `_STOP` is linear (judge 120's B1, row A8).
+- Row A9 and its plant, plus main merged in (DEL1, NP9).
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2006 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 628 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught.
+
+**My B1: fixed.** My example now gives "Zzalpha Ltd. reported a net profit of Rs. 500 crore. Shares rose 4%.": no markup,
+and two sentences.
+
+**Judge 120's B1: fixed.**
+
+| Body | Time |
+| --- | --- |
+| `"." * 20000` | 0.001 s |
+| `"&lt;" * 6000` | 0.002 s |
+| `"<" * 20000` | 0.001 s |
+
+**Condition C1 (before merge): unescaping first now lets ordinary comparison signs eat text** (*strong evidence*,
+reproduced).
+- `_TAGS = <[^<>]*>` treats any `<...>` as a tag. A body with encoded comparisons, now decoded, loses the text between
+  them:
+
+  | `articleBody` | Stored snippet |
+  | --- | --- |
+  | "EPS &lt; Rs 5 this year and margin &gt; 10% next." | "EPS 10% next." |
+
+- The result is a false statement stored write-once. It is rare, since comparison signs in prose are uncommon
+  (*reasoning only*), but the fix is one character class.
+- **Fix:** `_TAGS = re.compile(r"</?[A-Za-z!][^<>]*>")`. A tag starts with a letter, `/` or `!` (comments and
+  doctype). I checked it:
+  - the comparison sentence is kept whole;
+  - `&lt;p&gt;A.&lt;/p&gt;&lt;p&gt;B&lt;/p&gt;` still gives "A. B";
+  - `<!-- c -->x<br/>y` gives "x y".
+- Add the comparison sentence as a test, and a plant that restores `<[^<>]*>`.
+
+**Script and style (N1): your reply is accepted.** A non-greedy block pattern risks the quadratic case that judge 120
+just removed, and what remains after the tag strip is inert words, all within the 600-character cap.
+
+**Verdict: PASS** (round 2, `886feb8`), with condition C1 before merge.
