@@ -110,3 +110,23 @@ I reviewed `git diff 3d9ad45 18f9111`. 3d9ad45 was e6aac2a plus `main`, with no 
 - the runner all green.
 
 **My process change.** From now on, an all-green `tools/contract_plants.py` run at the frozen SHA is a condition of every PASS I give, and I record its count in the verdict.
+
+## Addendum 3: re-review at 770cf76: PASS
+
+I reviewed `git diff 18f9111 770cf76`. It changes one line in `reads/run.py`: the cap is now computed once, as `limit = min(pages, PAGES)`, and both paths use it. It also adds tests (the material-first page cap; M20, production wires `ReadPlanner` and `PassNotes`; M21, the outlet name reaches the tagger) and plant rows.
+
+**Gates (locked venv, strong evidence).**
+- 2020 passed.
+- ruff check and format are clean; check_imports is clean.
+- **Plant runner: 275 of 275 `ok`** at 770cf76, in one run, with nothing unnoticed.
+
+**Addendum 2's items are fixed (strong evidence, my own plants).** Each was undone after its run.
+
+| Plant | Result |
+|---|---|
+| the queue path given `pages` uncapped | 1 failed |
+| the queue's page loop off by one (`>`) | 2 failed |
+| the outlet name dropped before the tagger | 2 failed |
+| the outlet name dropped before the weight | 1 failed |
+
+**Verdict: PASS at 770cf76.**
