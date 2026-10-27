@@ -33,7 +33,7 @@ resolutions and the read files, which all change after a cluster file is closed 
 - **Origin groups:** views with the same label are one origin. **Not ported in the first cut:** agentic's MinHash copy test that also
   joins different outlets carrying copied text (needs `datasketch`; judged in NP0 2i). Effect, reasoning only: two outlets that copy a
   non-agency story count as two origins, so `independent_origins` can be too high. The flag below says when it is unverified.
-- **Countable view:** tier listed (`primary`, `tier_1`, `tier_2`), not promotional, not opinion. **Verified group:** a countable view
+- **Countable view:** tier listed (`primary`, `tier1`, `tier2`), not promotional, not opinion. **Verified group:** a countable view
   whose page was read (`access` in full, partial, paywalled) or that has a wire. `independent_origins` = number of verified groups.
 - **Flags** (ported names): `promotional_provider` (any promotional view), `single_source` (1 independent origin),
   `no_vetted_origin` (0), `origins_unverified` (countable origins that are not verified), `opinion`, `low_tier_only` (no listed
