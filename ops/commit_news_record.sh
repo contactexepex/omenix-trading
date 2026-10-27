@@ -19,5 +19,8 @@ for folder in $RECEIPTS; do
   if [ -e "$folder" ]; then git add -- "$folder"; fi
 done
 git diff --cached --quiet || git commit -m "$COMMIT_MESSAGE $(date -u +%FT%TZ)"
-git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+# `A && B` under `set -e` does not stop the script when A fails, so each is checked on its own: a run that pushed
+# nothing must never end green.
+git pull --no-rebase --no-edit origin main || exit 1
+git push origin HEAD:main || exit 1
 exit "$broken"

@@ -228,3 +228,20 @@ def test_the_same_script_guards_the_cluster_manifest_and_commits_its_receipts(tm
     assert done.returncode == 1 and "manifest_broken" in done.stdout
     assert repo.on_main(f"{MANIFEST_DIR}/clusters.csv") is None
     assert repo.on_main("receipts/raw/news/clusters/1/x.json.sha256")
+
+
+def test_a_pull_that_fails_makes_the_step_fail_instead_of_ending_green(tmp_path):
+    """judge 54 F1: `git pull && git push` under `set -e` used to exit 0 with nothing pushed."""
+    repo = Repo(tmp_path)
+    repo.write(2, torn=False)
+    git(repo.work, "remote", "set-url", "origin", str(tmp_path / "nowhere.git"))
+    done = repo.run_step()
+    assert done.returncode != 0 and repo.on_main(MANIFEST) is None
+
+
+def test_a_push_that_fails_makes_the_step_fail_even_when_the_pull_worked(tmp_path):
+    repo = Repo(tmp_path)
+    repo.write(2, torn=False)
+    git(repo.work, "remote", "set-url", "--push", "origin", str(tmp_path / "nowhere.git"))
+    done = repo.run_step()
+    assert done.returncode != 0 and repo.on_main(MANIFEST) is None

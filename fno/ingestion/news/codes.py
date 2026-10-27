@@ -45,6 +45,9 @@ CLUSTER_RECORD_FAILED = "cluster_record_failed"  # Drive or the manifest would n
 ARTICLE_UNREADABLE = (
     "article_unreadable"  # a recorded article's file is missing or damaged: counted, nothing is written
 )
+WINDOW_IN_FUTURE = (
+    "window_in_future"  # a window end later than now (floored to the hour): it would write a file that cannot be stable
+)
 PREVIOUS_UNREADABLE = (
     "previous_unreadable"  # the earlier run's cluster file is damaged: the replaced ids cannot be named
 )

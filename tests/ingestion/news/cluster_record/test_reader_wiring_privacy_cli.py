@@ -116,8 +116,12 @@ def test_nothing_of_a_story_reaches_the_cluster_file_manifest_receipts_report_lo
 # ---- the command ------------------------------------------------------------------------------------------------
 
 
-def run_command(monkeypatch, world, *argv):
+NOW = datetime(2026, 10, 27, 12, 41, 7, tzinfo=UTC)  # the clock of the command tests: after the test window ends
+
+
+def run_command(monkeypatch, world, *argv, now=NOW):
     printed, sent = [], []
+    monkeypatch.setattr(news_cli, "now_utc", lambda: now)
     monkeypatch.setattr("fno.ingestion.news.cluster_record.wiring.build_news_cluster", lambda: world.run_object)
     monkeypatch.setattr(
         "fno.ingestion.composition.build_alert_sender",
@@ -179,7 +183,6 @@ def test_the_default_window_end_is_the_current_hour_floored(tmp_path, monkeypatc
             seen.append(as_of) or type("R", (), {"line": lambda s: "x", "ok": True, "alert_text": lambda s: "x"})()
         ),
     )
-    monkeypatch.setattr(news_cli, "now_utc", lambda: datetime(2026, 10, 27, 12, 41, 7, tzinfo=UTC))
     run_command(monkeypatch, world)
     assert seen == [datetime(2026, 10, 27, 12, 0, 0, tzinfo=UTC)]
 
@@ -217,3 +220,26 @@ def test_nothing_in_the_package_prints_or_reads_a_clock_and_the_writer_is_the_on
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id != "print", file.name
     assert puts == {"writer.py": 1}
+
+
+def test_a_window_end_later_than_this_hour_is_refused_with_a_fixed_code_and_nothing_runs(tmp_path, monkeypatch):
+    """judge 54 F2: a future window end would write a file that a later run of the same name could never match."""
+    world = World(tmp_path)
+    world.add(item(HEADLINE, "https://pub.example/a/1"))
+    code, printed, sent = run_command(monkeypatch, world, "--as-of", "2026-10-27T13:00:00+00:00")
+    assert code == 1 and printed[0] == "news cluster stopped: window_in_future" and len(sent) == 1
+    assert world.cluster_files() == []
+
+
+def test_this_hour_and_earlier_hours_are_accepted(tmp_path, monkeypatch):
+    world = World(tmp_path)
+    world.add(item(HEADLINE, "https://pub.example/a/1"))
+    assert run_command(monkeypatch, world, "--as-of", "2026-10-27T12:00:00+00:00")[0] == 0
+    assert run_command(monkeypatch, world, "--as-of", "2026-10-27T11:00:00+00:00")[0] == 0
+
+
+def test_a_window_end_one_second_after_this_hour_is_refused_and_exactly_this_hour_is_not(tmp_path, monkeypatch):
+    world = World(tmp_path)
+    world.add(item(HEADLINE, "https://pub.example/a/1"))
+    assert run_command(monkeypatch, world, "--as-of", "2026-10-27T12:00:01+00:00")[1][0].endswith("window_in_future")
+    assert run_command(monkeypatch, world, "--as-of", "2026-10-27T12:00:00+00:00")[0] == 0

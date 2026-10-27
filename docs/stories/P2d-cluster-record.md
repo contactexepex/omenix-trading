@@ -98,7 +98,13 @@ Corroboration or wire-credit counting (owner decision), tuning the threshold, sc
   plant `return ()` first survived); `clusters.csv` is checked for a torn last line BEFORE the Drive file is written (`manifest_broken`);
   not-whole rows in either manifest are reported (`manifest_row_skipped`) and nothing is written, because a hidden article or file would
   change the bytes of a later run of the same window.
-- **Proof:** 30 cluster-record tests and 12 guard tests; plants fail a test for the conflict check (also with a store that overwrites),
+- **Round 1 (judge 54):** (F1) in `ops/commit_news_record.sh`, `git pull && git push` under `set -e` exited 0 when the pull failed, so a
+  run could end green with nothing pushed; the same line was in the merged inline guard, so this also fixes `news-promote.yml`. Each is
+  now checked on its own (`|| exit 1`) and real-git tests with an unreachable origin and with an unreachable push URL expect a
+  non-zero exit. A plant that ignores a failing pull survives because, with origin reachable and unmoved, a pull never fails, and with it
+  moved the push is rejected too (reasoning only; the pull check stays as defence). (F2) a window end later than the current hour
+  (`--as-of`) is refused with `window_in_future` before anything runs, because only a closed window is stable.
+- **Proof:** 32 cluster-record tests and 14 guard tests; plants fail a test for the conflict check (also with a store that overwrites),
   file-before-row order, the missing-row repair, each reconciliation check on its own (duplicate member, made-up member, counts),
   the version in the path, the strictly earlier previous file, a damaged previous file, an unreadable article, the candidate net,
   the reader's window cover and its `known_at` bound, the member order, and the conflict alert text.

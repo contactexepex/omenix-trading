@@ -20,6 +20,10 @@ CLUSTER_STOPPED = "news cluster stopped: {code}"
 STOPPED_LINE = "news fetch stopped: {code}"
 
 
+class WindowInFuture(Exception):
+    """The requested window end is later than the current hour."""
+
+
 def _utc_moment(text: str) -> datetime:
     moment = datetime.fromisoformat(text)
     if moment.tzinfo is None:
@@ -119,10 +123,16 @@ def cmd_news_cluster(args, out=print) -> int:
     from fno.ingestion.composition import build_alert_sender
     from fno.ingestion.news.cluster_record.wiring import build_news_cluster
 
-    as_of = args.as_of or now_utc().replace(minute=0, second=0, microsecond=0)
+    this_hour = now_utc().replace(minute=0, second=0, microsecond=0)
+    as_of = args.as_of or this_hour
     try:
+        if as_of > this_hour:  # only a closed window is clustered: a future end would write a file that later conflicts
+            raise WindowInFuture
         report = build_news_cluster().run(as_of)
         line, ok, alert = report.line(), report.ok, report.alert_text()
+    except WindowInFuture:
+        line = CLUSTER_STOPPED.format(code=codes.WINDOW_IN_FUTURE)
+        ok, alert = False, line
     except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
         line = CLUSTER_STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}")
         ok, alert = False, line
