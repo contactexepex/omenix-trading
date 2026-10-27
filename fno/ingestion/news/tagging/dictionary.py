@@ -13,7 +13,6 @@ from fno.ingestion.news.safe_pattern import compile_safe
 from fno.ingestion.news.tagging.text import word_tuple
 
 _BRACKETS = re.compile(r"\(([^()]{1,40})\)")
-_SYMBOL = re.compile(r"[A-Z0-9][A-Z0-9&-]{0,19}")
 
 
 class NameDictionary:
@@ -42,8 +41,10 @@ class NameDictionary:
         found = []
         for match in _BRACKETS.finditer(text):
             parts = [part.strip() for part in match.group(1).split(":")]
-            if len(parts) <= 3:  # `SYM`, `SYM:EXCHANGE` or `EXCHANGE: SYM`: each part is a candidate symbol
-                found += [(p, match.start(), match.end()) for p in parts if _SYMBOL.fullmatch(p)]
+            if (
+                len(parts) <= 3
+            ):  # `SYM`, `SYM:EXCHANGE` or `EXCHANGE: SYM`: each part is a candidate; the tagger keeps those that are symbols, case-sensitively
+                found += [(p, match.start(), match.end()) for p in parts if p]
         return found
 
 
