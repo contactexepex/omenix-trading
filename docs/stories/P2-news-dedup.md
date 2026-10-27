@@ -108,11 +108,11 @@ changed; **test:** the second request of a news session carries no `Cookie` head
   member, else it starts a new cluster. An article similar to two anchors joins the cluster with the **earlier anchor** (ties:
   the smaller key); the two clusters are not merged, which is what keeps it from chaining.
 - **The cluster id (D5)** is the hash of its earliest article's key, earliest by publication time, ties broken by the smaller
-  key. When a later-arriving earlier article, or a merge of two clusters, changes an id, the new file has a
+  key. When a later-arriving earlier article changes an id, the new file has a
   `previous_cluster_ids` column naming the ids it replaces, so a consumer can follow a story. When the anchor itself ages out of the window, the cluster is re-anchored to its earliest
   remaining member and the same column names the old id (R6).
 - **The file header (D6)** states the algorithm version, the window end (the run's as-of time) and the input rule (articles
-  with first seen_at at or before the window end and published, or if `time_source=seen` seen, within the window before it).
+  with first seen_at at or before the window end and effective time `max(published, first seen_at)` within the window before it).
   Deterministic: sorted inputs, no randomness; the same inputs give the same bytes, so a rerun is a no-op.
 - **The window applies to clustering only (N6), and an article belongs to it by `max(published, first seen_at)`** (R2), so a
   late arrival (published three days ago, first seen today) enters a cluster instead of being lost to clustering. **Test:**
