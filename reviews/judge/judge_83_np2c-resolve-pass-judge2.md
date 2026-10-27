@@ -70,3 +70,34 @@ clean (545 files); code size passed; contract plants all ok.
    nearly equivalent. A test asserting `inputs.apply` in the step's `if` would pin it cheaply.
 
 **Verdict: PASS** (`feb5fa9`), with the two should-fixes above.
+
+## Addendum 1: round 2 on `b1917e7` (delta from `feb5fa9`)
+
+`git diff feb5fa9 b1917e7 -- fno .github tests`:
+- `RESOLVER_FAILING` turns the run red when nothing is resolved, or under half of a batch of 10 or more
+  (`run.py:56-62`);
+- articles the read cap left unread count as expiring on the last look-back day, and `unexamined > 0` alerts;
+- the torn-manifest test now uses a whole last row with no final newline;
+- the commit step is pinned to `inputs.apply`;
+- the wording is "80 links (about 88 requests)".
+
+**Gates** (in the locked venv): 1561 passed; ruff clean; imports clean; code size passed; contract plants all ok.
+
+**My plants (4 of 5 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| `check_ready` removed (my round-1 survivor) | 2 |
+| commit step on a probe (my round-1 survivor) | 2 |
+| service check off | 4 |
+| unread articles not counted as expiring | 2 |
+| `or unexamined > 0` dropped from `needs_attention` | **survived** |
+
+**The survivor is a should-fix, not blocking.** Unread articles on the last day already alert through `expiring`. Unread
+articles on newer days alert only through this clause, and no test covers it. One test with the read cap hit on a newer
+day would pin it.
+
+**Note:** with `resolved == 0`, a pass of a single link that fails to decode is also red. That is loud by design and
+matches the "never green" rule; the owner should expect it on quiet days.
+
+**Verdict: PASS** (`b1917e7`). Both of my should-fixes are done.

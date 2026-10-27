@@ -93,5 +93,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 80 | NP3b feed plan, code (judge #2) | 1 | PASS (4fa33b2, 0d6adbe) | `judge_80_np3b-feed-plan-judge2.md` |
 | 81 | NP3b feed planner (code, judge #1) | 1 | PASS (0d6adbe, then 4fa33b2) | `judge_81_np3b-feed-planner.md` |
 | 82 | NP2c resolve pass (code, judge #1) | 1 | FAIL (round 1, feb5fa9) | `judge_82_np2c-resolve-pass.md` |
-| 83 | NP2c resolve pass, code + workflow (judge #2) | 1 | PASS (feb5fa9; 2 should-fix) | `judge_83_np2c-resolve-pass-judge2.md` |
+| 83 | NP2c resolve pass, code + workflow (judge #2) | 2 | PASS (b1917e7, feb5fa9) | `judge_83_np2c-resolve-pass-judge2.md` |
 | 84 | NP4 page-reads plan, plan doc (judge #2) | 1 | FAIL (round 1, c886e5a) | `judge_84_np4-plan-judge2.md` |
