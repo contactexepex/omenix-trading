@@ -77,7 +77,7 @@ If exact re-runs are ever needed, a time column in the manifest row is a separat
 - No test reads a real title; companies and outlets in tests are invented.
 
 ## Contract rows planned (docs/RECORD_CONTRACT.md, new section "Tiered clustering (NP6)", each with a plant)
-W1 the bar moves by tagged symbols only, an entity alone merges nothing; W2 same normalised URL joins any member, the URL is tried before the title and one URL belongs to one cluster; W2b a URL with no path or query (or one single segment) never joins and is counted; W3 a feed-claimed domain never
+W1 the bar moves by tagged symbols only, an entity alone merges nothing; W2 same normalised URL joins any member, the URL is tried before the title and one URL belongs to one cluster; W2b a URL with no path or query, or one segment with neither a hyphen nor a digit, never joins and is counted; W2c the file counts URL joins whose title score with the anchor is below the match bar (`url_joins_unlike_title`), which is how a generic URL the rule accepts (`/stock-market`, `/news/business`) shows up; W3 a feed-claimed domain never
 joins; W4 a title match still compares with the anchor only (no chaining by score); W5 version 2 writes only under `news/clusters/2/` and
 never rewrites version 1; W6 `companies_version` is recorded, `0` only for no list at all, and an unloadable list stops the run with a code and writes nothing; W7 label order wire, then outlet; W8 a promotional or opinion or
 unlisted view never counts; W9 verified means read or a wire with non-title evidence; W10 each flag fires exactly on its rule; W11 the corroboration is pure (same views,
@@ -95,3 +95,7 @@ only NP5b; they can be built in parallel). Both lane 1, two judges for the code.
 ## Judge 96 round 1 (judge #2), all accepted after checking the code
 B1 (reproduced by reading `clean_https_link`: no path rule), B2 (the day cutoff does not close the re-run case), B3, and items 4 to 7 are
 edited in above. The 36 h window stays on URL joins (splitting is the fail-safe side). Origins stay out of the cluster file.
+
+## Judge 96 round 2: PASS, with condition C1 for the NP6a code
+The path rule is a guess and `url_joins_refused` counts only what it turns away. NP6a must add `url_joins_unlike_title` to the format-2 file
+(W2c, with a plant), and the v1-against-v2 comparison before NP7 must report it.
