@@ -96,3 +96,56 @@ to ASCII `k`, but IDNA maps it the same way, so the host is the same one too.
 
 **Verdict: FAIL** (round 1, `1d1bfed`). F1 is the blocker, a 6-line fix plus a test. F2 to F5 are small and
 strengthen the same "a typo is an error" promise.
+
+## Addendum 1: round 2 (final) on `df3fe62`
+
+`git diff 1d1bfed df3fe62 -- fno config docs tests`:
+- `UniqueKeyLoader`;
+- `is_public_suffix` (a two-label national-suffix rule plus a curated hosting list);
+- empty-label refusals and lookups;
+- the `same_as` alias inheriting `fetch: false`;
+- `_check_wires`;
+- `opinion_unless_path` must be `/.../`;
+- non-ASCII refused before lower-casing.
+
+`NP0-news-port-plan.md` in the range is already on main (judge 70 PASS at `6439195`), so it is not part of this change.
+
+**Gates (cleared `__pycache__`):** 1311 passed; ruff check and format clean; imports clean (511 files); code size
+passed; contract plants all ok. Largest file: `loader.py`, 204 lines.
+
+**My round-1 reproductions, re-run:**
+
+| Finding | Now |
+|---|---|
+| F1: repeated key | refused (`fetch` repeated inside one outlet: "repeated key 'fetch'"). A list as a key, and a YAML merge-key trick, are also refused. |
+| F2: public suffix | `co.in`, `gov.uk`, `com.au`, `edu.au`, `co.jp`, `github.io` refused |
+| F3: empty label | refused when loading, and `domain_of_label(None)` returns None |
+| F4: alias of a `fetch: false` outlet | not fetchable |
+| F5: two wires, one name | refused |
+
+**Plants (7 of 7 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| duplicate-key check off | 2 |
+| suffix check off | 9 |
+| alias bypass | 2 |
+| empty-label lookup | 2 |
+| wire check off | 2 |
+| ASCII check off | 2 |
+| `/.../` check off | 4 |
+
+**Port fidelity:** the orchestrator, not a judge, diffed the file against `f1b9bb6`. The story says so plainly
+(lines 46-48). I still have no access to that repository, so this remains unverified by me.
+
+## Notes (not blocking; reasoning only on likelihood)
+
+- **A separately listed child of a `fetch: false` parent is fetchable.** The loader accepts `a.example.com`
+  `fetch: false` plus `in.a.example.com` with no `fetch`, and `lookup` finds the child first. It is the F4 pattern by
+  another route. Nothing in the shipped file is nested, so nothing live is affected. Consider refusing it, or
+  inheriting the parent's `fetch` the way the alias now does, before NP4 re-probes.
+- **The curated suffix list is what the story says it is.** `substack.com` and `ltd.uk` still load. `nic.in` is
+  refused, which is the safe direction. The listed `finance.yahoo.com` and `news.yahoo.com` are single-organisation
+  hosts.
+
+**Verdict: PASS** (`df3fe62`).
