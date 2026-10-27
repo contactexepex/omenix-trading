@@ -23,6 +23,7 @@ from fno.ingestion.providers import get_provider
 from fno.ingestion.quotes.cli import add_quotes_parser
 from fno.ingestion.research_data.calendar import CalendarError
 from fno.ingestion.research_data.participant_oi_cli import add_participant_oi_parser
+from fno.ingestion.staging_cleanup.cli import add_staging_cleanup_parser
 from fno.ingestion.storage.cache_cli import add_cache_parser
 from fno.ingestion.storage.fingerprints_cli import add_fingerprints_parser
 from fno.ingestion.storage.librarian_cli import add_librarian_parser
@@ -169,6 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_flows_parser(sub)
     add_preopen_parser(sub)
     add_promotion_parsers(sub)
+    add_staging_cleanup_parser(sub)
     return p
 
 

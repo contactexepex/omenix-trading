@@ -21,6 +21,7 @@ NOT_PACED = {
     "news-promote.yml",
     "news-cluster.yml",
     "rebuild-receipts.yml",
+    "staging-cleanup.yml",
 }  # reach Drive only (no paced host)
 STEP = "bash ops/commit_pause_log.sh"
 

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from fno.ingestion.news.article.article_file import FORMAT, Article
 from fno.ingestion.news.cluster.window import WINDOW
 from fno.ingestion.news.record.manifest import NewsManifest
-from fno.ingestion.news.record.writer import article_path
+from fno.ingestion.news.record.planner import article_path
 from fno.ingestion.storage.raw_store import RawFileStore
 
 MARGIN = timedelta(days=2)  # a poll's day is recorded in UTC, a window edge can fall mid-day, a promote can run late
