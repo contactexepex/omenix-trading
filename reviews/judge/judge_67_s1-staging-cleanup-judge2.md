@@ -92,3 +92,41 @@ False. The story declares this mutant equivalent, which is correct, but the safe
   story says "about 30 days"; worth one line saying the owner must not empty the trash before checking a run's report.
 
 **Verdict: FAIL** (round 1, `f41b1df`). F1 is a doc and docstring fix; F2 is two small tests. No code defect found.
+
+## Addendum 1: round 2 (final) on `d88f82c`
+
+`git diff f41b1df d88f82c -- fno docs tests`:
+- `NseCopyProof` now also needs the manifest row's SHA-256 to equal the copy's (`ArchiveFingerprints`; judge 66 B1);
+- `KeepForever` is removed;
+- the story's decision text and the `wiring.py` docstring now state owner choice (b) and what it loses;
+- there are new tests for an unknown feed and for `STAGING_ROOT == STAGING_AREA`.
+
+The `circulars.yml` and RUN_LOCATIONS lines in the range come from main (CP1 and RR1).
+
+**Gates (cleared `__pycache__`):** 1217 passed; ruff check and format clean; imports clean (499 files); code size passed;
+contract plants all ok.
+
+**The new manifest-row check:** correct. It fails closed: no row, or no dataset with a manifest, gives `None`, which never
+equals a digest. It is keyed by file name like the existing coverage check and librarian (`manifest_folder.py:61-63`),
+so it is no weaker than them.
+
+| Plant | Tests failed |
+|---|---|
+| row ignored | 3 |
+| any row accepted | 2 |
+
+A third plant of mine was invalid (`hashlib` is not imported in `wiring.py`) and is discarded.
+
+**F1:** fixed where it mattered. The "Decided ... and built" text and the composition-root docstring now match the
+code. One stale line remains: `S1-staging-cleanup.md:56-58` still lists "a news poll trashed" among the eleven breaks
+from the superseded `KeepForever` design. Should-fix: correct it with the next touch of that file.
+
+**F2:** not addressed. Both plants still survive at this SHA:
+- dropping `or not reading.articles` (`news_proof.py:45`): an empty poll would be trashed;
+- dropping `UNREADABLE` from `CleanupReport.ok` (`cleanup.py:42`): an unreadable copy would not turn the run red.
+
+The code is correct today. It is the protection against a future edit that is missing, so this stays should-fix, not
+blocking (as I graded it in round 1). Two tests, recommended before the first `apply` run.
+
+**Verdict: PASS** (`d88f82c`, final round). Open as should-fix: the F2 tests and the one stale line. The orchestrator
+decides whether they ride this merge or the next touch.
