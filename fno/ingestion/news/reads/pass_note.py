@@ -2,8 +2,8 @@
 and the versions and SHA-256 of the two private files it used (the company list and the materiality terms), so the
 next pass can refuse to go behind them or to find either edited in place (`news/pin.py`).
 `news/read-passes/1/<stamp>.json`, with its receipt and its own manifest `read-passes.csv`. No title, link, key,
-symbol or term is ever in it. A pass that read newest first, or probed, writes none, so a red or degraded pass never
-moves the pin."""
+symbol or term is ever in it. A pass that read newest first, or probed, writes none, so a degraded pass never moves
+the pin. A pass that is red for another reason still writes its note: the versions it used are true."""
 
 from __future__ import annotations
 

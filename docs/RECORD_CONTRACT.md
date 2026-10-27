@@ -411,6 +411,8 @@ The plan called these rows W1 to W12; `W0` to `W6` already belong to the write-o
 | M15 | The run line names the order used, so a degrade is visible. | `ReadReport.line` | `tests/ingestion/news/reads/test_material_first.py::test_material_articles_are_read_before_the_others_when_the_pages_are_fewer_than_the_articles`<br>`tests/ingestion/news/reads/test_material_first.py::test_never_configured_is_green_newest_first_and_writes_no_note` | order hidden | **tested, plant run** |
 | M16 | An outlet we may not read is skipped in the material-first path too. | `MaterialQueue._pages` | `tests/ingestion/news/reads/test_material_first.py::test_an_outlet_we_may_not_read_is_skipped_in_the_material_first_path_too` | unlisted fetched | **tested, plant run** |
 | M17 | The note holds the counts of the pass it describes. | `ReadPass.run` | `tests/ingestion/news/reads/test_material_first.py::test_a_material_first_pass_with_apply_writes_one_note_of_counts_and_versions_and_a_probe_none` | asked count lost | **tested, plant run** |
+| M18 | A not-whole row in the pass-note manifest is counted and nothing is read or written. | `ReadPass._ready` | `tests/ingestion/news/reads/test_material_first.py::test_a_note_manifest_row_that_is_not_whole_is_counted_and_nothing_is_read_or_written` | note rows hidden | **tested, plant run** |
+| M19 | A torn pass-note manifest stops an applied pass before it reads or writes anything. | `ReadPass._ready` | `tests/ingestion/news/reads/test_material_first.py::test_a_torn_note_manifest_stops_the_pass_before_any_request` | torn note manifest ignored | **tested, plant run** |
 
 ## Clustering comparison (NP3c)
 

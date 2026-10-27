@@ -47,7 +47,7 @@ class MaterialTerms:
         return self.weight(title, source) >= MATERIAL_AT and tag.confidence == HIGH
 
 
-def parse_terms(data: bytes, version: int) -> MaterialTerms:
+def parse_terms(data: bytes, version: int, sha256: str = "") -> MaterialTerms:
     """The terms of a file; `MaterialityError(materiality_invalid)` for anything that is not a whole, safe file."""
     try:
         document = json.loads(data)
@@ -70,7 +70,7 @@ def parse_terms(data: bytes, version: int) -> MaterialTerms:
         except ValueError:
             raise _invalid() from None
         seen.add(pattern.casefold())
-    return MaterialTerms(tuple(terms), version)
+    return MaterialTerms(tuple(terms), version, sha256)
 
 
 def _good_weight(weight: object) -> bool:

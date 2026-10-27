@@ -2583,5 +2583,23 @@
   "file": "fno/ingestion/news/reads/run.py",
   "old": "asked=report.counts[\"asked\"]",
   "new": "asked=0"
+ },
+ {
+  "id": "M18",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_note_manifest_row_that_is_not_whole_is_counted_and_nothing_is_read_or_written"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "skipped += self.notes.skipped_rows if self.notes else 0",
+  "new": "skipped += 0"
+ },
+ {
+  "id": "M19",
+  "tests": [
+   "tests/ingestion/news/reads/test_material_first.py::test_a_torn_note_manifest_stops_the_pass_before_any_request"
+  ],
+  "file": "fno/ingestion/news/reads/run.py",
+  "old": "                if self.notes:\n                    self.notes.check_ready()\n",
+  "new": ""
  }
 ]

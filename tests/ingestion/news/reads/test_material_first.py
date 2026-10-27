@@ -56,9 +56,7 @@ def companies(version=2, sha=SHA_C) -> CompanyList:
 
 
 def terms(version=3, sha=SHA_M):
-    found = parse_terms(b'{"format":1,"terms":[{"pattern":"zzpub","weight":1}]}', version)
-    found.sha256 = sha
-    return found
+    return parse_terms(b'{"format":1,"terms":[{"pattern":"zzpub","weight":1}]}', version, sha)
 
 
 class Setup(World):
@@ -332,3 +330,24 @@ def test_the_pin_is_checked_against_the_newest_note_not_the_first(tmp_path):
     world.material = Terms(terms(version=3))  # the first note's file again: older than the newest
     report = world.read(pages=3)
     assert report.rejected == {codes.MATERIALITY_ROLLED_BACK: 1}
+
+
+def test_a_note_manifest_row_that_is_not_whole_is_counted_and_nothing_is_read_or_written(tmp_path):
+    """Judge 108 B1 (1): the read-passes manifest is checked like the reads manifest."""
+    world = Setup(tmp_path)
+    world.mixed()
+    (world.record.manifest_folder / "read-passes.csv").write_text(
+        "date,article_id,status,sha256,size_bytes\nnot,a,whole row\n"
+    )
+    report = world.read(pages=3)
+    assert report.rejected[codes.MANIFEST_ROW_SKIPPED] == 1 and world.fetcher.asked == [] and world.note_files() == []
+
+
+def test_a_torn_note_manifest_stops_the_pass_before_any_request(tmp_path):
+    """Judge 108 B1 (2): a manifest that ends in a torn line stops an applied pass before it writes anything."""
+    world = Setup(tmp_path)
+    world.mixed()
+    row = "2026-10-27," + "a" * 64 + ",recorded," + "b" * 64 + ",10"
+    (world.record.manifest_folder / "read-passes.csv").write_text("date,article_id,status,sha256,size_bytes\n" + row)
+    report = world.read(pages=3)
+    assert report.rejected[codes.MANIFEST_BROKEN] == 1 and world.fetcher.asked == [] and world.read_files() == []
