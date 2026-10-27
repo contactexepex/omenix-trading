@@ -126,3 +126,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 113 | NP11 feed provenance plan, plan doc (judge #2) | 1 | FAIL (round 1, e050a46) | `judge_113_np11-plan-judge2.md` |
 | 114 | NP11 feed provenance plan (plan doc, privacy, judge #1) | 2 | PASS (round 2, bcd6f4e; round 1 FAIL e050a46) | `judge_114_np11-plan.md` |
 | 115 | NP9 clean stored title, code (judge #2) | 1 | FAIL (round 1, ed90a5c) | `judge_115_np9-clean-title-judge2.md` |
+| 116 | NP9 clean stored title (code, judge #1) | 1 | FAIL (round 1, ed90a5c) | `judge_116_np9-clean-title.md` |
