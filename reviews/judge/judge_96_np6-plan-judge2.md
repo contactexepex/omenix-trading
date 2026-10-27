@@ -111,3 +111,45 @@ main). This is a plan document for lane-1 code, so the review is lane 1.
 **Verdict: FAIL** (round 1, `30e3f89`).
 - B1, B2 and B3 are plan edits, not redesigns.
 - Points 4, 6 and 7 should be written into the same edit.
+
+## Addendum 1
+
+**Round 2 re-review of `story/NP6-plan` at `e5e0d10`.** Against main, only `docs/stories/NP6-tiered-clustering.md`
+changed (97 lines). The other files in `30e3f89..e5e0d10` are main merges.
+
+### Round-1 items
+
+- **B1: fixed in design, with one gap the plan must close in code (below).**
+  - A URL is an identity only with a path beyond `/` or a query. A single-segment path with no query also needs a
+    hyphen or a digit.
+  - Refused URLs are counted (`url_joins_refused`). URL comes before title, and one URL belongs to one cluster.
+  - Rows W2 and W2b are added.
+- **B2: fixed.** No day cutoff and no NP2c change. The guarantee is stated honestly, and `resolutions_used` is
+  recorded.
+- **B3: fixed.** `0` means only that no company list exists. An unloadable list stops the run with a code and writes
+  nothing (W6).
+- **Item 4 (`source` to the tagger, `primary ∪ mentioned`): in.** Item 5 (the 36 h window): kept.
+- **Item 6 (precedence and one URL per cluster): in W2.**
+- **Item 7 (a title-only wire does not verify): in, with `wire_via`.**
+- **Traceability:** `Corroboration` now records the rule-file version and the read-file count.
+
+### Condition for the NP6a code (not a new round)
+
+- **C1: the B1 rule is a guess, and the planned measure cannot see the case it guesses wrong.**
+  - `url_joins_refused` counts URLs the rule turned away. A generic URL the rule accepts goes uncounted, for example:
+    - a section page with a hyphen, such as `/stock-market`;
+    - a two-segment section such as `/news/business`.
+  - Those accepted joins are exactly the failure B1 is about. *Reasoning only:* hyphenated section names are common on
+    Indian business sites.
+  - **What the code must add:**
+    - a count of URL joins whose title score with the cluster's anchor is below the match bar
+      (`url_joins_unlike_title`), in the format-2 file;
+    - a contract row and a plant for that count.
+  - The version 1 against version 2 comparison held before cutover (NP7) must report that count. A high value means
+    generic URLs are merging stories.
+  - Version 2 writes to its own folder, and the workflow stays dispatch-only until NP7, so nothing reads version 2
+    before that measurement. That is why this is a condition and not a FAIL.
+- **Wording:** W2b says "(or one single segment)". The rule is "one segment with neither a hyphen nor a digit". Align
+  it when the row is written.
+
+**Verdict: PASS** (round 2, `e5e0d10`), with condition C1 for the NP6a code judges.
