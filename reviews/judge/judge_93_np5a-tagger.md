@@ -46,3 +46,27 @@
 No order path, no secret, no Groww call, no request, no write.
 
 ## Verdict: FAIL round 1 at 29d19cf. B1 required.
+
+## Addendum 1: round 2 at ab4acd2: PASS
+
+Reviewed `git diff 29d19cf ab4acd2`, which also covers judge 92's F2 (the " - Outlet" title suffix) and F3 (BSE/NSE in colon brackets).
+
+**Gates (locked venv).** 1817 passed; ruff is clean; contract plants all `ok`, T13 to T15 included.
+
+**B1 fixed (strong evidence; my table re-run).** `words()` drops a trailing `'s` or `'`, for names and text alike, and keeps `L&T` whole.
+
+| Title | Result |
+|---|---|
+| `Zzalpha's profit rises`, both apostrophes | ZZA, high |
+| `Zzbeta's Q2 beats` | ZZB, high |
+| `Zzalpha, Zzbeta's results` | both mentioned, low |
+| `L&T's order book` | LT, high |
+| `Zzalpha Motors' shares fall` | ZZA, high |
+| `It's Zzbeta` | ZZB, high |
+| `Zzbeta’S profit` | ZZB, high |
+| `Zzalphas rally` (a plural, not a possessive) | not tagged, correctly |
+
+- Plant: the possessive strip removed → 2 failed.
+- The `test_text` pin of `"l&t's"` was changed deliberately, and that is correct.
+
+**Verdict: PASS round 2 at ab4acd2.** NP5b (judge 94) can now be re-checked on its rebase onto this head.
