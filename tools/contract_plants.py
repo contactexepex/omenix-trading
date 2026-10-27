@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CLAIMS = json.loads((Path(__file__).with_suffix(".json")).read_text())
-EXPECT_SURVIVE = ("W2", "W4")  # the "stated only" rows of the contract
+EXPECT_SURVIVE: tuple[str, ...] = ()  # the "stated only" rows of the contract (none since P5b)
 
 
 def run_tests(tests: list[str]) -> bool:

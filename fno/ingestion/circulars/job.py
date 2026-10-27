@@ -11,10 +11,9 @@ from datetime import date
 from fno.ingestion.circulars.capture import CircularCapture
 from fno.ingestion.circulars.episodes import OpenProblems
 from fno.ingestion.circulars.model import Problem
-from fno.ingestion.storage.manifest_commit import ManifestRecorder
+from fno.ingestion.storage.manifest_commit import ManifestRecorder, commit_failed
 from fno.shared.alerts.sender import SENT, AlertSender
 
-NOT_COMMITTED_MARK = " NOT committed"
 SEEN_FAILED = "earlier circulars NOT read, nothing captured (a capture now would list them again): {error}"
 ALERT = "Omenix F&O circulars {day}: NOT complete: {problems}. Run log: {where}"
 ALREADY = "already alerted, still open: {keys}"
@@ -48,7 +47,7 @@ class CircularsJob:
         if problems and not new and sent:
             self.out(ALREADY.format(keys=", ".join(sorted(open_now))))
             self.spoken()  # known problems: the workflow's own failure line must stay quiet too
-        unsaved = [line for line in self._commit(day) if NOT_COMMITTED_MARK in line]
+        unsaved = [line for line in self._commit(day) if commit_failed(line)]
         if unsaved:
             self.out(self.alerts.send(ALERT.format(day=day, problems="; ".join(unsaved), where=self.where)))
         return 1 if problems or unsaved else 0

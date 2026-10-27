@@ -30,14 +30,14 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 |---|---|---|---|---|---|
 | W0 | Drive refuses to replace a file: the same bytes again change nothing; other bytes at the path raise a conflict. | `GoogleDriveUploadStore.put` | `tests/characterization/test_drive_behaviour.py::test_the_same_bytes_again_change_nothing_and_different_bytes_conflict` | the conflict raise removed | **tested, plant run** |
 | W1 | A raw file is never overwritten in a local-folder store: same bytes again is a no-op; other bytes are refused and the original is untouched. | `LocalFolderStore.put` | `tests/ingestion/test_raw_store.py::test_same_bytes_again_is_noop`<br>`tests/ingestion/test_raw_store.py::test_different_bytes_refused` | the conflict raise removed | **tested, plant run** |
-| W2 | A half-written file is never visible under the real name (write to a temporary name, then rename). | `LocalFolderStore.put`, `_write` in `drive_cache.py` | `tests/ingestion/test_raw_store.py::test_no_partial_file_left_under_real_name` | none found: writing straight to the real name still passes | **stated only** (no test fails when it is broken) |
+| W2 | A half-written file is never visible under the real name (write to a temporary name, then rename). | `LocalFolderStore.put`, `_write` in `drive_cache.py` | `tests/ingestion/test_raw_store.py::test_no_partial_file_left_under_real_name`<br>`tests/ingestion/test_write_once_layers.py::test_a_write_that_dies_midway_leaves_nothing_under_the_real_name` | writing straight to the real name in `LocalFolderStore.put` (the plant is on that one only, not on `_write` in `drive_cache.py`) | **tested, plant run** |
 
 ### B. Receipts, manifests, and the verified cache
 
 | # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
 |---|---|---|---|---|---|
 | W3 | A SHA-256 receipt is written only after Drive has accepted the file: a file Drive did not confirm gets no receipt. | `DataStore.put` | `tests/ingestion/test_drive_resilience.py::test_data_put_writes_no_receipt_for_a_file_that_was_not_confirmed` | a failed Drive write swallowed, receipt written anyway | **tested, plant run** |
-| W4 | A receipt is written once and the first one is kept; a different digest for the same path is refused by the receipt layer itself. | `ReceiptFolder.write` | `tests/ingestion/test_drive_cache.py::test_data_store_rejects_same_path_different_bytes` | none found: the receipt-level refusal removed still passes | **stated only** (no test fails when it is broken) |
+| W4 | A receipt is written once and the first one is kept; a different digest for the same path is refused by the receipt layer itself. | `ReceiptFolder.write` | `tests/ingestion/test_drive_cache.py::test_data_store_rejects_same_path_different_bytes`<br>`tests/ingestion/test_write_once_layers.py::test_the_receipt_layer_refuses_a_different_digest_by_itself` | the receipt-level refusal removed | **tested, plant run** |
 | W5 | A reader that goes through the verified cache detects a Drive file that is missing or whose bytes differ from its receipt. | `DriveCache.sync` | `tests/ingestion/test_drive_cache.py::test_sync_reports_damaged_bytes`<br>`tests/ingestion/test_drive_cache.py::test_sync_reports_missing_drive_file` | the digest comparison disabled | **tested, plant run** |
 | W6 | A manifest row is written only after the store accepted the file; a file with no row is healed by the next run. | `FingerprintingStore.put` | `tests/ingestion/test_drive_resilience.py::test_archive_put_writes_no_manifest_row_for_a_file_that_was_not_confirmed` | the row written before the file | **tested, plant run** |
 
@@ -86,15 +86,6 @@ with `pytest -m data` (`data-checks.yml`), not in the default `pytest -q -n auto
 | # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
 |---|---|---|---|---|---|
 | P1 | The public-record scan flags secrets, credential shapes, broker fields and e-mail addresses before a commit (it never prints the value). | `RecordScanner` and the commit hook | `tests/shared/test_record_scan.py::test_secret_assignment_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_credential_shape_flagged_in_a_record`<br>`tests/shared/test_record_scan.py::test_broker_field_and_email_flagged`<br>`tests/shared/test_record_scan.py::test_finding_str_has_no_value` | the scan returning no findings | **tested, plant run** |
-
-## What the two "stated only" rows mean
-
-- **W2, atomic write.** The code writes to a temporary name and renames it. The only test checks that no temporary file is left behind, which a
-  direct write also satisfies, so nothing proves the half-written case. Risk: low (a local-folder store used for tests and the local cache; Drive
-  creates files in one request) but the claim is unproven.
-- **W4, receipt refuses a different digest.** The receipt layer does refuse it, but the one test that exercises it (`DataStore` with different bytes)
-  is stopped earlier by Drive's own refusal, so removing the receipt-level refusal changes nothing a test sees. The protection that matters (Drive
-  refusing the second file) is row W0. A direct test of the receipt layer is a small follow-up, not done here.
 
 ## Not guaranteed (said plainly)
 

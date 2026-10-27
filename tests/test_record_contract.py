@@ -59,9 +59,9 @@ def test_every_plant_names_a_real_file_and_text():
         assert plant["old"] in (ROOT / plant["file"]).read_text(), plant["id"]
 
 
-def test_the_document_stays_under_500_lines_and_names_the_stated_only_rows():
+def test_the_document_stays_under_500_lines_and_no_row_is_stated_only():
     assert len(DOC.splitlines()) < 500
-    assert len(stated_only_rows()) == 2
+    assert stated_only_rows() == set()
 
 
 def stated_only_rows() -> set[str]:
