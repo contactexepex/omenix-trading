@@ -122,3 +122,24 @@ it is not a failure line. Putting the old words back fails 2 tests.
 **Verdict: FAIL** on `ea56bc9`, on S2 (text, or one test) and S3 (delete one assertion). This is the last allowed round,
 but both items crossed the freeze, so how to count it is the orchestrator's call. A SHA with the two small fixes gets
 a quick re-verify from me.
+
+## Addendum 3: f7740e2 (PASS)
+
+SHA `f7740e2`, which replaces `ea56bc9`. **Gates** (`__pycache__` cleared): 898 passed; ruff and imports clean.
+`python tools/contract_plants.py W2 W2b W4`: all ok.
+
+| Item | Plant on f7740e2 | Result |
+|---|---|---|
+| S2: W2 split into W2 (`LocalFolderStore.put`) and W2b (`drive_cache._write`), each tested | `_write` writes straight to the real name | 2 failed |
+| S3: the hardcoded `== set()` removed; only `EXPECT_SURVIVE == stated_only_rows()` remains | W2b set to "stated only" **and** added to `EXPECT_SURVIVE` (an honest weak row) | contract tests 6 passed: it can now be expressed |
+| Source scan (AST, string literals outside `manifest_commit.py`, docstrings excluded) | `' NOT committed' in` in `fo_masters`; `'NOT committed' in` in `circulars` | 1 / 1 failed |
+| S1, carried: the callers pinned | `fo_masters` / `repair_cli` checks made "never failed" | 1 / 1 failed |
+
+**The alert rewording, the four checks:**
+- (a) The new text, "the manifest rows were left uncommitted and unpushed ...", contains no "NOT committed", so it cannot
+  match itself; a test pins this.
+- (b) It still fires under the same condition: removing the `send_alert` call fails 10 tests.
+- (c) Its meaning is unchanged: the commit and push did not happen, and the files are in Drive to be committed by hand.
+- (d) No test or code still holds the old words (`grep "NOT committed or pushed"` finds nothing).
+
+**Verdict: PASS** (lane 1, P5b follow-ups, judge #2).
