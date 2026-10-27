@@ -96,3 +96,33 @@ clean) 2 failed.
    alert", it should cover an invalid new version too. My judge 45 note 1 recommends it (reasoning only).
 
 **Verdict: FAIL** (round 1, on 9f794fe): S1 and S2, tests only.
+
+## Addendum 2: where else the privacy test rests on fakes (9f794fe), and S3
+
+The orchestrator asked whether the master test is vacuous anywhere beyond judge #1's F1 (DEBUG capture with a fake
+session) and F3 (the pause log, which is my S2). The fakes in `test_privacy.py`:
+
+| Fake | What it hides | Matters? |
+|---|---|---|
+| `Session` (scripted) | urllib3, the real `NewsSession` and the real pacer | yes: F1 and S2 |
+| `LocalFolderStore` for Drive | the real Drive client's errors | no for the fetcher (`_stage` catches all and keeps a code); `PrivateFeedLists.latest` does not catch Drive errors, but those name Drive file names and ids, not feed content |
+| the alert sender | the real Slack sender | no: the alert text is the counts line |
+| the commit message | built by the workflow (fixed text and a date), not by the code | no; it is pinned by the workflow file |
+
+**S3 (should fix, code plus test): one bad feed entry crashes the whole run, and the crash path is unguarded.** The
+feed-list check accepts any `https://` URL with a host. `https://a..b/rss?q=...` passes it (`hostname` is `a..b`). On
+`9f794fe`, run through the real `NewsSession`, the fetcher then raises `UnicodeEncodeError` (from IDNA encoding),
+which is not a `requests.RequestException`, so it escapes `_poll` and `cmd_news_fetch`. Reproduced, with a scratch
+script (not committed):
+- the remaining feeds are not fetched;
+- no #fno-desk alert is sent (the command catches only `FeedListError`);
+- a traceback goes to the public Actions log.
+
+This message held no query ("label empty"), but nothing guarantees that for every error a library may raise. Fix:
+- `_poll` keeps a code for any exception (class name only), as the close read does;
+- `cmd_news_fetch` catches everything else, prints a fixed line and alerts;
+- the feed-list check rejects a host that will not IDNA-encode.
+
+Test it with a feed whose request raises a non-`RequestException` carrying the marker URL.
+
+**Verdict unchanged: FAIL** (round 1, 9f794fe), with S1, S2 and now S3.
