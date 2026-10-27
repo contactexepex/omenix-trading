@@ -424,5 +424,149 @@
   "file": "ops/commit_news_record.sh",
   "old": "python -m fno news repair-batches receipts/_batches || broken=1",
   "new": ":"
+ },
+ {
+  "id": "O1",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        for start in range(max(len(parts) - 1, 0)):\n            outlet = self.outlets.get(\".\".join(parts[start:]))",
+  "new": "        for start in range(len(name)):\n            outlet = self.outlets.get(name[start:])"
+ },
+ {
+  "id": "O2",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    return cleaned if PLAIN_HOST.fullmatch(cleaned) else \"\"",
+  "new": "    return cleaned"
+ },
+ {
+  "id": "O3",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        if outlet is None or not outlet.fetch:\n            return False",
+  "new": "        if outlet is None:\n            return False"
+ },
+ {
+  "id": "O4",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return outlet.tier if outlet else UNLISTED",
+  "new": "        return outlet.tier if outlet else \"tier2\""
+ },
+ {
+  "id": "O5",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_tier_that_is_not_a_listed_tier_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if tier not in LISTED_TIERS:",
+  "new": "    if False:"
+ },
+ {
+  "id": "O6",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_extractor_omenix_does_not_run_is_refused"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if any(name not in EXTRACTORS for name in extract):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O7",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_an_unknown_key_is_refused_wherever_it_is_so_a_typo_is_never_ignored"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    unknown = sorted(str(k) for k in section if k not in allowed)",
+  "new": "    unknown = []"
+ },
+ {
+  "id": "O8",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_news_desk_prefix_decides_opinion_and_an_unknown_path_is_opinion"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return not (path or \"\").startswith(outlet.opinion_unless_path)",
+  "new": "        return False"
+ },
+ {
+  "id": "O9",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_repeated_key_is_refused_at_every_level_so_a_second_fetch_can_never_make_an_outlet_fetchable"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if key in seen:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O10",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "    if not text.isascii():\n        return \"\"\n",
+  "new": ""
+ },
+ {
+  "id": "O11",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_public_suffix_is_refused_as_an_outlet_a_wire_or_a_promotional_domain"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "    if is_public_suffix(value):",
+  "new": "    if False:"
+ },
+ {
+  "id": "O12",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return main is None or main.fetch  # an alias never bypasses the main domain's fetch: false",
+  "new": "        return True"
+ },
+ {
+  "id": "O13",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_two_wires_claiming_one_name_or_one_domain_is_refused_not_last_wins"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "            if claimed.setdefault(\"name:\" + label, wire.name) != wire.name:",
+  "new": "            if False:"
+ },
+ {
+  "id": "O14",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        domain = self._label_domain.get(key) if key else None  # an empty label names nothing",
+  "new": "        domain = self._label_domain.get(key)"
+ },
+ {
+  "id": "O15",
+  "tests": [
+   "tests/ingestion/news/sources/test_rules.py::test_a_host_with_a_trailing_line_break_is_not_passed_on_by_plain_host_or_outlet_key"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "PLAIN_HOST.fullmatch(cleaned)",
+  "new": "PLAIN_HOST.match(cleaned)"
+ },
+ {
+  "id": "O16",
+  "tests": [
+   "tests/ingestion/news/sources/test_loader.py::test_a_domain_with_a_line_break_is_refused_wherever_a_domain_is_named"
+  ],
+  "file": "fno/ingestion/news/sources/loader.py",
+  "old": "DOMAIN.fullmatch(value)",
+  "new": "DOMAIN.match(value)"
  }
 ]
