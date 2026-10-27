@@ -207,3 +207,44 @@ code must not add one that logs, and the test must prove it.
 **Verdict at ca6a8c5: FAIL (design).** R2-1 and R2-2 are small text fixes with one test each. This was the decisive round
 (two-round rule), so the call goes to the owner. My recommendation to the owner: accept the design once R2-1 and R2-2 are
 written in. Everything else is sound.
+
+## Addendum 3: design round 3 (owner-authorised), 06e3467: PASS, with one new item for the owner and two text corrections
+
+Reviewed `06e3467212d5bf17f1a357b25ddcf7684eba7392`. The diff from ca6a8c5 is the design doc only (+37/-16).
+
+**Round-2 items, each written in correctly:**
+
+| Item | How it is written in |
+|---|---|
+| R2-1 / judge 43 R1 | A private Drive feed list, opaque `feed-NN` ids, no environment variable, no list in code or config. A missing list stops the run. The master test scans `fno/`, `config.yaml`, `.github/` and `docs/`. |
+| R2-2 | The fallback key uses the timestamp to the second plus a hash of title and summary plus the source. Test: same-title items a minute apart give two keys. |
+| R2-3 | Logging captured at DEBUG. |
+| Judge 43 R2 | `e = max(published, first seen_at)` for both window membership and the as-known-at-T reader, with the late-arrival test. |
+| R3 | A reject-all cookie policy on the news session only (`PacedSession` unchanged for NSE and Yahoo), with a test and a plant. |
+| R4 | Feed id and `seen_at` are out of the compared fields. |
+| R5 | `allow_redirects=False`, and any redirect is a block. |
+| R6 | The anchor rule, an earlier-anchor tie-break, and re-anchoring through `previous_cluster_ids`. |
+
+**Two text corrections (incomplete folds, not new design).** They are required in the P2a/P2c story text and checked at
+that step:
+1. **The D6 header bullet still gives the old input rule:** "published, or if `time_source=seen` seen, within the
+   window". The window bullet two lines below says `max(published, first seen_at)`. The header must state the new rule,
+   or a P2c build could follow the wrong one.
+2. **D5 still says "a merge of two clusters changes an id"**, but R6 now says clusters are never merged. Drop "or a
+   merge".
+
+**One genuinely new item, introduced by variant A. I raise it, as asked, for the owner.** It is not a safety issue.
+
+Every Drive read goes through the verified cache. Only a file with a GitHub receipt counts, and bytes that differ from
+the receipt are `DAMAGED` (`drive_cache.py:1-17`). The feed list is configuration the owner will *edit* (adding a feed),
+and the design does not say how an edit is made:
+- edited in place, the file fails the receipt check and every run stops;
+- or the list needs a write-once versioned file (`feeds-v2`, a new receipt, the latest version chosen by name), or a
+  reader outside the receipt rule.
+
+It fails closed: no data loss, nothing published, no hard line touched. So my view is that it **does not block the
+design**. Settle it in the P2a story with a test that adding a feed means a new version file. The orchestrator and the
+owner decide whether it should instead go back to the owner now.
+
+**Verdict at 06e3467: PASS on the design (strong evidence: each fold checked against the round-2 findings).** Three
+items carry into the P2a/P2c story: the new item above and the two text corrections.
