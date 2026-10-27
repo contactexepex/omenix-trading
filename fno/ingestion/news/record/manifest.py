@@ -1,27 +1,50 @@
 """The news manifest (P2b2): `research/data/manifests/news/articles.csv`, one row per Record file the gate wrote:
 `date,article_id,status,sha256,size_bytes`. Hash ids only: no title, URL or feed. Written after Drive accepted the file
-(file first, then receipt, then row), loaded once per run and appended to, never rewritten. A recorded article id with
-a different SHA-256 is refused; a revision is one row per (article id, SHA-256)."""
+(file first, then receipt, then row), loaded once per run and appended to through `CsvRowLog`, never rewritten. A
+recorded article id with a different SHA-256 is refused; a revision is one row per (article id, SHA-256).
+
+A crash can leave a torn last line. The load skips and counts any row that is not whole (so the missing-row repair adds
+it again), and an append refuses a file that does not end in a new line (`TableFileBroken`) rather than glue a row onto
+the torn one: the owner trims the torn line by hand."""
 
 from __future__ import annotations
 
-import csv
+import re
 from datetime import date
 from pathlib import Path
 
 from fno.ingestion.storage.raw_store import RawFileConflict
+from fno.ingestion.storage.row_log import CsvRowLog
 
 FIELDS = ("date", "article_id", "status", "sha256", "size_bytes")
 RECORDED, REVISION = "recorded", "revision"
 FILE_NAME = "articles.csv"
+SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+def _whole(row: dict) -> bool:
+    cells = [row.get(field) for field in FIELDS]
+    return (
+        all(cell for cell in cells)
+        and None not in row  # extra cells land under the key None
+        and row["status"] in (RECORDED, REVISION)
+        and bool(SHA256.fullmatch(row["sha256"]))
+        and row["size_bytes"].isdigit()
+    )
 
 
 class NewsManifest:
     def __init__(self, folder: Path):
-        self.path = Path(folder) / FILE_NAME
-        rows = list(csv.DictReader(self.path.read_text(encoding="utf-8").splitlines())) if self.path.is_file() else []
-        self.rows: set[tuple[str, str, str]] = {(r["article_id"], r["status"], r["sha256"]) for r in rows}
-        self.recorded: dict[str, str] = {r["article_id"]: r["sha256"] for r in rows if r["status"] == RECORDED}
+        self.log = CsvRowLog(Path(folder) / FILE_NAME)
+        rows = self.log.rows()
+        whole = [r for r in rows if _whole(r)]
+        self.skipped = len(rows) - len(whole)  # rows that are not whole: reported by the gate, never silently dropped
+        self.rows: set[tuple[str, str, str]] = {(r["article_id"], r["status"], r["sha256"]) for r in whole}
+        self.recorded: dict[str, str] = {r["article_id"]: r["sha256"] for r in whole if r["status"] == RECORDED}
+
+    def check_appendable(self) -> None:
+        """TableFileBroken when the file ends in a torn line (checked before anything is written)."""
+        self.log.check_appendable()
 
     def has(self, article_id: str, status: str, sha256: str) -> bool:
         return (article_id, status, sha256) in self.rows
@@ -32,13 +55,8 @@ class NewsManifest:
             return
         if status == RECORDED and self.recorded.get(article_id, sha256) != sha256:
             raise RawFileConflict("the news manifest already has a different SHA-256 for this article id")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        fresh = not self.path.is_file()
-        with self.path.open("a", encoding="utf-8", newline="") as out:
-            writer = csv.writer(out, lineterminator="\n")
-            if fresh:
-                writer.writerow(FIELDS)
-            writer.writerow((day.isoformat(), article_id, status, sha256, size))
+        self.check_appendable()
+        self.log.append(FIELDS, [(day.isoformat(), article_id, status, sha256, size)])
         self.rows.add((article_id, status, sha256))
         if status == RECORDED:
             self.recorded[article_id] = sha256

@@ -8,6 +8,7 @@ from datetime import date
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedListError
+from fno.ingestion.storage.row_log import TableFileBroken
 from fno.shared.models import now_utc
 
 ALERT = "Omenix F&O news fetch: {line}"
@@ -56,6 +57,8 @@ def cmd_news_promote(args, out=print) -> int:
         line, ok = report.line(), report.ok
     except FeedListError as stopped:
         line, ok = PROMOTE_STOPPED.format(code=stopped), False
+    except TableFileBroken:
+        line, ok = PROMOTE_STOPPED.format(code=codes.MANIFEST_BROKEN), False
     except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
         line, ok = PROMOTE_STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}"), False
     out(line)

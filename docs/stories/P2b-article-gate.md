@@ -124,10 +124,13 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   poll had masked a missing row); a staged feed unknown to the list is reported only for polls inside `--from`..`--to`, so a
   retired feed stops failing later runs (W2, with S2 above); a revision name collision (same 8 hex characters, other fields) is a
   `record_conflict`, never a no-op.
+- **Torn manifest line (judge 47 B):** the manifest is appended through `CsvRowLog`; a file that does not end in a new line
+  stops the run before any write with the fixed code `manifest_broken` (the owner trims the torn line by hand; the
+  missing-row repair then re-adds it). The load skips and counts rows that are not whole (`manifest_row_skipped`, alerted).
 - **Wiring (judge 48 S1):** `build_news_promotion` itself runs on a recording fake Drive: every write lands under
   `raw/news/articles|revisions`, every read under `staging/news`, `config/feeds` or `raw/news`, and a second process reads the
   Record back (all no-ops); plants that swap the writer, the reader or the gate onto the wrong area fail.
-- **Proof:** 29 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
+- **Proof:** 38 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
   file-before-row order, the manifest conflict check, the conflict catch, the unknown-feed check, the poll-reject count, and the
   reconciliation sum. The master privacy test runs a marker headline, host, path and query through the article file, manifest,
   receipts, report line and DEBUG logs, including a refused poll.
