@@ -49,8 +49,9 @@ entities stripped · S11 a `partial` page (a body under 300 characters) gives it
 ## Judge 112 conditions (27 Oct 2026)
 
 - **B1 (owner's words on record):** the owner's words, as relayed by the orchestrator, are logged verbatim in
-  `conversations/2026-10-28.md` ("enriched, segregated summary"; "never the whole news, just a small summary") with the decision
-  E1 = YES. They reach me through the orchestrator, not typed to me, and the log says so.
+  `conversations/2026-10-28.md` ("For point number three, per article snippet, yes, please do that. We need that extract, because
+  that will help us to have more enriched and segregated summary and data." and "switch to yes on the article snippet.") with the
+  decision E1 = YES. They reach me through the orchestrator, not typed to me, and the log says so.
 - **B2:** the split rule above, with the S3 test.
 - **(d)** "No read file exists" is re-checked as a merge-procedure step: the merge is held if `research/data/manifests/news/reads*` or
   `receipts/raw/news/reads*` exist on main.
