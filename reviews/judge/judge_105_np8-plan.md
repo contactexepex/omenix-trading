@@ -70,3 +70,30 @@ I reviewed `git diff d9f227b 4907707 -- docs/stories/NP8-material-first-reads.md
 **One point for the code review.** The 100 resolution reads can run out before 80 pages are found when Google News items dominate the ranking. Report it as its own count (for example `resolve_reads_spent`), so a short pass is explained.
 
 **Verdict: PASS round 2 at 4907707.**
+
+## Addendum 2: delta 4907707..94e7c2a: PASS (this supersedes Addendum 1's subject)
+
+I reviewed `git diff 4907707 94e7c2a -- docs/stories/NP8-material-first-reads.md`. It is text only, 88 lines.
+
+**What changed.** A materiality file that exists but cannot be used (invalid, rolled back, edited in place, damaged, gone after use, or the store unreadable) no longer stops the pass. Instead:
+- the pass reads newest first;
+- the run goes red with the alert;
+- **no pass note is written**, so the pin does not move.
+
+I recommended this in round 1, and the orchestrator has now decided it. I accept it (reasoning only): materiality orders the reads and nothing else, so a broken hint should not halt collection.
+
+**Red runs still commit their receipts (strong evidence, checked on `main`).** `news-read-pages.yml` runs the read step with `continue-on-error: true`. The commit step (`ops/commit_news_record.sh`) runs on `apply` whatever the outcome, and a later step fails the job. So the read files a degraded pass writes are still receipted and committed. A red run loses nothing.
+
+**The implementer's proposal: the same degrade for the company list inside the read pass. Accepted (reasoning only).**
+- In the read pass the list only decides which articles rank first. Nothing derived from it is archived there.
+- The hard stop stays in the version 2 cluster run, where tags shape a write-once file (NP7b).
+- So the line is drawn by what each run archives, which is the right test.
+
+**The pin cannot be dodged by going red.** A degraded pass writes no note, so the next pass still compares with the last good one, as the plan states. A rollback stays red on every pass until it is fixed.
+
+**For the code review (requested, not conditions).** I will ask for tests showing that:
+- a degraded pass writes read files but no note, and the line says why;
+- after a degraded pass, the next pass compares with the last good note;
+- a file absent from the start is green and newest first, while a file that was used and is now gone is red, and the two never mix.
+
+**Verdict: PASS at 94e7c2a.**
