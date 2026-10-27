@@ -53,3 +53,12 @@ Reviewed fb94003. It is stacked on NP5a ab4acd2 (judge 93 PASS) and has `main` m
 **The merge artifact is fixed.** H7 is `main`'s entry and is caught.
 
 **Verdict: PASS round 2 at fb94003.** It merges after NP5a.
+
+## Addendum 2: 1002195: PASS
+
+Reviewed `git diff fb94003 1002195`.
+- **The change:** `MaterialTerms.weight` and `is_material` take the source and drop a trailing " - Outlet" through the shared `without_outlet`, so a term in the outlet's name never makes a title material (judge 95 F1). `view.py` passes `article.source`.
+- **Plants:** U14 and U15 are new; U8 and U10 are re-pointed.
+- **Gates (locked venv):** all tests pass; ruff is clean; contract plants all `ok`.
+
+**Verdict: PASS at 1002195.**
