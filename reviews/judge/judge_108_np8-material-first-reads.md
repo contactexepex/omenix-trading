@@ -69,3 +69,27 @@ These are the write-once manifest guards every other Record writer has pinned. F
 No order path, no Groww call, no secret. No title, term, symbol or URL is in a note, a log or git. The degrade never stops collection.
 
 ## Verdict: FAIL round 1 at e6aac2a. B1 (pin the note-manifest guards) required; N1 and N2 requested.
+
+## Addendum 1: round 2 at 18f9111: PASS
+
+I reviewed `git diff 3d9ad45 18f9111`. 3d9ad45 was e6aac2a plus `main`, with no NP8 change. The diff covers:
+- `materiality/file.py` and `terms.py` (N2);
+- the `pass_note.py` docstring (N1);
+- two tests, and plants M18 and M19.
+
+**Gates (locked venv, strong evidence).**
+- 2018 passed.
+- ruff check and format are clean; check_imports is clean.
+
+**B1 fixed (strong evidence, replanted against the full suite).**
+
+| Plant | e6aac2a / 3d9ad45 | 18f9111 |
+|---|---|---|
+| `skipped += self.notes.skipped_rows` removed | 2001 passed | 2 failed |
+| `self.notes.check_ready()` removed | 2001 passed | 2 failed |
+
+**N1 fixed.** The docstring now says only a *degraded* pass never moves the pin, and that a pass red for another reason still writes its note.
+
+**N2 fixed.** `parse_terms` takes the digest, and `MaterialTerms` gets it in its constructor.
+
+**Verdict: PASS round 2 at 18f9111.**
