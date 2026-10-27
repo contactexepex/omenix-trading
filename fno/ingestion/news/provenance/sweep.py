@@ -29,6 +29,8 @@ class ProvenanceSweep:
             for feed in sorted(self.kinds):
                 for utc_day in (day - timedelta(days=1), day):
                     for poll in self.staging.copies(SOURCE, f"{feed}/{utc_day:%Y/%m/%d}/poll"):
+                        # `add` files a pair under the poll's own IST day, so this test only saves reading polls of the
+                        # neighbouring day; `open_days` lists closed days only (and `flush` writes none for today)
                         if day_of(poll.fetched_at) == day and self.seen.first_look(poll):
                             self._look(feed, poll, report)
 

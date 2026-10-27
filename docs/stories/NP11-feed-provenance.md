@@ -123,3 +123,11 @@ hand-listed feeds before the first real run if they want them in `broad`/`target
 - **Stated limit:** a poll staged AFTER its day already has a file is not swept again (a day with a file is not read twice); it goes in
   only through the range pass of a run whose `--from`/`--to` reaches that day, as a numbered supplement. That is rare (polls are staged
   during their own day), and until it happens the cleanup gate keeps the poll staged and the recall report counts it as no provenance.
+
+## Judge 124 Addendum 1: two equivalent mutants and a cost, stated
+
+- Two plants of the judge survive on purpose: dropping the sweep's IST-day test and letting `open_days` include today change nothing that
+  is written (a pair is filed under the poll's own IST day by `add`; `flush` writes closed days only). They are documented in
+  `provenance/sweep.py`, not faked dead with a contrived test.
+- A closed day with no articles never gets a file, so the sweep lists it again for 9 days and then it ages out; nothing is lost
+  because there was nothing to record. The cost is one folder listing per feed and UTC day for each such day.
