@@ -154,3 +154,25 @@ def test_an_unknown_feed_is_refused_before_the_poll_is_even_parsed(tmp_path, mon
     trash = Trash()
     cleanup(s, trash, proof_for(s, kinds={})).run([SOURCE])
     assert trash.calls == []
+
+
+def test_a_poll_that_is_refused_as_having_no_items_is_kept(tmp_path):
+    s = Setup(tmp_path)
+    s.stage(rss())  # read_poll refuses a feed with no items (no_items)
+    trash = Trash()
+    report = cleanup(s, trash).run([SOURCE])
+    assert trash.calls == [] and report.counts["unproven"] == 1
+
+
+def test_a_poll_read_as_whole_but_with_no_articles_is_kept_not_trashed_by_an_empty_all(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from fno.ingestion.staging_cleanup import news_proof
+
+    # read_poll itself refuses an empty feed today; this pins the proof's own guard so all([]) can never trash a poll
+    monkeypatch.setattr(news_proof, "read_poll", lambda *a, **k: SimpleNamespace(rejected=[], articles=[]))
+    s = Setup(tmp_path)
+    s.stage(rss(rss_item()))
+    trash = Trash()
+    report = cleanup(s, trash).run([SOURCE])
+    assert trash.calls == [] and report.counts["unproven"] == 1

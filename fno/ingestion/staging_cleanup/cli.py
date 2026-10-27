@@ -24,7 +24,8 @@ def cmd_staging_cleanup(args, out=print) -> int:
     from fno.ingestion.staging_cleanup.wiring import build_staging_cleanup
     from fno.shared.alerts.run_location import run_location
 
-    report = build_staging_cleanup(args.apply, args.limit).run(args.source or ["nse"])
+    sources = args.source or ["nse"]
+    report = build_staging_cleanup(args.apply, args.limit, sources).run(sources)
     out(report.line())
     if not report.ok:
         out(build_alert_sender().send(ALERT.format(line=report.line(), where=run_location())))

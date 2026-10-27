@@ -32,6 +32,13 @@ def add_repair_parser(subparsers) -> None:
     receipt.add_argument("--run-id", required=True, help="the run that saved the file")
     receipt.add_argument("--apply", action="store_true", help="write and commit the receipt (default: print it)")
     receipt.set_defaults(func=cmd_receipt)
+    rebuild = actions.add_parser(
+        "rebuild-receipts",
+        help="write the receipt the CURRENT bytes of each unreceipted Drive file under a prefix prove",
+    )
+    rebuild.add_argument("prefixes", nargs="+", help="Drive path prefixes, area included, e.g. data/circulars")
+    rebuild.add_argument("--apply", action="store_true", help="write and commit the receipts (default: report only)")
+    rebuild.set_defaults(func=cmd_rebuild_receipts)
 
 
 def cmd_merge_folders(args, out=print, merge=None) -> int:
@@ -86,3 +93,24 @@ def cmd_receipt(args, out=print, repair=None, committer=None) -> int:
     line = committer.commit(RECEIPT_WHAT.format(path=args.path))
     out(line)
     return 1 if commit_failed(line) else 0
+
+
+def cmd_rebuild_receipts(args, out=print, rebuild=None, committer=None) -> int:
+    """Adds the missing receipts of the files under the prefixes; never replaces one. Exit 1 on a problem (a file that
+    no longer matches its receipt, one that cannot be read) or when the commit of the receipts fails."""
+    from fno.ingestion.storage.repair_wiring import build_receipt_rebuild
+
+    report = (rebuild or build_receipt_rebuild()).run(args.prefixes, args.apply)
+    out(report.line())
+    for problem in report.problems:
+        out(problem)
+    code = 0 if report.ok else 1
+    if not args.apply or not report.counts["written"]:
+        return code
+    if committer is None:
+        from fno.ingestion.storage.data_wiring import build_receipt_committer
+
+        committer = build_receipt_committer()
+    line = committer.commit("rebuild-receipts " + " ".join(args.prefixes))
+    out(line)
+    return 1 if commit_failed(line) else code

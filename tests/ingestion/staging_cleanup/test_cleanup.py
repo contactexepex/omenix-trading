@@ -221,3 +221,20 @@ def test_a_manifest_row_for_other_bytes_keeps_the_staged_copy(tmp_path):
     trash = Trash()
     report = w.cleanup(trash, rows={PATH: hashlib.sha256(b"other").hexdigest()}).run(["nse"])
     assert trash.calls == [] and report.counts["unproven"] == 1
+
+
+def test_an_unreadable_staged_copy_is_counted_and_turns_the_run_red(tmp_path):
+    w = World(tmp_path)
+    w.stage(b"good", OLD)
+    w.record.put(PATH, b"good")
+
+    class Unreadable(StagingArea):
+        def read(self, source, path, stamp):
+            raise OSError("Drive down")
+
+    cleanup = StagingCleanup(
+        Unreadable(w.staging.store), {"nse": NseCopyProof(w.record, RecordRows(w.record), Revisions())}, Trash(),
+        clock=lambda: NOW,
+    )  # fmt: skip
+    report = cleanup.run(["nse"])
+    assert report.counts["unreadable"] == 1 and not report.ok

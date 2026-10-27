@@ -132,10 +132,17 @@ def test_every_install_in_the_repository_is_hash_locked():
     assert scan(files) == []
 
 
+<<<<<<< HEAD
 def test_all_nineteen_workflow_installs_are_present_and_locked():
     workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
     installs = [line for w in workflows for line in logical_lines(w.read_text("utf-8")) if INSTALL.search(line)]
     assert len(installs) == 19 and all("requirements.lock" in line for line in installs)
+=======
+def test_all_eighteen_workflow_installs_are_present_and_locked():
+    workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+    installs = [line for w in workflows for line in logical_lines(w.read_text("utf-8")) if INSTALL.search(line)]
+    assert len(installs) == 18 and all("requirements.lock" in line for line in installs)
+>>>>>>> origin/main
 
 
 @pytest.mark.parametrize("lock", sorted(LOCKS))

@@ -16,6 +16,7 @@ gone for good, because the Record keeps an article's fields, not the raw poll. E
 from __future__ import annotations
 
 import os
+from collections.abc import Callable, Iterable
 
 from fno.ingestion.news.feeds import PrivateFeedLists
 from fno.ingestion.news.fetcher import SOURCE as NEWS_TAG
@@ -68,23 +69,26 @@ class ArchiveFingerprints:
 
 
 def proofs(
-    record: AreaStore, manifests: ManifestFolder, archive: RevisionArchive, kinds: dict[str, str]
-) -> dict[str, PromotedProof]:
-    news = NewsPollProof(kinds, ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER))
-    return {
-        NSE_TAG: NseCopyProof(record, ArchiveFingerprints(manifests), ArchiveRevisionHolds(archive)),
-        NEWS_TAG: news,
-    }
+    record: AreaStore, manifests: ManifestFolder, archive: RevisionArchive, kinds: Callable[[], dict[str, str]],
+    sources: Iterable[str],
+) -> dict[str, PromotedProof]:  # fmt: skip
+    """A rule per requested source only: the feed list is read (and can fail) only when news is asked for."""
+    wanted = set(sources)
+    rules: dict[str, PromotedProof] = {}
+    if NSE_TAG in wanted:
+        rules[NSE_TAG] = NseCopyProof(record, ArchiveFingerprints(manifests), ArchiveRevisionHolds(archive))
+    if NEWS_TAG in wanted:
+        rules[NEWS_TAG] = NewsPollProof(kinds(), ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER))
+    return rules
 
 
-def build_staging_cleanup(apply: bool, limit: int, env=os.environ) -> StagingCleanup:
+def build_staging_cleanup(apply: bool, limit: int, sources: Iterable[str], env=os.environ) -> StagingCleanup:
     drive = build_owner_drive(env)
     if drive is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
     staging = StagingArea(AreaStore(drive, STAGING_AREA))
     record = AreaStore(drive, RAW_AREA)
     trash = DriveStagingTrash(drive) if apply else None
-    kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed()
-    return StagingCleanup(
-        staging, proofs(record, build_manifest_folder(), build_revision_archive(env), kinds), trash, limit=limit
-    )
+    kinds = PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).kinds_ever_listed
+    rules = proofs(record, build_manifest_folder(), build_revision_archive(env), kinds, sources)
+    return StagingCleanup(staging, rules, trash, limit=limit)

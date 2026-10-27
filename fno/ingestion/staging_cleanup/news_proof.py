@@ -52,6 +52,8 @@ class NewsPollProof(PromotedProof):
 
     def _held(self, article: Article) -> bool:
         plan = self.planner.plan(article)
-        return plan.outcome is Outcome.NO_OP and self.manifest.has(
-            article.key, plan.status, hashlib.sha256(plan.held).hexdigest()
+        return (
+            plan.outcome is Outcome.NO_OP
+            and plan.held is not None
+            and self.manifest.has(article.key, plan.status, hashlib.sha256(plan.held).hexdigest())
         )

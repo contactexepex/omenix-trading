@@ -21,14 +21,14 @@ WORKFLOW = ROOT / ".github" / "workflows" / "staging-cleanup.yml"
 KINDS = {"feed-01": "publisher"}
 
 
-def built(monkeypatch, tmp_path, apply):
+def built(monkeypatch, tmp_path, apply, sources=("nse", "news")):
     drive = LocalFolderStore(tmp_path / "drive")
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
     monkeypatch.setattr(wiring, "build_revision_archive", lambda env=None: SimpleNamespace(index=None))
     monkeypatch.setattr(wiring, "PrivateFeedLists", lambda store: SimpleNamespace(kinds_ever_listed=lambda: KINDS))
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "manifests")
     monkeypatch.setattr(wiring, "build_manifest_folder", lambda: ManifestFolder(tmp_path / "manifests"))
-    return wiring.build_staging_cleanup(apply, 10)
+    return wiring.build_staging_cleanup(apply, 10, sources)
 
 
 def test_without_apply_no_deleter_is_built_at_all(monkeypatch, tmp_path):
@@ -68,3 +68,16 @@ def test_the_deleters_staging_root_is_the_area_the_gate_stages_into():
     from fno.ingestion.staging_cleanup.trash import STAGING_ROOT
 
     assert STAGING_ROOT == STAGING_AREA
+
+
+def test_a_news_free_run_never_reads_the_feed_list(monkeypatch, tmp_path):
+    def broken():
+        raise RuntimeError("feed list unreadable")
+
+    drive = LocalFolderStore(tmp_path / "drive")
+    monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
+    monkeypatch.setattr(wiring, "build_revision_archive", lambda env=None: SimpleNamespace(index=None))
+    monkeypatch.setattr(wiring, "build_manifest_folder", lambda: ManifestFolder(tmp_path / "manifests"))
+    monkeypatch.setattr(wiring, "PrivateFeedLists", lambda store: SimpleNamespace(kinds_ever_listed=broken))
+    cleanup = wiring.build_staging_cleanup(False, 10, ["nse"])
+    assert set(cleanup.proofs) == {"nse"}
