@@ -1925,5 +1925,174 @@
   "file": "fno/ingestion/news/view.py",
   "old": "self.tagger.tag(article.title, article.summary, article.source)",
   "new": "self.tagger.tag(article.title, article.summary)"
+ },
+ {
+  "id": "Z1",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_common_company_lowers_the_bar_and_two_different_companies_raise_it",
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_company_in_the_summary_never_moves_the_bar"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "self.tagger.tag(article.title, None, article.source)",
+  "new": "self.tagger.tag(article.title, article.summary, article.source)"
+ },
+ {
+  "id": "Z1b",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_the_outlet_suffix_of_a_title_never_moves_the_bar"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "self.tagger.tag(article.title, None, article.source)",
+  "new": "self.tagger.tag(article.title, None)"
+ },
+ {
+  "id": "Z2",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_two_articles_with_the_same_identity_url_are_one_story_whatever_their_titles"
+  ],
+  "file": "fno/ingestion/news/cluster/assign.py",
+  "old": "        index = _by_url(article, owner, matcher)",
+  "new": "        index = None"
+ },
+ {
+  "id": "Z2a",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_url_join_goes_to_any_member_of_a_cluster_not_only_its_anchor"
+  ],
+  "file": "fno/ingestion/news/cluster/assign.py",
+  "old": "        if article.url:\n            owner.setdefault",
+  "new": "        if article.url and len(clusters[index]) == 1:\n            owner.setdefault"
+ },
+ {
+  "id": "Z2e",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_one_url_belongs_to_the_cluster_that_took_it_first",
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_url_stays_with_the_cluster_that_took_it_first_even_when_that_one_is_too_old_to_join"
+  ],
+  "file": "fno/ingestion/news/cluster/assign.py",
+  "old": "owner.setdefault(article.url, (index, article))",
+  "new": "owner[article.url] = (index, article)"
+ },
+ {
+  "id": "Z2b",
+  "tests": [
+   "tests/ingestion/news/cluster/test_url_identity.py::test_a_home_a_section_or_a_tracking_only_link_is_refused_and_counted_not_joined",
+   "tests/ingestion/news/cluster/test_url_identity.py::test_a_link_to_one_page_of_one_story_is_an_identity"
+  ],
+  "file": "fno/ingestion/news/cluster/url_identity.py",
+  "old": "    if query or len(segments) >= 2:",
+  "new": "    if True:"
+ },
+ {
+  "id": "Z2f",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_url_that_identifies_no_story_never_joins_and_is_counted",
+   "tests/ingestion/news/cluster/test_url_identity.py::test_a_home_a_section_or_a_tracking_only_link_is_refused_and_counted_not_joined"
+  ],
+  "file": "fno/ingestion/news/cluster/url_identity.py",
+  "old": "return Identity(refused=True)",
+  "new": "return Identity()"
+ },
+ {
+  "id": "Z2c",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_two_articles_with_the_same_identity_url_are_one_story_whatever_their_titles",
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_url_join_that_the_titles_agree_with_is_not_counted_as_unlike"
+  ],
+  "file": "fno/ingestion/news/cluster/assign.py",
+  "old": "unlike += not matcher.same_story(clusters[index][0], article)",
+  "new": "unlike += 0"
+ },
+ {
+  "id": "Z2d",
+  "tests": [
+   "tests/ingestion/news/cluster/test_url_identity.py::test_tracking_parameters_and_the_fragment_are_dropped_and_nothing_else_is_changed"
+  ],
+  "file": "fno/ingestion/news/cluster/url_identity.py",
+  "old": "if not _tracking(k)]",
+  "new": "if True]"
+ },
+ {
+  "id": "Z3",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_google_news_item_joins_its_publisher_copy_through_its_resolution_file_only"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "effective_url(article, self.resolutions.get(article.key))",
+  "new": "effective_url(article, None)"
+ },
+ {
+  "id": "Z4",
+  "tests": [
+   "tests/ingestion/news/cluster/test_grouper_v2.py::test_a_title_match_still_compares_with_the_anchor_only_so_a_chain_of_scores_does_not_form"
+  ],
+  "file": "fno/ingestion/news/cluster/assign.py",
+  "old": "matcher.same_story(members[0], article)",
+  "new": "any(matcher.same_story(m, article) for m in members)"
+ },
+ {
+  "id": "Z5",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_version_two_run_writes_a_format_two_file_in_its_own_folder_with_what_fed_it",
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_version_two_never_touches_version_one_files"
+  ],
+  "file": "fno/ingestion/news/cluster/prepare.py",
+  "old": "GROUPER_VERSION = \"2\"",
+  "new": "GROUPER_VERSION = \"1\""
+ },
+ {
+  "id": "Z6",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_no_company_list_at_all_is_a_run_with_version_zero_not_a_stop",
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_list_that_exists_but_cannot_be_read_stops_the_run_and_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "if str(refused) == codes.COMPANY_LIST_MISSING:",
+  "new": "if True:"
+ },
+ {
+  "id": "Z6b",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_list_that_exists_but_cannot_be_read_stops_the_run_and_writes_nothing"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "raise GroupingBlocked(codes.COMPANY_LIST_UNAVAILABLE) from None",
+  "new": "return CompanyList(0, ())"
+ },
+ {
+  "id": "Z12",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_the_cluster_file_parser_accepts_formats_one_and_two_and_refuses_others"
+  ],
+  "file": "fno/ingestion/news/cluster_record/cluster_file.py",
+  "old": "if document[\"format\"] not in FORMATS or end is None:",
+  "new": "if end is None:"
+ },
+ {
+  "id": "Z13",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_damaged_resolution_file_stops_the_run_with_one_code"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "raise GroupingBlocked(codes.RESOLUTION_UNREADABLE) from None",
+  "new": "continue"
+ },
+ {
+  "id": "Z14",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_only_the_windows_google_news_items_have_their_resolution_file_read"
+  ],
+  "file": "fno/ingestion/news/cluster_record/grouping.py",
+  "old": "if article.kind != WRAPPER or not in_window(article, as_of):",
+  "new": "if False:"
+ },
+ {
+  "id": "Z15",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_every_number_the_run_hands_the_file_is_written_under_its_own_name"
+  ],
+  "file": "fno/ingestion/news/cluster_record/cluster_file.py",
+  "old": "\"url_joins_unlike_title\": clustering.url_joins_unlike_title,",
+  "new": "\"url_joins_unlike_title\": 0,"
  }
 ]

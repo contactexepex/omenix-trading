@@ -119,3 +119,10 @@ def test_version_one_never_joins_by_url_and_reports_none():
     result = cluster_articles([with_url(art("a", words(1, 8)), URL), with_url(art("b", words(20, 28)), URL)], AS_OF)
     assert len(result.clusters) == 2 and (result.url_joins, result.url_joins_refused) == (0, 0)
     assert Prepared.of(art("a", "x")).url == ""
+
+
+def test_a_url_stays_with_the_cluster_that_took_it_first_even_when_that_one_is_too_old_to_join():
+    first = with_url(art("a", words(1, 8), at(47)), URL)
+    second = with_url(art("b", words(20, 28), at(10)), URL)  # 37 h after a: outside the match window, a new cluster
+    third = with_url(art("c", words(40, 48), at(1)), URL)  # 9 h after b, but the URL belongs to a's cluster
+    assert keys_of(group([first, second, third])) == [("a",), ("b",), ("c",)]
