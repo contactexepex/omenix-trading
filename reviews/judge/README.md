@@ -68,3 +68,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 55 | CF1 commit-failure signalling, code (judge #2) | 1 | PASS (round 2, a34b886) | `judge_55_cf1-commit-failure-judge2.md` |
 | 56 | P5 Record contract (doc + tests) | 1 | PASS (round 2, 31796d7) | `judge_56_p5-record-contract.md` |
 | 57 | P5b contract follow-ups, code (judge #2) | 1 | PASS (round 2, f7740e2) | `judge_57_p5b-followups-judge2.md` |
+| 58 | F1 filings non-list answer (code) | 1 | FAIL (round 1, 39f38e5) | `judge_58_f1-filings-non-list.md` |
