@@ -64,9 +64,10 @@ class Repo:
         receipt.parent.mkdir(parents=True)
         receipt.write_text("receipt\n")
 
-    def run_step(self):
+    def run_step(self, extra: str = ""):
         env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "PYTHONPATH": str(ROOT),
-               "MANIFEST": MANIFEST, "RECEIPTS": BOTH_RECEIPTS, "FNO_SLACK_BOT_TOKEN": ""}  # fmt: skip
+               "MANIFEST": MANIFEST, "RECEIPTS": BOTH_RECEIPTS, "FNO_SLACK_BOT_TOKEN": "",
+               "EXTRA_MANIFESTS": extra}  # fmt: skip
         return subprocess.run(
             ["bash", "-e", "-c", step_script()], cwd=self.work, env=env, capture_output=True, text=True
         )
@@ -177,11 +178,9 @@ def test_the_alert_text_is_fixed_and_says_what_to_do_for_each_cause(tmp_path, mo
 def test_the_broken_branch_of_the_step_never_adds_the_manifest():
     """judge 49 T2, for this design: the broken branch commits receipts but must not `git add` the manifest."""
     run = step_script()
-    broken = run[run.index("\nelse") : run.index("\nfi")]
-    assert (
-        "git add" not in broken and 'git checkout -- "$MANIFEST"' in broken
-    )  # the receipts are added after the branch
-    assert run.index('git add -- "$folder"') > run.index("\nfi")  # for both outcomes
+    broken = run[run.index("\n  else") : run.index("\n  fi")]
+    assert "git add" not in broken and 'git checkout -- "$manifest"' in broken  # the receipts are added after the loop
+    assert run.index('git add -- "$folder"') > run.index("\ndone")  # for both outcomes
 
 
 def test_a_failed_job_always_alerts_the_desk_channel_even_when_promote_was_killed():
@@ -309,3 +308,41 @@ def test_the_repair_command_is_loud_with_a_fixed_text_and_quiet_when_every_batch
     assert (
         any("batch_torn" in line for line in printed) and "batch_torn" in sent[0] and "fragment-marker" not in sent[0]
     )
+
+
+# ---- NP2d: the wrapper index is guarded like the articles manifest ---------------------------------------------------
+
+INDEX = f"{MANIFEST_DIR}/wrappers.csv"
+
+
+def write_index(repo: Repo, torn: bool) -> None:
+    index = NewsManifest(repo.work / MANIFEST_DIR, "wrappers.csv")
+    index.add(date(2026, 10, 27), "a" * 64, "recorded", SHA, 10)
+    if torn:
+        path = repo.work / INDEX
+        path.write_text(path.read_text().rstrip("\n")[:-30])
+
+
+def test_a_whole_wrapper_index_is_committed_with_the_articles_manifest(tmp_path):
+    repo = Repo(tmp_path)
+    repo.write(1, torn=False)
+    write_index(repo, torn=False)
+    done = repo.run_step(INDEX)
+    assert done.returncode == 0, done.stderr
+    assert repo.on_main(MANIFEST) and repo.on_main(INDEX).count("recorded") == 1
+
+
+def test_a_torn_wrapper_index_never_reaches_main_the_good_articles_manifest_does_and_the_run_is_red(tmp_path):
+    repo = Repo(tmp_path)
+    repo.write(1, torn=False)
+    write_index(repo, torn=True)
+    done = repo.run_step(INDEX)
+    assert done.returncode == 1 and "manifest_broken" in done.stdout
+    assert repo.on_main(INDEX) is None and repo.on_main(MANIFEST).count("recorded") == 1
+    assert not (repo.work / INDEX).exists()
+
+
+def test_the_promote_workflow_names_the_index_as_an_extra_manifest():
+    flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
+    (job,) = flow["jobs"].values()
+    assert job["env"]["EXTRA_MANIFESTS"].split("#")[0].strip() == INDEX

@@ -8,6 +8,7 @@ from fno.ingestion.news.article.keys import PUBLISHER
 from fno.ingestion.news.fetcher import SOURCE
 from fno.ingestion.news.record.gate import NewsGate
 from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.wrapper_index import WrapperIndex
 from fno.ingestion.news.record.writer import ArticleWriter
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.data_store import DataStore
@@ -31,7 +32,8 @@ class Setup:
         """A fresh run: new writer, new manifest read from disk, new per-run cache (as the next process would have)."""
         store = DataStore(self.drive, "raw", self.receipts, "news-promote", "run-1")
         self.manifest = NewsManifest(self.manifest_folder)
-        self.writer = ArticleWriter(AreaStore(self.drive, "raw"), store, self.manifest)
+        self.wrappers = WrapperIndex(self.manifest_folder)
+        self.writer = ArticleWriter(AreaStore(self.drive, "raw"), store, self.manifest, self.wrappers)
         self.gate = NewsGate(self.staging, self.writer, self.kinds)
 
     def stage(self, data: bytes, feed: str = FEED, at: datetime = POLL_AT) -> None:

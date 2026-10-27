@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Stories P2b3 and P2d: the commit step of the news record workflows (news-promote.yml, news-cluster.yml). One definition
-# of the guard, so the two workflows cannot drift. Env: MANIFEST (the csv this run extends), RECEIPTS (space-separated
+# of the guard, so the workflows cannot drift. Env: MANIFEST (the csv this run extends), EXTRA_MANIFESTS (optional,
+# space-separated: further csvs it extends, each guarded the same way; NP2d's wrappers.csv), RECEIPTS (space-separated
 # receipt folders), COMMIT_MESSAGE.
 #
 # A run killed mid-write can leave a torn last line in the manifest; it must never reach main. The guard judges the FILE
@@ -8,13 +9,15 @@
 # always committed: they keep the original evidence time of each Drive file, and the next run re-adds the missing rows.
 # A broken manifest is discarded from the working tree (so the next pull is clean), not committed, and turns the run red.
 set -e
-if python -m fno news check-manifest "$(dirname "$MANIFEST")" --file "$(basename "$MANIFEST")"; then
-  git add "$MANIFEST"
-  broken=0
-else
-  git checkout -- "$MANIFEST" 2>/dev/null || rm -f "$MANIFEST"
-  broken=1
-fi
+broken=0
+for manifest in $MANIFEST ${EXTRA_MANIFESTS:-}; do
+  if python -m fno news check-manifest "$(dirname "$manifest")" --file "$(basename "$manifest")"; then
+    git add "$manifest"
+  else
+    git checkout -- "$manifest" 2>/dev/null || rm -f "$manifest"
+    broken=1
+  fi
+done
 # A killed run can leave a half line last in a receipt batch file; it must never reach main either. The fragment (never a
 # whole line) is cut off, the good lines are committed, and the run ends red.
 python -m fno news repair-batches receipts/_batches || broken=1

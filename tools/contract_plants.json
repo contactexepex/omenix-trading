@@ -218,7 +218,7 @@
    "tests/ingestion/news/record/test_writer_and_gate.py::test_a_torn_manifest_line_is_never_glued_onto_and_stops_the_run_before_any_write"
   ],
   "file": "fno/ingestion/news/record/gate.py",
-  "old": "        self.writer.manifest.check_appendable()",
+  "old": "        self.writer.check_appendable()  # a torn manifest stops the run before any write (TableFileBroken)",
   "new": "        pass"
  },
  {
@@ -327,8 +327,8 @@
    "tests/ingestion/news/record/test_commit_guard.py::test_a_pull_that_fails_makes_the_step_fail_instead_of_ending_green"
   ],
   "file": "ops/commit_news_record.sh",
-  "old": "if python -m fno news check-manifest \"$(dirname \"$MANIFEST\")\" --file \"$(basename \"$MANIFEST\")\"; then",
-  "new": "if true; then"
+  "old": "  if python -m fno news check-manifest \"$(dirname \"$manifest\")\" --file \"$(basename \"$manifest\")\"; then",
+  "new": "  if true; then"
  },
  {
   "id": "K2",
@@ -1007,5 +1007,65 @@
   "file": "fno/ingestion/news/feeds.py",
   "old": "|q-[0-9a-f]{12})",
   "new": "|)"
+ },
+ {
+  "id": "X1",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_recorded_wrapper_article_with_a_link_gets_one_row_and_nothing_else_does",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_wrapper_item_without_a_usable_link_is_not_indexed",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_the_row_carries_the_sha_of_the_article_file_the_record_holds"
+  ],
+  "file": "fno/ingestion/news/record/wrapper_index.py",
+  "old": "        if is_resolvable(article):",
+  "new": "        if True:"
+ },
+ {
+  "id": "X2",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_promoting_the_same_poll_again_adds_no_second_row",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_missing_row_is_repaired_by_promoting_the_poll_again"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "            self._mark(article, day, plan.status, plan.held)",
+  "new": "            pass"
+ },
+ {
+  "id": "X3",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_revision_adds_no_row_and_the_first_rows_stay"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        if self.wrappers is not None and status == RECORDED:",
+  "new": "        if self.wrappers is not None:"
+ },
+ {
+  "id": "X4",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_the_gate_decides_exactly_as_before_the_index_existed"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "        self._mark(article, day, plan.status, data)\n        return plan.outcome",
+  "new": "        self._mark(article, day, plan.status, data)\n        return Outcome.NO_OP"
+ },
+ {
+  "id": "X5",
+  "tests": [
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_torn_index_stops_the_promotion_before_anything_is_written",
+   "tests/ingestion/news/record/test_wrapper_index.py::test_a_row_of_the_index_that_is_not_whole_is_reported_and_not_ignored"
+  ],
+  "file": "fno/ingestion/news/record/writer.py",
+  "old": "            self.wrappers.check_appendable()",
+  "new": "            pass"
+ },
+ {
+  "id": "X6",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_whole_wrapper_index_is_committed_with_the_articles_manifest",
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_torn_wrapper_index_never_reaches_main_the_good_articles_manifest_does_and_the_run_is_red",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_promote_workflow_names_the_index_as_an_extra_manifest"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "for manifest in $MANIFEST ${EXTRA_MANIFESTS:-}; do",
+  "new": "for manifest in $MANIFEST; do"
  }
 ]
