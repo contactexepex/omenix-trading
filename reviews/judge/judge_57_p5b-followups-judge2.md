@@ -96,3 +96,29 @@ The orchestrator's brief arrived after the verdict above. Its extra checks:
 
 **Verdict: FAIL** (round 1): S1 (the seven callers' tests), S2 (W2's scope) and S3 (the hardcoded invariant). All
 three are tests or text.
+
+## Addendum 2: round 2, ea56bc9 (S1 fixed; S2 and S3 crossed the freeze; FAIL)
+
+SHA `ea56bc9`. **Gates** (`__pycache__` cleared): 902 passed; ruff clean.
+
+**S1: fixed.** `test_seven_callers.py` gives each caller a behaviour test on the real pushed, nothing and failed
+lines. My nine plants each now fail:
+
+| Caller | Failed |
+|---|---|
+| circulars / close_read / flows table / fo_masters | 1 / 1 / 1 / 1 |
+| preopen_cli `_committed` / its exact message text | 2 / 1 |
+| preopen early commit / day commit | 1 / 1 |
+| repair_cli | 1 |
+
+**The alert-text trap: fixed.** `COMMIT_FAILED_ALERT` now says "left uncommitted and unpushed", and a test pins that
+it is not a failure line. Putting the old words back fails 2 tests.
+
+**Still open, both raised in Addendum 1 and probably after this SHA froze:**
+- **S2:** the W2 row still lists `_write` in `drive_cache.py` under "tested, plant run", though nothing tests it.
+- **S3:** `test_record_contract.py:64` still asserts `stated_only_rows() == set()`.
+- The "own copy" source scan is also not added. That one is not blocking now that S1's behaviour tests exist.
+
+**Verdict: FAIL** on `ea56bc9`, on S2 (text, or one test) and S3 (delete one assertion). This is the last allowed round,
+but both items crossed the freeze, so how to count it is the orchestrator's call. A SHA with the two small fixes gets
+a quick re-verify from me.
