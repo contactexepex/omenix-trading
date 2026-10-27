@@ -126,3 +126,38 @@ This message held no query ("label empty"), but nothing guarantees that for ever
 Test it with a feed whose request raises a non-`RequestException` carrying the marker URL.
 
 **Verdict unchanged: FAIL** (round 1, 9f794fe), with S1, S2 and now S3.
+
+## Addendum 3: decisive round 2, f5a656b (PASS)
+
+Branch `story/P2a-news-fetch-r3`, SHA `f5a656ba9e26d3037796f7aa9ddf2172df08413f`.
+
+**Gates** (`__pycache__` cleared): 637 passed; ruff check and format clean; imports clean; code size passed. Six more
+full parallel runs: 637 passed every time.
+
+**My findings, each with its plant on f5a656b:**
+
+| Item | Fix | Plant | Failed |
+|---|---|---|---|
+| S1 the fetcher cannot reach the Record | wiring test: every write under `staging/news/` | the store moved to `"raw"` | 1 |
+| S2 / judge #1 F3 the host in the pause log | `NEWS_PACER`, the news session's own pacer, never attached to the pause log or the alerts; real-session tests; a control shows the shared pacer **does** write the host and alert, so the test is not vacuous | the news session back on the shared pacer | 2 |
+| judge #1 F1 urllib3 at DEBUG | `urllib3` held at WARNING; a real-session test at DEBUG | the level line removed | 1 |
+| S3 a non-request error escapes | `_poll` keeps a code for any exception; the command catches everything with a fixed line and an alert; hosts must IDNA-encode | narrow `except` / the command's catch narrowed / the message printed / no IDNA check | 1 / 1 / 1 / 1 |
+| The salt | at least 16 characters, required, in the private list; the committed hash depends on it; tests that it is stable and in no committed file | a fixed salt / the URLs written into the committed log | 4 / 4 |
+| Note 2 version and hash per run | `feed_lists.csv`, one row per version, written before the first request | the per-run row removed | 6 |
+| Earlier plants | cookies, redirects, workflow add scope, row after staging | `set_ok` True / redirects / `git add -A` / row first | 1 / 1 / 1 / 2 |
+
+The `return_ok` survivor stays equivalent, for the reason in the first report.
+
+**The three timing tests made deterministic: I checked they are not weaker.** These are
+`test_rate_limit.py::test_spacing_holds_across_threads` (the shared library) and two characterization tests (the
+intraday `RatePacer`, and `NsePacer` spacing). Each now freezes the clock and asserts the waits the limiter hands
+out, instead of timing threads after they wake.
+- **Spacing removed** (`max(now, self._last)`): all three fail.
+- **Lock removed** in `RateLimit.acquire`: the shared-library test fails in 3 of 3 runs. It keeps its `slow_decide`
+  hook, which forces threads to interleave. The two characterization tests pass.
+- I ran the **old** versions (on `9f794fe`) against the same lock-removed plant 5 times. The NSE characterization test
+  caught it once in 5, and the shared-library test 5 in 5. So the old characterization tests caught a missing lock
+  only by chance. The new ones lose nothing real, and the shared-library test pins the lock every time.
+- Optional: give the two characterization tests the same `slow_decide` hook so each pins the lock too.
+
+**Verdict: PASS** (lane 1, code round 2, judge #2).
