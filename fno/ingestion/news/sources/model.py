@@ -45,3 +45,20 @@ class Promotional:
     providers: tuple[str, ...] = ()
     domains: tuple[str, ...] = ()
     text: tuple[str, ...] = ()
+
+
+# Names under which anyone can publish: listing one would make every tenant "an allowlisted outlet" (`x.github.io`).
+# A short curated list, NOT the full Public Suffix List (stated in NP1): the generic rule below covers the national
+# second-level suffixes (`co.in`, `com.au`, `org.uk` ...), this set the common hosting platforms.
+HOSTING_SUFFIXES = frozenset({
+    "github.io", "gitlab.io", "pages.dev", "workers.dev", "vercel.app", "netlify.app", "herokuapp.com", "blogspot.com",
+    "wordpress.com", "web.app", "firebaseapp.com", "azurewebsites.net", "appspot.com", "cloudfront.net",
+    "s3.amazonaws.com",
+})  # fmt: skip
+SECOND_LEVEL_LABELS = frozenset({"co", "com", "org", "net", "gov", "ac", "edu", "or", "ne", "go", "nic", "res"})
+
+
+def is_public_suffix(domain: str) -> bool:
+    """True for a name no one organisation owns: a hosting platform, or a two-label `co.in`-style national suffix."""
+    labels = domain.split(".")
+    return domain in HOSTING_SUFFIXES or (len(labels) == 2 and labels[0] in SECOND_LEVEL_LABELS and len(labels[1]) == 2)

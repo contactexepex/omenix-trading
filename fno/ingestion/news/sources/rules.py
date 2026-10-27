@@ -19,8 +19,12 @@ LABEL_IS_A_HOST = re.compile(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
 def plain_host(host: str | None) -> str:
-    """The host in lower case without a trailing dot, or "" when it is not a plain ASCII host name."""
-    cleaned = (host or "").strip().lower().rstrip(".")
+    """The host in lower case without a trailing dot, or "" when it is not a plain ASCII host name. Whitespace anywhere,
+    and any non-ASCII letter (also one that lower-casing would turn into ASCII, such as the Kelvin sign), make it ""."""
+    text = host or ""
+    if not text.isascii():
+        return ""
+    cleaned = text.lower().rstrip(".")
     return cleaned if PLAIN_HOST.match(cleaned) else ""
 
 
@@ -64,7 +68,10 @@ class SourceRules:
     def may_fetch(self, host: str | None) -> bool:
         """True only for a listed outlet that does not refuse automated traffic. An unlisted host is never requested."""
         outlet = self.lookup(host)
-        return bool(outlet and outlet.fetch)
+        if outlet is None or not outlet.fetch:
+            return False
+        main = self.outlets.get(outlet.same_as) if outlet.same_as else None
+        return main is None or main.fetch  # an alias never bypasses the main domain's fetch: false
 
     def may_upgrade_to_https(self, host: str | None) -> bool:
         """True when a feed's http:// link on this host may be stored as https:// (its pages are served over HTTPS)."""
@@ -81,7 +88,8 @@ class SourceRules:
 
     def domain_of_label(self, label: str | None) -> str | None:
         """The listed domain a source label names ('Business Today'), or a label that is itself a listed host."""
-        domain = self._label_domain.get(normalise_label(label))
+        key = normalise_label(label)
+        domain = self._label_domain.get(key) if key else None  # an empty label names nothing
         if domain is None and label and LABEL_IS_A_HOST.match(label.strip()):
             outlet = self.lookup(label.strip())
             domain = outlet.domain if outlet else None
@@ -89,14 +97,16 @@ class SourceRules:
 
     # wires and promotional content
     def wire_of_name(self, name: str | None) -> str | None:
-        return self._wire_name.get(normalise_label(name)) if name else None
+        key = normalise_label(name)
+        return self._wire_name.get(key) if key else None
 
     def wire_of_domain(self, host: str | None) -> str | None:
         name = plain_host(host)
         return next((w.name for w in self.wires if any(_under(name, d) for d in w.domains)), None) if name else None
 
     def is_promotional_provider(self, name: str | None) -> bool:
-        return bool(name) and normalise_label(name) in self._promo_providers
+        key = normalise_label(name)
+        return bool(key) and key in self._promo_providers
 
     def is_promotional_domain(self, host: str | None) -> bool:
         name = plain_host(host)

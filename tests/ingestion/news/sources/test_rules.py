@@ -15,6 +15,7 @@ RULES = build_source_rules({
         "businesswire.com": {"tier": "primary", "https_links": True},
         "seekingalpha.com": {"tier": "tier2", "opinion_unless_path": "/news/"},
         "nseindia.com": {"tier": "primary"},
+        "marketwatch.com": {"tier": "tier1", "fetch": False},
     },
     "wires": {"Reuters": {"names": ["Reuters Staff"], "domains": ["reuters.com"]}},
     "promotional": {"providers": ["Zacks"], "domains": ["zacks.com"], "text": ["sponsored content"]},
@@ -36,6 +37,12 @@ def test_a_host_finds_its_outlet_and_its_parent_domains_do_too():
         "reuters.com.evil.example",  # the listed name in the middle
         "reuters.co",
         "x y.reuters.com",  # a space: not a host at all
+        " reuters.com",  # whitespace at either end is not trimmed: it is not a host
+        "reuters.com ",
+        "reuters.com\n",
+        "\treuters.com",
+        "reuters.com\u2028",
+        "mar\u212aetwatch.com",  # the Kelvin sign: lower-casing would turn it into an ASCII k
         "user@reuters.com",
         "reuters.com:8080",
         "reuters.com/news",
@@ -93,3 +100,37 @@ def test_wire_and_promotional_lookups():
     assert RULES.wire_of_domain("uk.reuters.com") == "Reuters" and RULES.wire_of_domain("notreuters.com") is None
     assert RULES.is_promotional_provider("ZACKS") and not RULES.is_promotional_provider("Mint")
     assert RULES.is_promotional_domain("www.zacks.com") and not RULES.is_promotional_domain("notzacks.com")
+
+
+def test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too():
+    rules = build_source_rules({"domains": {
+        "main.example": {"tier": "tier1", "fetch": False},
+        "alias.example": {"tier": "tier1", "same_as": "main.example"},  # no fetch flag of its own
+        "open.example": {"tier": "tier1"},
+        "open-alias.example": {"tier": "tier1", "same_as": "open.example"},
+    }})  # fmt: skip
+    assert (
+        not rules.may_fetch("main.example")
+        and not rules.may_fetch("alias.example")
+        and not rules.may_fetch("x.alias.example")
+    )
+    assert rules.may_fetch("open.example") and rules.may_fetch("open-alias.example")
+
+
+def test_an_empty_label_or_name_names_nothing_even_if_the_rules_were_built_with_one():
+    from fno.ingestion.news.sources.model import Outlet, Promotional, Wire
+    from fno.ingestion.news.sources.rules import SourceRules
+
+    # the loader refuses such a name (see test_loader); the lookups must still never match it
+    outlets = {"a.example": Outlet("a.example", "tier1", names=(".",))}
+    sloppy = SourceRules(outlets, (Wire("W", names=(".",)),), Promotional(providers=(".",)))
+    for rules in (RULES, sloppy):
+        for value in (None, "", " ", ".", "..."):
+            assert rules.domain_of_label(value) is None
+            assert rules.wire_of_name(value) is None
+            assert not rules.is_promotional_provider(value)
+
+
+def test_the_news_desk_prefix_must_match_at_a_slash_boundary():
+    assert RULES.is_opinion("seekingalpha.com", "/newsletter/today") and RULES.is_opinion("seekingalpha.com", "/news")
+    assert not RULES.is_opinion("seekingalpha.com", "/news/today")
