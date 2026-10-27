@@ -90,5 +90,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 77 | NP3 company list and feed plan, plan doc (judge #2) | 2 | PASS (ec3b34f; FAIL 8459517, eb05a7b) | `judge_77_np3-plan-judge2.md` |
 | 78 | NP3a company list, code (judge #2) | 2 | PASS (0ffad12, 1a1e5d6, c5aeb93; FAIL 6504962) | `judge_78_np3a-company-list-judge2.md` |
 | 79 | NP3a company list (code, judge #1) | 1 | FAIL (round 1, 6504962); PASS (round 2, 1a1e5d6; allow-list grammar) | `judge_79_np3a-company-list.md` |
-| 80 | NP3b feed plan, code (judge #2) | 1 | PASS (0d6adbe) | `judge_80_np3b-feed-plan-judge2.md` |
+| 80 | NP3b feed plan, code (judge #2) | 1 | PASS (4fa33b2, 0d6adbe) | `judge_80_np3b-feed-plan-judge2.md` |
 | 81 | NP3b feed planner (code, judge #1) | 1 | PASS (round 1, 0d6adbe) | `judge_81_np3b-feed-planner.md` |

@@ -52,3 +52,18 @@ clean (549 files); code size passed; contract plants all ok.
   would inherit its staged history. That is negligible; the story could say so in one line.
 
 **Verdict: PASS** (`0d6adbe`).
+
+## Addendum 1: `4fa33b2` (= `0d6adbe` + 12-hex planned ids)
+
+The code changes two lines: `ID_HEX_LENGTH = 12` (`query_id.py:13`) and `FEED_ID` accepting `q-[0-9a-f]{12}`
+(`feeds.py:22`). Tests, the D9 plant, the NP3b story and the NP3 plan text change from 8 to 12 hex. No feed list
+exists with an 8-hex id yet, so nothing already written is orphaned. That is reasoning: NP3b has not run.
+
+Collision odds fall from about 2^-32 to about 2^-48 per pair. My Addendum 0 note on an inherited id is now moot.
+
+**Gates** (in the locked venv): 1583 passed; ruff clean; imports clean; contract plants all ok. My plant that reverts
+to 8 hex fails 10 tests.
+
+The change to the NP3 plan document is the one number and agrees with the code. My PASS on that plan (judge 77) stands.
+
+**Verdict: PASS** (`4fa33b2`).
