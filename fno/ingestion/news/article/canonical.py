@@ -12,15 +12,22 @@ TRACKING_PREFIXES = ("utm_",)
 DEFAULT_PORTS = {"http": 80, "https": 443}
 
 
+class UnreadableLink(Exception):
+    """A link the standard library cannot split (a bad port, a broken IPv6 host). Carries no part of the link."""
+
+
 def _is_tracking(name: str) -> bool:
     lowered = name.lower()
     return lowered in TRACKING_PARAMETERS or lowered.startswith(TRACKING_PREFIXES)
 
 
 def canonical_url(url: str) -> str:
-    parts = urlsplit(url.strip())
-    scheme, host = parts.scheme.lower(), (parts.hostname or "").lower()
-    port = parts.port
+    """The canonical form; UnreadableLink (with no text of the link) when the standard library cannot split it."""
+    try:
+        parts = urlsplit(url.strip())
+        scheme, host, port = parts.scheme.lower(), (parts.hostname or "").lower(), parts.port
+    except ValueError:
+        raise UnreadableLink from None
     netloc = host if port is None or port == DEFAULT_PORTS.get(scheme) else f"{host}:{port}"
     query = sorted((k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if not _is_tracking(k))
     return urlunsplit((scheme, netloc, parts.path, urlencode(query), ""))

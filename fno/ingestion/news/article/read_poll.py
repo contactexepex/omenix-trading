@@ -10,6 +10,7 @@ from datetime import datetime
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.article.article_file import Article, build_article
+from fno.ingestion.news.article.canonical import UnreadableLink
 from fno.ingestion.news.article.item_checks import item_refusal
 from fno.ingestion.news.article.parse_feed import parse_poll
 
@@ -35,7 +36,8 @@ def read_poll(data: bytes, kind: str, seen_at: datetime) -> PollReading:
             continue
         try:
             articles.append(build_article(kind, item, seen_at))
-        except (ValueError, OverflowError):
-            # a link that will not parse (a bad port, a broken IPv6 host) costs this item only, never the others
+        except UnreadableLink:
+            # a link that will not parse (a bad port, a broken IPv6 host) costs this item only, never the others;
+            # nothing else is caught here, so a defect in our own code surfaces instead of becoming a skipped item
             rejected[codes.ITEM_UNREADABLE] += 1
     return PollReading(tuple(articles), rejected)

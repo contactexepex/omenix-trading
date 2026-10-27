@@ -179,3 +179,25 @@ def test_no_fragment_of_a_bad_link_escapes_through_any_surface_at_debug(caplog, 
     )  # reconciliation still balances
     assert [a.title for a in reading.articles] == ["Good"]
     assert not [m for m in marks if m in surfaces]
+
+
+# ---- the item_unreadable catch is narrow: our own defects are never counted as skipped items ----------------
+
+
+def test_a_defect_in_the_article_build_propagates_and_is_not_counted_as_an_unreadable_item(monkeypatch):
+    from fno.ingestion.news.article import article_file
+
+    def defect(*args, **kwargs):
+        raise ValueError("a bug in our own code")  # even a ValueError, the type a bad link raises
+
+    monkeypatch.setattr(article_file, "item_key", defect)
+    with pytest.raises(ValueError, match="a bug in our own code"):
+        read_poll(rss(rss_item()), PUBLISHER, SEEN)
+
+
+def test_the_unreadable_link_error_carries_no_part_of_the_link():
+    from fno.ingestion.news.article.canonical import UnreadableLink, canonical_url
+
+    with pytest.raises(UnreadableLink) as bad:
+        canonical_url("https://x.example:abc/MARKSECRETZZ95")
+    assert "MARKSECRETZZ95" not in str(bad.value) + repr(bad.value) and bad.value.__cause__ is None
