@@ -699,7 +699,7 @@
    "tests/ingestion/news/resolve/test_adapter.py::test_each_link_gets_its_result_in_order_and_a_refused_link_is_never_sent"
   ],
   "file": "fno/ingestion/news/resolve/guard.py",
-  "old": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
   "new": "        return True"
  },
  {
@@ -751,5 +751,14 @@
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
   "old": "        self.interval = max(int(interval_seconds), MIN_INTERVAL_SECONDS)",
   "new": "        self.interval = int(interval_seconds)"
+ },
+ {
+  "id": "L7",
+  "tests": [
+   "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed"
+  ],
+  "file": "fno/ingestion/news/resolve/guard.py",
+  "old": "        return bool(clean) and clean.isascii() and self.allows_host(urlsplit(clean).hostname)",
+  "new": "        return bool(clean) and self.allows_host(urlsplit(clean).hostname)"
  }
 ]
