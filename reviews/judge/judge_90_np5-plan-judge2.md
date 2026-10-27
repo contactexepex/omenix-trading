@@ -56,3 +56,21 @@ against main.
 
 NP4b at `9a12caf`: the only change since `337f0ea` is `PYTHONUNBUFFERED` in the probe workflow (my NP4a should-fix). My
 F1 (`RecursionError`) and F2 (no deadline per fetch) are untouched, so **judge 89's FAIL stands**.
+
+## Addendum 1: round 2 on `36623b1` (the plan document only, now 83 lines)
+
+- **F1 fixed.**
+  - The plan states the measured fact: 2 of the 8 shipped phrases do not fit.
+  - NP5a widens the shared grammar by the literals `#`, `/`, `:` and escaped `\(` and `\)`. These are literals only,
+    so the bounds on groups, optional letters and the word tail are unchanged.
+  - The shipped phrases are kept as they are.
+  - NP1's loader validates `promotional.text` with the grammar and refuses a bad phrase with a fixed code.
+  - A test loads the shipped file.
+  - The code lives in one `safe_pattern.py`, which is imported, not copied.
+- **F2 fixed.**
+  - All real names are replaced with invented placeholders. A grep finds none of the earlier examples.
+  - The privacy paragraph now says what is really enforced: file names only (NP5b adds `materiality-v*.json`), the
+    seed's four public index names, the record scan, and placeholders. It drops the blanket claim.
+- **My note on the cap is folded in:** the cap is taken after cleaning, so a trailing attribution survives.
+
+**Verdict: PASS** (`36623b1`).

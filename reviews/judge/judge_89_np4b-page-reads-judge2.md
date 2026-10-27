@@ -120,3 +120,11 @@ than 60 s per fetch. The name lookup is outside it, and that is stated.
 | `RecursionError` not caught | 2 |
 
 **Verdict: PASS** (`346e78c`). Both must-fixes and all three should-fixes are done.
+
+## Addendum 2: `98ad64a` (= `346e78c` plus one test)
+
+`git diff 346e78c 98ad64a` changes no code. It adds one test (`test_cli_wiring_workflow.py`, +10 lines: a subprocess
+check that importing the CLI does not load the parser), row Y19 and its plant. That matches my Addendum 1 check
+(`selectolax` stays unloaded) and judge #1's M1.
+
+**Verdict: PASS** (`98ad64a`).
