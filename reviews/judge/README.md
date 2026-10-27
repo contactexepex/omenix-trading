@@ -50,3 +50,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 37 | R1d1 Groww reads on the shared primitives (code) | 1 | PASS (round 2, b1bebc4) | `judge_37_r1d1-code.md` |
 | 38 | R1d3 close read and NSDL waits (code) | 1 | PASS (round 1, b4f1fc6) | `judge_38_r1d3-code.md` |
 | 39 | R1d3 close read and NSDL waits, code (judge #2) | 1 | PASS (round 1, b4f1fc6) | `judge_39_r1d3-code-judge2.md` |
+| 40 | R1d4 locking tests and no-refactor, lane-2 check (judge #2) | 2 | PASS (8d2968e) | `judge_40_r1d4-refactor-check.md` |
+| 41 | RUN_LOCATIONS map, lane-2 check | 2 | FAIL (a924f6c, two text fixes) | `judge_41_run-locations.md` |
