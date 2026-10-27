@@ -115,3 +115,11 @@ hand-listed feeds before the first real run if they want them in `broad`/`target
   supplement; the recall report then counts that article under `broad_only` AND under `with_unknown_feed`.
 - **N2 (stated):** promotion now reads the newest feed list (`latest()`) for the salt as well as every version for kinds and scopes,
   so a feed list that cannot be used stops promotion earlier than before.
+
+## Judge 123 round 2 (C1) and a stated limit
+
+- **C1:** `open_days` used to return nothing for ALL days when one day's file was damaged, so no new day file was written and the line
+  stayed green. It now skips only the damaged day and counts it once (`provenance_unreadable`); row B23.
+- **Stated limit:** a poll staged AFTER its day already has a file is not swept again (a day with a file is not read twice); it goes in
+  only through the range pass of a run whose `--from`/`--to` reaches that day, as a numbered supplement. That is rare (polls are staged
+  during their own day), and until it happens the cleanup gate keeps the poll staged and the recall report counts it as no provenance.

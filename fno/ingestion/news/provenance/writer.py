@@ -49,18 +49,29 @@ class ProvenanceWriter:
     ):
         self.index, self.writer, self.salt = index, writer, salt
         self.today = today or (lambda: day_of(now_utc()))
+        self.reported: set[date] = set()  # damaged days already counted in this run
 
     def check_ready(self) -> None:
         self.writer.check_ready()
 
-    def open_days(self) -> list[date]:
-        """Closed IST days of the last `LOOKBACK_DAYS` with no provenance file yet: the sweep reads their polls."""
-        today = self.today()
-        days = [today - timedelta(days=back) for back in range(1, LOOKBACK_DAYS + 1)]
-        try:
-            return sorted(day for day in days if self.index.next_number(day) == 0)
-        except ProvenanceUnreadable:
-            return []  # flush reports the damaged day; nothing is swept for it
+    def open_days(self, report) -> list[date]:
+        """Closed IST days of the last `LOOKBACK_DAYS` with no provenance file yet: the sweep reads their polls. A day
+        whose file is damaged is skipped alone and counted; the other days go on (judge 123 C1)."""
+        today, found = self.today(), []
+        for back in range(LOOKBACK_DAYS, 0, -1):
+            day = today - timedelta(days=back)
+            try:
+                if self.index.next_number(day) == 0:
+                    found.append(day)
+            except ProvenanceUnreadable:
+                self._damaged(day, report)
+        return found
+
+    def _damaged(self, day: date, report) -> None:
+        """`provenance_unreadable` once per damaged day per run, however many steps meet it."""
+        if day not in self.reported:
+            self.reported.add(day)
+            report.reject(codes.PROVENANCE_UNREADABLE)
 
     def flush(self, collector: ProvenanceCollector, report) -> int:
         """Files written. The open day is skipped until it is over; a damaged or conflicting day is counted and left;
@@ -73,7 +84,7 @@ class ProvenanceWriter:
                     self._write(day, missing)
                     written += 1
             except ProvenanceUnreadable:
-                report.reject(codes.PROVENANCE_UNREADABLE)
+                self._damaged(day, report)
             except RawFileConflict:
                 report.reject(codes.PROVENANCE_CONFLICT)
             except Exception:  # noqa: BLE001 - Drive's own errors may name paths; only the code is kept

@@ -25,7 +25,7 @@ class ProvenanceSweep:
         self.staging, self.kinds, self.seen, self.writer = staging, kinds, seen, writer
 
     def run(self, report) -> None:
-        for day in self.writer.open_days():
+        for day in self.writer.open_days(report):
             for feed in sorted(self.kinds):
                 for utc_day in (day - timedelta(days=1), day):
                     for poll in self.staging.copies(SOURCE, f"{feed}/{utc_day:%Y/%m/%d}/poll"):

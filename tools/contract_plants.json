@@ -2722,5 +2722,14 @@
   "file": "fno/ingestion/news/provenance/model.py",
   "old": "return moment.astimezone(IST).date()",
   "new": "return moment.date()"
+ },
+ {
+  "id": "B23",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_one_damaged_day_file_does_not_stop_the_sweep_of_the_other_days"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "            except ProvenanceUnreadable:\n                self._damaged(day, report)\n        return found",
+  "new": "            except ProvenanceUnreadable:\n                return []\n        return found"
  }
 ]

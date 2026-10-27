@@ -267,3 +267,13 @@ def test_a_poll_at_2000_utc_belongs_to_the_next_ist_day_and_that_day_closes_by_i
     monkeypatch.setattr(writer, "now_utc", lambda: POLL_AT.replace(day=DAY.day + 1, hour=20))
     assert wiring.build_news_promotion().promote(DAY, DAY + timedelta(days=1)).ok
     assert day_files(world) == [f"{DAY + timedelta(days=1)}.json"]
+
+
+def test_one_damaged_day_file_does_not_stop_the_sweep_of_the_other_days(world, monkeypatch):  # noqa: F811
+    """Judge 123 C1: a damaged file of an old day used to switch the sweep off for every day, silently."""
+    feed_list(world, 1, ("feed-01", BROAD))
+    stage(world, "feed-01", ITEM)
+    world.put(f"raw/{path_of(DAY - timedelta(days=3))}", b"damaged")
+    report = daily(monkeypatch, DAY + timedelta(days=1))
+    assert day_files(world) == [f"{DAY - timedelta(days=3)}.json", f"{DAY}.json"]
+    assert report.rejected[codes.PROVENANCE_UNREADABLE] == 1 and not report.ok
