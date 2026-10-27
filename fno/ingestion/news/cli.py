@@ -4,10 +4,15 @@ used, is alerted to #fno-desk as the same line: no feed, URL, query or title is 
 
 from __future__ import annotations
 
+from datetime import date
+
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedListError
+from fno.shared.models import now_utc
 
 ALERT = "Omenix F&O news fetch: {line}"
+PROMOTE_STOPPED = "news promote stopped: {code}"
+PROMOTE_ALERT = "Omenix F&O news promote: {line}"
 STOPPED_LINE = "news fetch stopped: {code}"
 
 
@@ -16,6 +21,12 @@ def add_news_parser(subparsers) -> None:
     actions = news.add_subparsers(dest="news_action", required=True)
     fetch = actions.add_parser("fetch", help="each private feed once, raw bytes to Staging only")
     fetch.set_defaults(func=cmd_news_fetch)
+    promote = actions.add_parser("promote", help="staged polls through the article gate into the Record (story P2b2)")
+    promote.add_argument("--from", dest="start", type=date.fromisoformat, required=True,
+                         help="YYYY-MM-DD first day (required: never all history)")  # fmt: skip
+    promote.add_argument("--to", dest="end", type=date.fromisoformat, default=None,
+                         help="YYYY-MM-DD (default: today, UTC: the day polls are staged under)")  # fmt: skip
+    promote.set_defaults(func=cmd_news_promote)
 
 
 def cmd_news_fetch(args, out=print) -> int:
@@ -32,4 +43,22 @@ def cmd_news_fetch(args, out=print) -> int:
     out(line)
     if not ok:
         out(build_alert_sender().send(ALERT.format(line=line)))
+    return 0 if ok else 1
+
+
+def cmd_news_promote(args, out=print) -> int:
+    """One line of counts by fixed code; exit 0 only when nothing was left unpromoted; alerted as the same line."""
+    from fno.ingestion.composition import build_alert_sender
+    from fno.ingestion.news.record.wiring import build_news_promotion
+
+    try:
+        report = build_news_promotion().promote(args.start, args.end or now_utc().date())
+        line, ok = report.line(), report.ok
+    except FeedListError as stopped:
+        line, ok = PROMOTE_STOPPED.format(code=stopped), False
+    except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
+        line, ok = PROMOTE_STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}"), False
+    out(line)
+    if not ok:
+        out(build_alert_sender().send(PROMOTE_ALERT.format(line=line)))
     return 0 if ok else 1

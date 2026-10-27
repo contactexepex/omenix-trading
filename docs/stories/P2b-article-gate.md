@@ -98,6 +98,32 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   fields and the reconciliation count each fail a test. Two plants first survived because a test built its input from the constant
   it protected; the numbers are now pinned.
 
+## P2b2 as built (the writer)
+
+- **Code:** `fno/ingestion/news/record/` (`manifest.py`, `writer.py`, `gate.py`, `report.py`, `wiring.py`), `python -m fno news
+  promote --from YYYY-MM-DD [--to]` (default `--to` today UTC, the day polls are staged under), and `news-promote.yml`
+  (`workflow_dispatch` only, `--from` required, commits only the news manifest and `receipts/raw/news`). Additive changes to P1
+  code: `StagingArea.children()` (a listing) and four fixed codes in `news/codes.py`. Tests edited with disclosure: the
+  workflow-install count is sixteen and `news-promote.yml` joins `NOT_PACED` (it reaches Drive only, like `data-checks.yml`).
+- **One outcome per article:** recorded (new key), no-op (same fixed fields; `first_seen_at` not compared), or revision (same
+  key, different fields: the first file stays the record; the version is written once at `news/revisions/<key[:2]>/<key>/<sha8
+  of the fixed fields>.json`, so a version seen in many polls is kept once). Two different items sharing a key surface as a
+  revision row, never hidden. Order is Drive file, receipt (the `DataStore`), then manifest row; a failed Drive write leaves no row.
+- **A stopped run is repaired with the bytes already held**, never new ones (a later poll has a later `first_seen_at`, and
+  different bytes at the same path would be a conflict).
+- **Reconciliation:** per poll, items = recorded + revisions + no-ops + failed + rejected-by-code; a mismatch is `not_reconciled`.
+  Every refusal is a fixed code counted in the one printed line, which is also the alert text (exit 1, #fno-desk): item and poll
+  codes, `feed_unknown` (a staged feed id not in the list: kind unknown, stays staged), `record_failed`, `record_conflict`.
+  Revisions and no-ops are normal and do not alert. A failed poll stays in Staging and is re-read on every run.
+- **Cost, measured by reasoning:** one Drive read per distinct article key per run (an in-run cache), plus one listing per
+  feed per day; the manifest is read once per run and appended to.
+- **Known limit:** each feed's kind comes from the newest feed list, not the one that fetched the poll; changing a feed's kind
+  would give existing items new keys. Do not change a feed's kind; add a new feed id.
+- **Proof:** 22 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
+  file-before-row order, the manifest conflict check, the conflict catch, the unknown-feed check, the poll-reject count, and the
+  reconciliation sum. The master privacy test runs a marker headline, host, path and query through the article file, manifest,
+  receipts, report line and DEBUG logs, including a refused poll.
+
 ## Deferred to the owner's go-live
 
 The first real promotion, the `news-promote` schedule, and the answer on receipt volume. Gates per step: full suite, ruff,

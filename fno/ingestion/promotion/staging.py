@@ -70,6 +70,10 @@ class StagingArea:
             if data is not None:
                 yield StagedCopy(source, fetched_at, path, data)
 
+    def children(self, source: str, folder: str = "") -> list[str]:
+        """The folder names directly under a source (or a folder in it): which feeds or days hold staged files."""
+        return self.store.folders(self._name(source, folder) if folder else source)
+
     @staticmethod
     def _name(source: str, path: str, stamp: str | None = None) -> str:
         path_parts(source)

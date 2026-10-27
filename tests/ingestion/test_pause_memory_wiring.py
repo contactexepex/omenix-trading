@@ -16,7 +16,7 @@ from fno.shared.http_pacing import SHARED_PACER
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
-NOT_PACED = {"data-checks.yml"}  # reads Drive only
+NOT_PACED = {"data-checks.yml", "news-promote.yml"}  # reach Drive only (no paced host)
 STEP = "bash ops/commit_pause_log.sh"
 
 # the set is explicit: adding or removing a live command is a decision, and it fails here first

@@ -24,3 +24,10 @@ POLL_TOO_LARGE, UNSAFE_XML = "poll_too_large", "unsafe_xml"
 NOT_A_FEED, NO_ITEMS = "not_a_feed", "no_items"
 ITEM_MISSING_TITLE, ITEM_MISSING_LINK, ITEM_TOO_LONG = "item_missing_title", "item_missing_link", "item_too_long"
 ITEM_UNREADABLE = "item_unreadable"  # a link or time the standard library cannot read: counted, the poll goes on
+# the writer (P2b2): outcomes of promoting a staged poll's articles to the Record
+FEED_UNKNOWN = (
+    "feed_unknown"  # a staged poll whose feed id is not in the feed list: its kind is unknown, it stays staged
+)
+RECORD_FAILED = "record_failed"  # Drive or the manifest would not take an article (only the code is kept)
+RECORD_CONFLICT = "record_conflict"  # the manifest holds another SHA-256 for this article id
+NOT_RECONCILED = "not_reconciled"  # items != recorded + revisions + no-ops + rejected: an item went missing

@@ -1,0 +1,33 @@
+"""Composition root of the news promotion (P2b2): the only place that picks concrete stores. The gate reads the
+`staging` area and the private `config` feed list (for each feed's kind) and writes the Record (`raw`, with a receipt
+per Drive file and a row in the news manifest) through the ArticleWriter only."""
+
+from __future__ import annotations
+
+import os
+
+from fno.ingestion.news.feeds import PrivateFeedLists
+from fno.ingestion.news.record.gate import NewsGate
+from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.writer import ArticleWriter
+from fno.ingestion.news.wiring import CONFIG_AREA, POLL_LOG_FOLDER
+from fno.ingestion.promotion.staging import StagingArea
+from fno.ingestion.promotion.wiring import STAGING_AREA
+from fno.ingestion.storage.data_store import DataStore, new_run_id
+from fno.ingestion.storage.data_wiring import receipt_folder
+from fno.ingestion.storage.raw_store import AreaStore
+from fno.ingestion.storage.wiring import OWNER_UPLOAD_SETTINGS, RAW_AREA, build_owner_drive
+from fno.shared.models import now_utc
+
+WRITER = "news-promote"
+NEEDS_DRIVE = "set {settings} to promote news"
+
+
+def build_news_promotion(env=os.environ) -> NewsGate:
+    drive = build_owner_drive(env)
+    if drive is None:
+        raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
+    kinds = {f.feed_id: f.kind for f in PrivateFeedLists(AreaStore(drive, CONFIG_AREA)).latest().feeds}
+    store = DataStore(drive, RAW_AREA, receipt_folder(), WRITER, new_run_id(now_utc()))
+    writer = ArticleWriter(AreaStore(drive, RAW_AREA), store, NewsManifest(POLL_LOG_FOLDER))
+    return NewsGate(StagingArea(AreaStore(drive, STAGING_AREA)), writer, kinds)
