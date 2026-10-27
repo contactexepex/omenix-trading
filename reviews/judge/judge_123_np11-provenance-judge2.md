@@ -115,3 +115,65 @@ If no run's range covers it, the cleanup gate keeps it staged but nothing counts
 staged at fetch time. Say it in the story.
 
 **Verdict: PASS** (round 2, `fa3b90e`), with condition C1 to be met in the post-split head that gates the merge.
+
+## Addendum 2
+
+**Merge-gating re-confirmation at `423ac92`.** This is the rebased head: post-split main merged in, rows in
+`docs/NEWS_RECORD_CONTRACT.md`.
+
+**C1: met** (*strong evidence*, reproduced).
+- `open_days(report)` now decides per day: a damaged day is skipped alone and counted once (`_damaged`), and the other
+  days are still swept.
+- My probe at this head:
+  - a damaged `<DAY-3>.json`, a poll staged on DAY, then promote runs for DAY and DAY+1;
+  - `<DAY>.json` is written;
+  - the run reports `provenance_unreadable 1` and `ok == False`.
+- The daily "from today" probe still writes `<DAY>.json` once.
+- Row B23 and its plant (the old `return []`) are in.
+
+**Plants against main:**
+- 274 before and 302 after (28 new B ids); nothing lost.
+- Two entries are re-pointed, and both are correct:
+  - J6's `old` gains context: `cli.py` now holds two `return 0 if report.ok else 1`, and the runner replaces the first
+    match;
+  - X6 adds a test.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2037 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 639 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- The contract documents are 142 and 378 lines.
+- **The full plant runner: 302 of 302 `ok`.**
+
+**Verdict: PASS** (`423ac92`).
+
+## Addendum 3
+
+**Gating PASS at `24459f1`.**
+- `git diff 423ac92 24459f1`: two comment lines in `provenance/sweep.py` and 8 lines of story text. No executable line
+  changed.
+
+**Re-run at this exact SHA (locked venv, `__pycache__` cleared):**
+- **The damaged-day probe:** with a damaged `<DAY-3>.json` and a poll on DAY, `<DAY>.json` is written and
+  `provenance_unreadable 1` is reported, with `ok` False. C1 is general: `open_days` decides each day separately, and
+  `_damaged` counts once.
+- **The daily probe:** `<DAY>.json` is written once.
+- **Gates:**
+  - `pytest -q -n auto`: 2037 passed;
+  - `ruff check` and `ruff format --check`: clean;
+  - `check_imports`: 639 files clean;
+  - `test_code_size`: 3 passed;
+  - `check_numbers`: clean.
+- **The full plant runner: 302 of 302 `ok`.**
+
+**The stated limit.** A poll staged after its day already has a file goes in only through a range pass.
+- It is stated plainly in the story (`docs/stories/NP11-feed-provenance.md:123-124`), not in the contract's "Not
+  guaranteed" section.
+- It is not a silent loss of data. The cleanup gate keeps such a poll staged, so nothing is trashed, and it touches only
+  the provenance (recall-measurement) file, never archived articles.
+- What is missing is a count for that case. Add one line to the "Not guaranteed" section of
+  `docs/NEWS_RECORD_CONTRACT.md` in a later text edit, so the contract says it too. Not blocking.
+
+**Verdict: PASS** (`24459f1`).

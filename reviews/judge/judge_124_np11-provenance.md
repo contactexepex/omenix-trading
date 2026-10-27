@@ -61,3 +61,82 @@ In a venv installed from `requirements.lock`:
 No orders, no Groww, no secret. The join stays sealed in private Drive.
 
 ## Verdict: FAIL round 1 at e01cb08. B1 (pin "all" in the cleanup gate), B2 (pin the IST day) and B3 (build `provenance_polls_missing` and state the `--from` rule) required; N1 and N2 requested.
+
+## Addendum 1: round 2 logic at fa3b90e: PASS (the merge-gating re-confirm is on the post-split head)
+
+I reviewed `git diff e01cb08 fa3b90e`. It adds:
+- `provenance/sweep.py` (new);
+- in `writer.py`: `open_days`, `first_look` and `provenance_polls_missing`;
+- one line in `gate.py`;
+- tests and rows B18 to B22.
+
+As the orchestrator directed, `RECORD_CONTRACT.md` running a few lines over 500 is not held against this head: the docs split fixes it before merge.
+
+**Gates (locked venv, strong evidence).**
+- 2020 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 286 of 286 `ok`.**
+
+**B1, B2 and B3: each now pinned (strong evidence, my own plants against the full suite).**
+
+| Plant | e01cb08 | fa3b90e |
+|---|---|---|
+| B1: cleanup gate `all` → `any` | passed | 2 failed |
+| B2: `day_of` IST → UTC | passed | 3 failed |
+| B3: `provenance_polls_missing` dropped | (not built) | 2 failed |
+| the sweep not run | n/a | 4 failed |
+| the sweep reads only one of the two UTC days | n/a | 2 failed |
+| the poll identity is the path only (no fetch time) | n/a | 2 failed |
+
+**B3 is built in a stronger form than I asked (some evidence: read and planted).**
+- Every closed IST day of the last 9 that has no file is read from **all** staged polls of its two covering UTC days, whatever `--from` and `--to` say.
+- So there is no `--from` rule left to state. The sweep makes the UTC-against-IST gap of round 1 harmless: the first run after a day closes writes its file.
+- The 9-day lookback is more than the cleanup's 7-day keep, so the sweep reaches a poll before cleanup could take it. Cleanup's pairs gate still holds a poll whose pairs are not recorded in any case.
+
+**Two plants survive, but neither changes what is written (reasoned from the code).**
+1. **The sweep's IST-day filter removed.** `collector.add` files each pair under `day_of(poll.fetched_at)` anyway, so a poll from the neighbouring IST day lands in its own day, and is only an extra read.
+2. **`open_days` including today.** `flush` writes only `d < today`, so today's polls are read but not written.
+
+Both are efficiency, not correctness. No test is needed; a comment in `sweep.py` would help.
+
+**Note (not blocking).** A closed day with no articles (all polls empty or rejected) never gets a file, so the sweep re-lists it on every run for 9 days. That cost is bounded and small: say it in the story.
+
+**N1 and N2** are stated in the story.
+
+**Verdict: PASS at fa3b90e (the logic).** I will re-confirm the post-split rebased head (gates and the full runner) before merge.
+
+## Addendum 2: the merge-gating head 423ac92: PASS
+
+423ac92 is fa3b90e plus judge 123's C1 fix plus the post-split `main`. NP11's rows now live in `docs/NEWS_RECORD_CONTRACT.md`. I reviewed `git diff fa3b90e 423ac92 -- fno`. The only NP11 change is in `writer.py` and `sweep.py`:
+- `open_days(report)` now decides day by day;
+- a damaged day is skipped alone and counted once (`_damaged`, using `reported`).
+
+The rest of that diff is NP10 and NP9b coming in from `main`, each already passed (judge 120, judge 122).
+
+**Gates at 423ac92 (locked venv, strong evidence).**
+- 2037 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 302 of 302 `ok`.**
+
+**My round-1 findings are closed and pinned (my own plants against the full suite).**
+
+| Plant | Result |
+|---|---|
+| B1: `all` → `any` in `_recorded_feeds` | 2 failed |
+| B2: `day_of` IST → UTC | 3 failed |
+| B3: `provenance_polls_missing` dropped | 2 failed |
+
+**Judge 123's C1 is fixed in general.**
+- My plant restoring "one damaged day returns no days at all" fails 2 tests.
+- My plant counting a damaged day more than once fails 1 test.
+
+**The stated limit (story, "Judge 123 round 2 (C1) and a stated limit"): an acceptable documented limit, not a blocking silent gap (reasoned from the code).**
+- A poll staged for a day **after** that day already has a file is not swept again. It goes in only through a range pass whose `--from`/`--to` reaches that day.
+- **Why it is not blocking:**
+  - **Nothing is lost.** The cleanup gate (B21) keeps the poll staged until its pairs are recorded.
+  - **It is not silent.** The recall report counts the affected articles as `no_provenance`.
+  - **It touches only the recall-measurement file,** never the archived articles.
+  - **It is rare.** A poll is staged in the same run that fetches it, so it is staged during its own day.
+- **Recommended later, a small lane 1 change:** have the staging cleanup report count polls kept *because of provenance* separately, so a kept poll says why.
+
+**Verdict: PASS at 423ac92**, the merge-gating head.
