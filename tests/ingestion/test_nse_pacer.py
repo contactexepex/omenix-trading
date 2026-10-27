@@ -42,10 +42,10 @@ def run_bounded(call, bound=BOUND):
 class Pause:
     """A pacer whose host has just been refused twice and whose 15 minutes are over: the next request is the probe."""
 
-    def __init__(self, probe_wait=5.0, spacing=0.05):
+    def __init__(self, probe_wait=5.0, spacing=0.05, sleep=time.sleep):
         self.now = [1000.0]
         self.pacer = NsePacer(spacing={WWW: spacing, ARCHIVES: spacing}, clock=lambda: self.now[0],
-                              probe_wait_seconds=probe_wait)  # fmt: skip
+                              sleep=sleep, probe_wait_seconds=probe_wait)  # fmt: skip
         self.pacer.wait_turn(WWW)
         self.pacer.observe(WWW, 403)
         self.pacer.wait_turn(WWW)
@@ -91,13 +91,21 @@ def three_threads(pause, probe_answer):
 
 
 def test_after_the_pause_one_probe_goes_alone_and_a_good_answer_lets_the_others_through_one_spacing_apart():
-    pause = Pause()
-    began = time.monotonic()
-    outcomes, started, before = three_threads(pause, lambda: pause.pacer.observe(WWW, 200))
-    assert time.monotonic() - began < 2.0  # released by the answer, not by the 5 s limit on waiting
+    """Deterministic (no observed timing): the limit on waiting is far beyond the join bound, so threads that are not
+    released by the probe's answer fail as 'still blocked'; and the waits the limiter hands the released threads are
+    read from a recording sleep on the frozen clock, not measured after they wake."""
+    waits, lock = [], threading.Lock()
+
+    def record(seconds):
+        with lock:
+            waits.append(seconds)
+
+    pause = Pause(probe_wait=100 * BOUND, sleep=record)
+    waits.clear()  # the set-up's own spacing waits
+    outcomes, _, before = three_threads(pause, lambda: pause.pacer.observe(WWW, 200))
     assert list(outcomes.values()) == ["go"] * 3
     assert before == 1  # only the probe had started when it was answered
-    assert min(b - a for a, b in zip(started, started[1:])) > 0.03  # the released threads keep the per-host spacing
+    assert sorted(waits) == pytest.approx([0.05, 0.10])  # the probe's slot is free; the others one spacing apart
 
 
 def test_a_refused_probe_refuses_all_three_and_only_one_request_was_sent():
@@ -132,12 +140,12 @@ def test_a_waiter_gives_up_on_a_probe_that_never_answers_and_goes_ahead():
     pause.pacer.wait_turn(WWW)  # this is the probe; it never answers
     began = time.monotonic()
     assert run_bounded(lambda: pause.pacer.wait_turn(WWW)) is None  # a waiter: bounded, then it proceeds as normal
-    assert 0.15 <= time.monotonic() - began < 2.0
+    assert time.monotonic() - began >= 0.15  # it really waited; that it finished at all is run_bounded's check
     pause.pacer.wait_turn(WWW)  # and the host is closed afterwards (a half-open host would block again)
 
 
 def test_a_probe_that_raises_releases_the_waiters(monkeypatch):
-    pause = Pause()
+    pause = Pause(probe_wait=100 * BOUND)  # only the failed probe can release the waiter, not the limit on waiting
 
     def boom(self, method, url, *a, **k):
         time.sleep(0.2)
@@ -156,9 +164,7 @@ def test_a_probe_that_raises_releases_the_waiters(monkeypatch):
     thread = threading.Thread(target=run_probe, daemon=True)
     thread.start()
     time.sleep(0.05)  # the probe is in flight
-    began = time.monotonic()
-    assert run_bounded(lambda: pause.pacer.wait_turn(WWW), 3.0) is None  # released by the failed probe, not by the 5 s
-    assert time.monotonic() - began < 1.0
+    assert run_bounded(lambda: pause.pacer.wait_turn(WWW)) is None  # released by the failed probe
     thread.join(BOUND)
     assert not thread.is_alive() and len(errors) == 1
 
