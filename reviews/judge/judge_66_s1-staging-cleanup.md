@@ -80,3 +80,26 @@ Reviewed `git diff f41b1df d88f82c`. The content is in b112c6a and d88f82c; the 
 **Hard lines.** No order path, no secret, no Groww call, and no change to a recorded file. The live trash call is still untested offline, so the first live run is report only.
 
 **Verdict: PASS round 2 at d88f82c, on condition of the non-vacuous spy test for the feed-kind check.**
+
+## Addendum 2: superseded by c909933: PASS, the same condition still open
+
+The request named `c909930`, which does not exist; the branch tip is **c909933** ("resolve merge of main (RR1)"), and that is what I reviewed. Reviewed `git diff d88f82c c909933`.
+
+The delta is S1 code plus main's RR1 files through the merge. `git diff origin/main c909933` shows only S1 files.
+
+**What changed in S1, and what I checked.**
+- Rules are built only for the requested sources, so the feed list is read only when news is asked for. A source without a rule still falls to `NO_RULE` and is kept.
+- `plan.held is not None` is now explicit.
+- New tests: an unreadable copy turns the run red; the empty-poll guard (`all([])`).
+- The story now tells the owner to read the report before emptying the Drive trash.
+- No conflict markers remain (`git grep` on c909933 finds none).
+
+**Gates (strong evidence).** ruff, format and check_imports are clean; 1234 passed; contract plants all `ok`.
+
+**Condition from Addendum 1: still open.**
+- `test_an_unknown_feed_is_refused_before_the_poll_is_even_parsed` still uses the raising spy, which `except Exception` swallows.
+- My plant (an unknown feed given the kind "publisher") still passes all 62 staging-cleanup tests at c909933.
+- The fix is unchanged: a spy that records calls and passes through to the real `read_poll`, with an assert that it was called 0 times.
+- My Addendum 1 message most likely crossed with this commit.
+
+**Verdict: PASS at c909933, on condition of the non-vacuous spy test. The orchestrator checks that the plant fails, then merges. The minor point about `ArchiveFingerprints` having no direct test stands.**
