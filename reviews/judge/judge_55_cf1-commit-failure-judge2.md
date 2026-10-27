@@ -106,3 +106,29 @@ routine's exit code for a case that is already alerted. The story's limits are n
 (b) instead, that is a separate small change.
 
 **Verdict: PASS** (lane 1, CF1, judge #2).
+
+## Addendum 2: 4f9d6b1, F2 built as option (b) (PASS)
+
+SHA `4f9d6b1fef5f526ab39e3d99090a1ad2190944a7`, which replaces `a34b886`. The implementer reports that the
+orchestrator ruled F2 option (b). The orchestrator's last message to me said (a). Either way, this SHA is sound, and
+the difference is the orchestrator's to confirm.
+
+The change: `FOREIGN_STAGED_MARK` is read from the sync's own template (" NOT pulled or committed"), and
+`refused_for_foreign_staging(line)` uses it. Intraday `report` and the `rv` path now exit at least 1 when the refusal
+line is present, with no second alert (the sync alerts once per run). **Gates** (`__pycache__` cleared): 888 passed;
+ruff and imports clean.
+
+| Plant | Failed |
+|---|---|
+| The mark returns False / the mark widened to " NOT" / the exit not raised | 3 / 1 / 2 |
+| An extra alert / the `rv` path bypasses the new check | 3 / 1 |
+| Carried: the committer mark widened to "NOT" | 11 |
+
+The no-false-red, no-false-green and single-definition properties all still hold. The committer's mark still matches
+only its own line, and the sync's mark is a separate, explicit second signal.
+
+**Text nit for the merge:** the story says "the only green-without-commit case is a crashed commit step (it is red
+already ...)", which contradicts itself. It should read "the only not-committed case without a commit alert is a
+crashed commit step, which is red from its traceback."
+
+**Verdict: PASS** on `4f9d6b1` (lane 1, CF1, judge #2), and on `a34b886` if (a) stands.
