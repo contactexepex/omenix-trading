@@ -1,3 +1,1 @@
-nasdaq100
 sp500
-vix_us
