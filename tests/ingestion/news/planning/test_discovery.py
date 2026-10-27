@@ -42,7 +42,7 @@ BAD = [
     mutated(["search", "params"], {"a": 1}), mutated(["broad"], "text"), mutated(["broad"], [""]),
     mutated(["broad"], ["x" * 201]), mutated(["broad"], ["q"] * 301), mutated(["targeted_template"], "no slot"),
     mutated(["targeted_template"], "{name} and {name}"), mutated(["targeted_template"], "{name} {other}"),
-    mutated(["targeted_template"], "{name} }"), mutated(["publisher_feeds"], [{"id": "q-abcdef12", "url": "https://h.example/x"}]),
+    mutated(["targeted_template"], "{name} }"), mutated(["publisher_feeds"], [{"id": "q-abcdef123456", "url": "https://h.example/x"}]),
     mutated(["publisher_feeds"], [{"id": "feed-01", "url": "http://h.example/x"}]),
     mutated(["publisher_feeds"], [{"id": "feed-01", "url": "https://h.example/x"}] * 2),
     mutated(["publisher_feeds"], [{"id": "feed-01"}]),

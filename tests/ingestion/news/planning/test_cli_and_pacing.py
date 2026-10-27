@@ -85,13 +85,24 @@ def test_an_unexpected_error_prints_only_its_class(tmp_path, monkeypatch):
 # ---- the widened feed id ---------------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("good", ["feed-01", "feed-123", "q-0123abcd"])
+@pytest.mark.parametrize("good", ["feed-01", "feed-123", "q-0123456789ab"])
 def test_the_ids_a_feed_list_accepts(good):
     assert FEED_ID.match(good)
 
 
 @pytest.mark.parametrize(
-    "bad", ["q-ABCDEF12", "q-123", "q-0123abcde", "feed-1", "feed-01\n", "q-0123abcd\n", "x-0123abcd", ""]
+    "bad",
+    [
+        "q-ABCDEF123456",
+        "q-123",
+        "q-0123456789abc",
+        "feed-1",
+        "feed-01\n",
+        "q-0123456789ab\n",
+        "x-0123456789ab",
+        "q-0123456789ab",
+        "",
+    ],
 )
 def test_the_ids_it_refuses_a_trailing_line_break_included(bad):
     assert not FEED_ID.match(bad)
@@ -105,7 +116,7 @@ def feed_list(*entries) -> FeedList:
 
 
 def test_search_hosts_are_paced_1_5_seconds_apart_and_every_other_host_keeps_the_default():
-    feeds = feed_list(("q-0123abcd", "https://search.svc.example/s?q=1", WRAPPER),
+    feeds = feed_list(("q-0123456789ab", "https://search.svc.example/s?q=1", WRAPPER),
                       ("feed-01", "https://feeds.pub.example/rss", PUBLISHER))  # fmt: skip
     pacer = pacer_for(feeds)
     assert pacer.spacing == {"search.svc.example": WRAPPER_SPACING_SECONDS} and WRAPPER_SPACING_SECONDS == 1.5
@@ -113,12 +124,12 @@ def test_search_hosts_are_paced_1_5_seconds_apart_and_every_other_host_keeps_the
 
 
 def test_the_nse_spacing_table_is_not_changed_by_the_news_pacer():
-    pacer_for(feed_list(("q-0123abcd", "https://search.svc.example/s?q=1", WRAPPER)))
+    pacer_for(feed_list(("q-0123456789ab", "https://search.svc.example/s?q=1", WRAPPER)))
     assert HOST_SPACING_SECONDS == {"www.nseindia.com": 1.0, "nsearchives.nseindia.com": 1.0}
 
 
 def test_the_session_takes_the_pacer_of_the_run_and_the_job_sets_it_before_the_first_request():
-    feeds = feed_list(("q-0123abcd", "https://search.svc.example/s?q=1", WRAPPER))
+    feeds = feed_list(("q-0123456789ab", "https://search.svc.example/s?q=1", WRAPPER))
     session = NewsSession()
     before = session.pacer
     session.pace_for(feeds)

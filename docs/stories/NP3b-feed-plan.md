@@ -15,19 +15,19 @@ a company, a URL or an id.
   feeds (`feed-NN` ids). Nothing in code names the service, a query or a company.
 - `FeedPlanner` (`planning/planner.py`): pure. One feed per broad query, one per **targeted** company, plus the publisher
   feeds. A repeat of a query (case and spacing ignored) is planned once. The query is URL-encoded into the address (D6).
-- **Ids** (`planning/query_id.py`, D1/D2): `q-` plus 8 hex of an HMAC-SHA-256, keyed with the feed list's private salt, over
+- **Ids** (`planning/query_id.py`, D1/D2): `q-` plus 12 hex of an HMAC-SHA-256, keyed with the feed list's private salt, over
   the kind and the normalised query. Same query, same id, however the list is ordered or extended; unguessable without the
   salt (feed ids are public in `polls.csv`). The first list gets a fresh random salt (never printed); later lists keep it.
   The salt and `normalise_query` are frozen.
 - **Safety checks** (D3 to D5): two queries on one id are refused; an id an earlier list gave another kind is refused; the
   plan's bytes are parsed with the feed list's own checks before they are returned.
-- **Three small changes to P2 code, each behaviour-preserving for existing feeds:** `FEED_ID` also accepts `q-<8 hex>` and
+- **Three small changes to P2 code, each behaviour-preserving for existing feeds:** `FEED_ID` also accepts `q-<12 hex>` and
   now rejects a trailing line break (it used `$`; D9); `MAX_FEEDS` 50 to 600; the news session takes a per-run pacer built
   from the feed list (`news/pacing.py`: search hosts 1.5 s apart, all other hosts the default 1 s; D7, D8). `FeedList`
   carries its (private) salt, hidden from `repr`. `fno/shared/nse_pacer.py` is not touched and a test pins the NSE table.
 
 ## Said plainly
-- **A collision of two queries on 8 hex characters** (32 bits; about 4 in 100,000 per plan at 600 feeds) stops the plan with
+- **A collision of two queries on 12 hex characters** (48 bits; about 6 in 10,000,000,000 per plan at 600 feeds; orchestrator's tweak from 8 hex, whose 4 in 100,000 per plan would have failed a whole plan) stops the plan with
   `feed_plan_collision`; the owner rewords one query. With the salt frozen it cannot be worked around by re-hashing.
 - **Load:** one request per planned feed per run at 1.5 s: 200 feeds take about 5 minutes. Staging volume against the cleanup limit
   is the NP3 plan's section 6 and is not decided here.

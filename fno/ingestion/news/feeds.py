@@ -19,7 +19,7 @@ from fno.ingestion.news.versioned import ErrorCodes, VersionedFiles
 from fno.ingestion.storage.raw_store import RawFileStore
 
 FEEDS_FOLDER = "feeds"
-FEED_ID = re.compile(r"\A(?:feed-\d{2,3}|q-[0-9a-f]{8})\Z")  # a listed feed, or a planned one (NP3b)
+FEED_ID = re.compile(r"\A(?:feed-\d{2,3}|q-[0-9a-f]{12})\Z")  # a listed feed, or a planned one (NP3b)
 MAX_FEEDS = 600
 MIN_SALT_LENGTH = 16  # a random salt makes the list's logged SHA-256 useless for confirming a guessed list
 

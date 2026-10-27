@@ -10,7 +10,7 @@ import hashlib
 import hmac
 
 ID_PREFIX = "q-"
-ID_HEX_LENGTH = 8
+ID_HEX_LENGTH = 12
 
 
 def normalise_query(query: str) -> str:
