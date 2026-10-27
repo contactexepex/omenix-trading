@@ -22,7 +22,7 @@ from fno.ingestion.news.record.manifest import RECORDED, REVISION
 from fno.ingestion.storage.raw_store import RawFileConflict, RawFileStore
 
 ARTICLES, REVISIONS = "news/articles", "news/revisions"
-UNCOMPARED = ("first_seen_at", "format")
+UNCOMPARED = ("first_seen_at", "format", "wrapper_link")  # a redirect token may change between polls of one item
 
 
 class Outcome(Enum):

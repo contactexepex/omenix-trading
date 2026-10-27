@@ -1,44 +1,48 @@
 # NP2a: article format 2 and the source facts (BUILT, awaiting two judges)
 
 Lane 1, **two judges** (it changes what is written to the write-once Record and how a re-seen article is judged). Plan:
-[NP0-news-port-plan.md](NP0-news-port-plan.md) section 3. Builds on [NP1](NP1-source-rules.md) only for the pure `plain_host`. It does
-**not** resolve links (that is NP2b, held for the owner's terms and decoder answers) and fetches nothing.
+[NP0-news-port-plan.md](NP0-news-port-plan.md) (judge 70 PASS, merged) section 3. Stacked on [NP1](NP1-source-rules.md) only for the
+pure `plain_host`; **merges after NP1**, and NP1 waits for the owner's decision H. It resolves no link (that is NP2b/NP2c, held for the
+owner's terms and decoder answers) and makes no request.
 
 ## What it changes
-- **The article file is format 2** (`Article` gains `source_domain`, `source_url`, `url_status`). Only format 2 is written; formats 1
-  and 2 are read (`article_from_bytes`, now the one definition, used by the cluster source). An unknown format, a missing key or an
+- **The article file is format 2.** `Article` gains `source_domain` and `wrapper_link`. Only format 2 is written; formats 1 and 2 are
+  read through one definition (`article_from_bytes`, also used by the cluster source). An unknown format, a missing key or an
   unknown extra key is refused.
-- **`RawItem.source_url`**: the `url` attribute of an item's `<source>` element, which Google News fills with the outlet's home page.
-  It is Google's own claim of the outlet; no request is made for it.
-- **`source_facts.py`** (pure): a publisher item with an https link has that link as its source (`publisher`); one with no usable link
-  has none (`none`); a Google News item's link is a redirect wrapper and is never the source: its domain is the `<source>` host when
-  that is an https plain host with no credentials and no port, its URL stays empty, its status is `undecoded`.
-- **`planner.same_version`**: two article files are compared on the fields both carry.
+- **`RawItem.source_url`**: the `url` attribute of an item's `<source>` element (Google News: the outlet's home page). Google's claim of
+  the outlet; no request is made for it.
+- **`source_facts.py`** (pure): a publisher item's `source_domain` is the host of its https link; a Google News item's is the host of its
+  `<source url>` when that is an https plain host with no credentials and no port. A Google News item also keeps its redirect link as
+  `wrapper_link` when it is a plain https link, **so the resolve pass (NP2c) can work from the Record alone**.
+- **`planner.same_version`**: two article files are compared on the fields both carry; `wrapper_link` is not compared at all.
 
 ## Decisions and why
-- **Facts only; no tier in the file.** NP0 listed `tier`, `origin_wire`, `promotional`, `tickers` and `priority` among the new fields.
-  **I am correcting that here:** each depends on a rule file (the allowlist, the watchlist), and a field that depends on a rule file
-  would make every edit of the rule a "revision" of every re-seen article (the compared fields would change). So the file stores what
-  the feed said (domain, URL, status) and NP5/NP6 compute the judgements on read. Contract row F5 pins it. (Strong evidence: the planner
-  compares every non-`first_seen_at` field.)
-- **The migration trap NP0 named is real and a second one was found.** (1) `planner.UNCOMPARED` would have treated every format 1 file
-  as different from its format 2 twin: fixed by comparing on shared fields (F2). (2) `article_from_bytes` raised on any format other
-  than the current one, so bumping the format would have made every format 1 article "unreadable" and the cluster run would have
-  written nothing: fixed by `READABLE_FORMATS = (1, 2)` (F1). Both are reproduced by the new tests.
-- **A source fact found later is a revision, never an overwrite** (F3): two format 2 files that differ in `source_url` are different
-  versions, so NP2b can add a resolved URL through the existing revision path with no new mechanism.
-- **A publisher feed's link host is taken as is.** NP0 said the feed host and the link host should agree. I did not build that: the
-  fetcher's feed host is not known where the article is built, the tier comes from the link's own host (a feed cannot lift a domain
-  above what that domain is), and a disagreement check would reject legitimate syndication. Reasoning only; the judges may overrule.
-- **No article already in the Record is rewritten or back-filled.** (Contract: nothing has been promoted for real yet, so there may be
-  none.)
+- **Facts only.** No tier, wire, promotional flag, tickers, priority, resolved URL or URL status in the file (NP0 section 3, row F5).
+- **The wrapper key is unchanged** (`keys.py` is not touched): it never depends on the link, the source facts or whether a link was
+  resolved (row F8). So resolving can never re-key a Google article.
+- **Two migration traps, both reproduced by the tests:** the version comparison (rows F2, F3) and the cluster reader that refused any
+  format but the current one (row F1; bumping the format would have made every old article "unreadable" and the cluster run write nothing).
+- **`wrapper_link` is not compared** (row F7): a redirect token may change between polls of one item, and a changed link must not
+  record a revision. It is kept only when it is a plain https link (row F6).
+- **No host name of a news service is written in code.** `tests/ingestion/news/test_privacy.py` (P2's invariant 1) fails on the string of
+  the Google News host anywhere in `fno/`. So `wrapper_link` accepts any plain https link here, and the **resolver (NP2b) must accept
+  only Google hosts** (its egress guard) and refuse the rest; a wrapper link that points elsewhere is simply never requested.
+  **Heads-up for NP0 section 2a:** the planned entry for the Google host in `HOST_SPACING_SECONDS` (`fno/shared/nse_pacer.py`) would
+  trip the same test. NP2b/NP3 must either read the host from the private feed list (the wrapper-kind feed's own host) or the owner/judges
+  relax the test for one named constant. I did not decide that here.
+- **A publisher feed's link host is taken as is** (NP0 round 1 asked for host agreement; not built: the feed host is not known where
+  the article is built, the tier comes from the link's own host so a feed cannot lift a domain, and agreement would reject legitimate
+  syndication; reasoning only, judges may overrule).
+- **Reversal of a P2 test assertion:** `test_a_wrapper_article_holds_no_url...` used to assert the redirect link is not in the file at all.
+  It now asserts it is only in `wrapper_link` and not in `canonical_url`. This is NP0's approved N3 mechanism, not a slip.
 
-## What is NOT established
-- Google's `<source url>` has been seen in agentic's rows (its `source_domain` is built from it, strong evidence) but never checked
-  against omenix's own feed list; NP2b's probe does that.
-- `url_status` has three values today; NP2b adds `resolved` for a decoded URL.
+## Known limits (intended, stated so they are not silent gaps)
+- **Every Google article recorded before this story has no `wrapper_link` and can never be resolved**: its source URL stays empty and its
+  tier stays `unlisted`. No back-fill (judge 70). Nothing has been promoted for real yet, so there may be none.
+- Google's `<source url>` has been seen in agentic's rows (strong evidence) but not in omenix's own feeds; NP2b's probe checks.
 
 ## Judges: please try to break
-1. A format 1 file that the new code reads or compares wrongly (try a v1 file with a `source_domain` key, a v1 file whose title differs).
-2. A way to make the planner call different articles "the same version" (the shared-field rule) or the same article different.
-3. A value from the feed that reaches `source_domain` or `source_url` without the https / plain-host / no-credentials / no-port check.
+1. A format 1 file that the new code reads or compares wrongly.
+2. A way to make the planner call different articles "the same version" (shared fields, `wrapper_link` excluded) or one article different.
+3. A value from the feed that reaches `source_domain` or `wrapper_link` without the https / plain-host / no-credentials / no-port check.
+4. Anything that changes a wrapper key.

@@ -31,8 +31,7 @@ class Article:
     time_source: str
     first_seen_at: str
     source_domain: str = ""  # the outlet's plain host ("" unknown); a fact, never a tier
-    source_url: str = ""  # the article's own https URL ("" until known)
-    url_status: str = ""  # publisher | undecoded | none ("" in a format 1 file)
+    wrapper_link: str = ""  # a Google News item's redirect link, kept so it can be resolved later (NP2c)
 
     def fixed_fields(self) -> tuple:
         """What a re-poll is compared on: everything but when it was first seen."""
@@ -46,7 +45,7 @@ class Article:
 def build_article(kind: str, item: RawItem, seen_at: datetime) -> Article:
     published, time_source = parse_time(item.published)
     link = canonical_url(item.link) if kind == PUBLISHER and item.link.strip() else ""
-    facts = source_facts(kind, link, item.source_url)
+    facts = source_facts(kind, link, item.link, item.source_url)
     return Article(
         key=item_key(kind, item, published),
         kind=kind,
@@ -58,8 +57,7 @@ def build_article(kind: str, item: RawItem, seen_at: datetime) -> Article:
         time_source=time_source,
         first_seen_at=seen_at.isoformat(timespec="seconds"),
         source_domain=facts.domain,
-        source_url=facts.url,
-        url_status=facts.status,
+        wrapper_link=facts.wrapper_link,
     )
 
 

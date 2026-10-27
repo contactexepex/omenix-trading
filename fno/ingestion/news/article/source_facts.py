@@ -1,12 +1,15 @@
-"""Where an article came from, as FACTS (NP2a): the outlet's host, the article's own URL when the feed gave one,
-and how sure we are. Nothing here comes from a rule file: the tier, the wire and the promotional flag are computed when
-the article is READ (NP5/NP6), so editing the allowlist or the watchlist never changes a recorded article's bytes.
+"""Where an article came from, as FACTS (NP2a; NP0 section 3): the outlet's host, and for a Google News item the
+redirect link kept so it can be resolved later. Nothing here comes from a rule file: the tier, the wire and the
+promotional flag are computed when the article is READ (NP5/NP6), so editing the allowlist or the watchlist never
+changes a recorded article's bytes. The resolved URL is not here either: it goes to its own write-once file (NP2c),
+never into the article or its key.
 
-- a publisher item with an https link: the link is the source URL, its host the source domain (`publisher`);
-- a publisher item with no link, or one that is not https: nothing (`none`);
+- a publisher item: its source domain is the host of its https link ("" when it has none or it is not https);
 - a Google News item: the link is a redirect wrapper and is NOT the source. The only host we have is the `url` of
-  Google's own <source> element, taken only when it is https and a plain host name; the URL stays empty until the link
-  is resolved (`undecoded`; NP2b)."""
+  Google's own <source> element, taken only when it is https and a plain host name. The wrapper link itself is kept (so
+  the item can be resolved from the Record alone), but only when it is a plain https link. No host name of a news
+  service is written here: P2's privacy test forbids it. The resolver (NP2b) accepts only Google hosts and refuses the
+  rest, so a wrapper link that points elsewhere is never requested."""
 
 from __future__ import annotations
 
@@ -16,16 +19,13 @@ from urllib.parse import urlsplit
 from fno.ingestion.news.article.keys import PUBLISHER
 from fno.ingestion.news.sources.rules import plain_host
 
-URL_PUBLISHER, URL_UNDECODED, URL_NONE = "publisher", "undecoded", "none"
-URL_STATUSES = (URL_PUBLISHER, URL_UNDECODED, URL_NONE)
 HTTPS = "https"
 
 
 @dataclass(frozen=True)
 class SourceFacts:
     domain: str = ""
-    url: str = ""
-    status: str = ""
+    wrapper_link: str = ""
 
 
 def https_host(url: str) -> str:
@@ -41,9 +41,10 @@ def https_host(url: str) -> str:
         return ""
 
 
-def source_facts(kind: str, link_canonical: str, source_url: str) -> SourceFacts:
-    """`link_canonical`: the canonical form of a publisher item's link ("" for none); `source_url`: the <source> url."""
+def source_facts(kind: str, link_canonical: str, link: str, source_url: str) -> SourceFacts:
+    """`link_canonical`: the canonical form of a publisher item's link ("" for none); `link`: the item's link as given;
+    `source_url`: the `url` of its <source> element."""
     if kind == PUBLISHER:
-        host = https_host(link_canonical) if link_canonical else ""
-        return SourceFacts(host, link_canonical, URL_PUBLISHER) if host else SourceFacts("", "", URL_NONE)
-    return SourceFacts(https_host(source_url), "", URL_UNDECODED)
+        return SourceFacts(https_host(link_canonical) if link_canonical else "")
+    wrapper = link.strip() if https_host(link) else ""
+    return SourceFacts(https_host(source_url), wrapper)

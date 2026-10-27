@@ -449,8 +449,8 @@
    "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "        return bool(outlet and outlet.fetch)",
-  "new": "        return True"
+  "old": "        if outlet is None or not outlet.fetch:\n            return False",
+  "new": "        if outlet is None:\n            return False"
  },
  {
   "id": "O4",
@@ -520,7 +520,7 @@
  {
   "id": "F3",
   "tests": [
-   "tests/ingestion/news/record/test_format_compat.py::test_two_format_2_files_that_differ_only_in_a_format_2_field_are_a_revision",
+   "tests/ingestion/news/record/test_format_compat.py::test_two_format_2_files_that_differ_in_the_source_domain_are_a_revision",
    "tests/ingestion/news/record/test_format_compat.py::test_a_damaged_held_file_or_files_sharing_no_field_are_never_the_same_version"
   ],
   "file": "fno/ingestion/news/record/planner.py",
@@ -531,8 +531,8 @@
   "id": "F4",
   "tests": [
    "tests/ingestion/news/article/test_source_facts.py::test_a_source_element_that_is_not_an_https_plain_host_gives_no_domain",
-   "tests/ingestion/news/article/test_source_facts.py::test_a_google_news_item_takes_the_outlet_host_from_its_source_element_and_leaves_the_url_empty",
-   "tests/ingestion/news/article/test_source_facts.py::test_a_publisher_item_without_a_usable_https_link_has_no_source"
+   "tests/ingestion/news/article/test_source_facts.py::test_a_google_news_item_takes_the_outlet_host_from_its_source_element_and_keeps_its_wrapper_link",
+   "tests/ingestion/news/article/test_source_facts.py::test_a_publisher_item_without_a_usable_https_link_has_no_source_domain"
   ],
   "file": "fno/ingestion/news/article/source_facts.py",
   "old": "        if parts.scheme.lower() != HTTPS or parts.username is not None or parts.password is not None:",
@@ -541,7 +541,7 @@
  {
   "id": "F5",
   "tests": [
-   "tests/ingestion/news/article/test_source_facts.py::test_no_tier_wire_or_promotional_judgement_is_written_into_an_article_file"
+   "tests/ingestion/news/article/test_source_facts.py::test_no_judgement_and_no_resolved_url_is_written_into_an_article_file"
   ],
   "file": "fno/ingestion/news/article/article_file.py",
   "old": "        document = {\"format\": FORMAT, **asdict(self)}",
@@ -600,5 +600,32 @@
   "file": "fno/ingestion/news/sources/rules.py",
   "old": "        domain = self._label_domain.get(key) if key else None  # an empty label names nothing",
   "new": "        domain = self._label_domain.get(key)"
+ },
+ {
+  "id": "F6",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_a_wrapper_link_that_is_not_a_plain_https_link_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/article/source_facts.py",
+  "old": "    wrapper = link.strip() if https_host(link) else \"\"",
+  "new": "    wrapper = link.strip()"
+ },
+ {
+  "id": "F7",
+  "tests": [
+   "tests/ingestion/news/record/test_format_compat.py::test_a_changed_redirect_link_is_not_a_new_version_so_a_moving_token_never_makes_revisions"
+  ],
+  "file": "fno/ingestion/news/record/planner.py",
+  "old": "UNCOMPARED = (\"first_seen_at\", \"format\", \"wrapper_link\")",
+  "new": "UNCOMPARED = (\"first_seen_at\", \"format\")"
+ },
+ {
+  "id": "F8",
+  "tests": [
+   "tests/ingestion/news/article/test_source_facts.py::test_the_wrapper_key_does_not_depend_on_the_link_or_the_source_facts"
+  ],
+  "file": "fno/ingestion/news/article/keys.py",
+  "old": "            return _digest(\"google-news\", \"guid\", item.guid.strip())",
+  "new": "            return _digest(\"google-news\", \"guid\", item.guid.strip(), item.link)"
  }
 ]
