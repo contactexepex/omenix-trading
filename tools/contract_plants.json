@@ -2203,5 +2203,71 @@
   "file": "fno/ingestion/news/cluster_record/report.py",
   "old": "\"resolutions_used\", \"companies_version\",",
   "new": "\"resolutions_used\","
+ },
+ {
+  "id": "J1",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_the_shape_counts_clusters_singletons_the_largest_and_the_size_buckets"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "tuple(sum(low <= n <= high for n in sizes) for low, high in SIZE_BUCKETS),",
+  "new": "tuple(sum(low < n <= high for n in sizes) for low, high in SIZE_BUCKETS),"
+ },
+ {
+  "id": "J2",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_a_cluster_that_merges_or_splits_the_others_is_counted_once_each_way"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "return Crossing(_spanning(shared, in_second, in_first), _spanning(shared, in_first, in_second))",
+  "new": "return Crossing(_spanning(shared, in_first, in_second), _spanning(shared, in_second, in_first))"
+ },
+ {
+  "id": "J3",
+  "tests": [
+   "tests/ingestion/news/compare/test_metrics.py::test_coverage_counts_tagged_high_confidence_and_how_many_companies_reach_each_threshold",
+   "tests/ingestion/news/compare/test_metrics.py::test_the_metrics_hold_no_key_title_or_symbol"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "high += tag.confidence == HIGH",
+  "new": "high += bool(tag.symbols)"
+ },
+ {
+  "id": "J4",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_has_no_way_to_write"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "class ComparisonRun:\n    def __init__(self, source: ArticleSource, grouping: SymbolGrouping):\n        self.source, self.grouping = source, grouping",
+  "new": "class ComparisonRun:\n    def __init__(self, source: ArticleSource, grouping: SymbolGrouping):\n        self.source, self.grouping = source, grouping\n        self.writer = ClusterWriter"
+ },
+ {
+  "id": "J5",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_a_company_list_that_exists_but_cannot_be_read_stops_the_comparison_with_its_code",
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_no_list_at_all_still_compares_with_version_zero"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "report.rejected[str(blocked)] += 1",
+  "new": "pass"
+ },
+ {
+  "id": "J6",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_command_prints_the_lines_and_exits_zero_or_one_and_never_a_traceback"
+  ],
+  "file": "fno/ingestion/news/cli.py",
+  "old": "return 0 if report.ok else 1",
+  "new": "return 0"
+ },
+ {
+  "id": "J7",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing"
+  ],
+  "file": ".github/workflows/news-compare-clusterings.yml",
+  "old": "  contents: read",
+  "new": "  contents: write"
  }
 ]

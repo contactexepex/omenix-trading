@@ -20,6 +20,7 @@ NOT_PACED = {
     "data-checks.yml",
     "news-promote.yml",
     "news-cluster.yml",
+    "news-compare-clusterings.yml",
     "news-resolve.yml",
     "news-probe-outlets.yml",
     "news-read-pages.yml",

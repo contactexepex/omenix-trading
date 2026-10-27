@@ -53,6 +53,12 @@ def add_news_parser(subparsers) -> None:
     cluster.add_argument("--algorithm", choices=("1", "2"), default="1",
                          help="algorithm version (default 1; 2: company list + resolutions)")  # fmt: skip
     cluster.set_defaults(func=cmd_news_cluster)
+    compare = actions.add_parser(
+        "compare-clusterings", help="cluster the recent articles with version 1 and 2 in memory and print counts (NP3c)"
+    )
+    compare.add_argument("--as-of", dest="as_of", type=_utc_moment, default=None,
+                         help="the window end, ISO with a zone (default: now, floored to the hour)")  # fmt: skip
+    compare.set_defaults(func=cmd_news_compare)
     check = actions.add_parser(
         "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
     )
@@ -180,3 +186,17 @@ def cmd_news_cluster(args, out=print) -> int:
     if not ok:
         out(build_alert_sender().send(CLUSTER_ALERT.format(line=alert)))
     return 0 if ok else 1
+
+
+def cmd_news_compare(args, out=print) -> int:
+    """Counts of version 1 against version 2 over the same articles. Read only: writes nothing, sends no alert."""
+    from fno.ingestion.news.compare.wiring import build_comparison
+
+    as_of = args.as_of or now_utc().replace(minute=0, second=0, microsecond=0)
+    try:
+        report = build_comparison().run(as_of)
+        out(report.line())
+        return 0 if report.ok else 1
+    except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
+        out(f"news compare-clusterings stopped: {codes.UNEXPECTED} {type(unexpected).__name__}")
+        return 1

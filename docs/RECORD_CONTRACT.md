@@ -381,6 +381,18 @@ The plan called these rows W1 to W12; `W0` to `W6` already belong to the write-o
 | Z14 | Only the window's Google News items have a resolution file read. | `SymbolGrouping._resolutions` | `tests/ingestion/news/cluster_record/test_version_two_run.py::test_only_the_windows_google_news_items_have_their_resolution_file_read` | every file read | **tested, plant run** |
 | Z15 | The file carries every number the run handed it, each under its own name. | `cluster_file_bytes` | `tests/ingestion/news/cluster_record/test_version_two_run.py::test_every_number_the_run_hands_the_file_is_written_under_its_own_name` | count not written | **tested, plant run** |
 
+## Clustering comparison (NP3c)
+
+| # | Claim | Enforced by | Pinned by | Plant that makes a test fail | Strength |
+|---|---|---|---|---|---|
+| J1 | The shape counts clusters, singletons, the largest and the size buckets. | `shape_of` | `tests/ingestion/news/compare/test_metrics.py::test_the_shape_counts_clusters_singletons_the_largest_and_the_size_buckets` | bucket edge | **tested, plant run** |
+| J2 | A cluster that merges, or splits, the other algorithm's clusters is counted once each way. | `crossing` | `tests/ingestion/news/compare/test_metrics.py::test_a_cluster_that_merges_or_splits_the_others_is_counted_once_each_way` | directions swapped | **tested, plant run** |
+| J3 | Tag coverage counts tagged and high-confidence articles and the companies reaching each threshold, with no names. | `coverage` | `tests/ingestion/news/compare/test_metrics.py::test_coverage_counts_tagged_high_confidence_and_how_many_companies_reach_each_threshold`<br>`tests/ingestion/news/compare/test_metrics.py::test_the_metrics_hold_no_key_title_or_symbol` | any tag counts as high | **tested, plant run** |
+| J4 | The comparison writes nothing to the Drive or the manifests and prints no title, URL or outlet. | `ComparisonRun` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story`<br>`tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_has_no_way_to_write` | a writer appears | **tested, plant run** |
+| J5 | A company list that exists but cannot be read stops the comparison with its code; no list at all compares with version 0. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_a_company_list_that_exists_but_cannot_be_read_stops_the_comparison_with_its_code`<br>`tests/ingestion/news/compare/test_run_cli_workflow.py::test_no_list_at_all_still_compares_with_version_zero` | unusable list ignored | **tested, plant run** |
+| J6 | The command exits 0 only for a clean comparison and prints only the class of an unexpected error. | `cmd_news_compare` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_command_prints_the_lines_and_exits_zero_or_one_and_never_a_traceback` | failure exits 0 | **tested, plant run** |
+| J7 | The workflow is manual, read only, commits nothing and sends no alert. | `news-compare-clusterings.yml` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing` | can commit | **tested, plant run** |
+
 ## Not guaranteed (said plainly)
 
 - **No credential separation.** Staging and the Record share one Drive credential and one folder; "only the gate writes the Record" is a property of the
