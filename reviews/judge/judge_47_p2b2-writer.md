@@ -130,3 +130,31 @@ a crashed run.
 kind; add a new feed id"). It is not a finding.
 
 **Verdict unchanged: FAIL.** Required: W1, W2 and B.
+
+## Addendum 2: round 2, 321faad: FAIL, B (the torn manifest line) not addressed
+
+Reviewed `321faad7fed9bb6f7564c29628811a07e9b930a1`, which is 2ad37d2 plus fafff43 and 321faad.
+
+**Gates:** 752 passed, 2 runs out of 2. ruff, imports (441 files) and size are clean.
+
+**Closed (strong evidence: plants and a re-run of my probe):**
+
+| Item | Evidence |
+|---|---|
+| W1 | The "revision bytes without a row" plant is now caught. |
+| W2 | My retired-feed probe now gives `ok=True` for a later range. The "unknown check unscoped" and "never reports unknown" plants are caught. |
+| The sha8 compare (should-fix) | A held revision with other fixed fields is now `RawFileConflict` (→ `record_conflict`), never a NO_OP. The plant removing the compare is caught. |
+| The `record_conflict` comment | Widened. |
+| Judge 2's S2: `kinds_ever_listed` | Feed kinds now come from the union of every valid version. One id with two kinds stops the run with `feed_kind_changed`; an unreadable version is skipped. Plants "a kind change allowed" and "kinds from the newest list only" are caught. This is sound, and it is stricter than the documented limit, because a kind change is now caught rather than only documented. |
+
+**Still open: B, required (Addendum 1).**
+
+`fno/ingestion/news/record/manifest.py` is unchanged from 2ad37d2 (`git diff --quiet`). My reproduction at 321faad:
+after a torn trailing line, the next `add` is still glued on (`reco2026-10-28`), and the new id is still not recorded on
+reload.
+
+This is a silent corruption of a public, append-only file. The fix is still: write through `CsvRowLog` with
+`check_appendable` (a loud `TableFileBroken`), skip and count malformed rows on load, and add a torn-line test.
+
+**Verdict at 321faad: FAIL (round 2 of 2)**, on B alone. Everything else passes. It goes to the orchestrator under the
+two-round rule. My recommendation: fold B (a few lines plus one test), then a bounded re-check of B only.
