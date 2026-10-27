@@ -48,6 +48,9 @@ CLUSTER_RECORD_FAILED = "cluster_record_failed"  # Drive or the manifest would n
 ARTICLE_UNREADABLE = (
     "article_unreadable"  # a recorded article's file is missing or damaged: counted, nothing is written
 )
+RESOLUTION_UNREADABLE = (
+    "resolution_unreadable"  # a resolution file of the window is damaged (NP6a): counted, nothing is written
+)
 WINDOW_IN_FUTURE = (
     "window_in_future"  # a window end later than now (floored to the hour): it would write a file that cannot be stable
 )
@@ -59,6 +62,9 @@ COMPANY_LIST_MISSING = "company_list_missing"
 COMPANY_LIST_INVALID = "company_list_invalid"
 COMPANY_LIST_ROLLED_BACK = "company_list_rolled_back"
 COMPANY_LIST_DAMAGED = "company_list_damaged"
+COMPANY_LIST_UNAVAILABLE = (
+    "company_list_unavailable"  # the store could not be read at all (NP6a): a clustering run stops
+)
 COMPANY_LIST_EXISTS = "company_list_exists"  # a seed is never written over an existing list
 SEED_SOURCE_MISSING = "seed_source_missing"  # the archived NSE list the seed is built from could not be read
 # the feed plan (NP3b): fixed codes; the discovery file and the plan are the owner's private content

@@ -19,6 +19,7 @@ from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.cluster.assign import assign
 from fno.ingestion.news.cluster.cluster_id import cluster_id, replaced_ids
 from fno.ingestion.news.cluster.matcher import Matcher, Prepared
+from fno.ingestion.news.cluster.prepare import Preparer
 from fno.ingestion.news.cluster.similarity import Jaccard, Similarity
 from fno.ingestion.news.cluster.window import in_window
 
@@ -42,6 +43,13 @@ class Clustering:
     clusters: tuple[Cluster, ...]
     outside_window: int  # distinct articles not looked at this run (stay in the Record)
     repeated_keys: int  # inputs whose key was already given
+    url_joins: int = 0  # version 2: articles joined to a cluster by their URL
+    url_joins_unlike_title: int = (
+        0  # version 2: of those, joins the title rule would not have made (C1: a generic URL?)
+    )
+    url_joins_refused: int = 0  # version 2: links that identify no story
+    companies_version: int = 0  # version 2, set by the run: the company list used, 0 when no list exists at all
+    resolutions_used: int = 0  # version 2, set by the run: resolution files read
 
     @property
     def clustered(self) -> int:
@@ -49,8 +57,9 @@ class Clustering:
 
 
 def cluster_articles(articles: Iterable[Article], as_of: datetime, previous: Sequence[Cluster] = (),
-                     similarity: Similarity | None = None) -> Clustering:  # fmt: skip
-    """`previous`: the run before's clusters, to name replaced ids; `similarity`: the measure (Jaccard by default)."""
+                     similarity: Similarity | None = None, preparer: Preparer | None = None) -> Clustering:  # fmt: skip
+    """`previous`: the run before's clusters, to name replaced ids; `similarity`: the measure (Jaccard by default);
+    `preparer`: version 2's (symbols from the company list, identity URLs), version 1's fixed list when None."""
     given = sorted(
         articles, key=lambda a: (a.first_seen_at, a.key, a.to_bytes())
     )  # a full tie-break: input order never decides
@@ -58,11 +67,16 @@ def cluster_articles(articles: Iterable[Article], as_of: datetime, previous: Seq
     for article in given:
         distinct.setdefault(article.key, article)  # a repeated key is the same article: its earliest sighting is kept
     repeated = len(given) - len(distinct)
-    looked_at = [Prepared.of(a) for a in distinct.values() if in_window(a, as_of)]
+    prepare = preparer.prepare if preparer else Prepared.of
+    looked_at = [prepare(a) for a in distinct.values() if in_window(a, as_of)]
     earlier = [(c.cluster_id, frozenset(c.member_keys)) for c in previous]
     clusters = []
-    for members in assign(looked_at, Matcher(similarity or Jaccard())):
+    assignment = assign(looked_at, Matcher(similarity or Jaccard()))
+    for members in assignment.clusters:
         keys = tuple(m.article.key for m in members)
         new_id = cluster_id(keys[0])
         clusters.append(Cluster(new_id, keys[0], keys, replaced_ids(new_id, keys, earlier)))
-    return Clustering(as_of, ALGORITHM_VERSION, tuple(clusters), len(distinct) - len(looked_at), repeated)
+    return Clustering(
+        as_of, preparer.version if preparer else ALGORITHM_VERSION, tuple(clusters), len(distinct) - len(looked_at),
+        repeated, assignment.url_joins, assignment.url_joins_unlike_title, sum(a.url_refused for a in looked_at),
+    )  # fmt: skip
