@@ -51,3 +51,43 @@ production wiring is unpinned (the same gap as P2a's S1), and a retired feed's p
      back, is not detected on the promote side. With union kinds, a changed kind for an existing id should be refused.
 
 **Verdict: FAIL** (round 1). The core write-once machinery is sound and well pinned.
+
+## Addendum 1: the orchestrator's items A and B, and the kind limit (2ad37d2; still FAIL, round 1)
+
+**A. Commit on rejection: correct today, not pinned (S3).** In `news-promote.yml` the promote step is
+`continue-on-error: true`, so a refused item (exit 1) does not fail the job. The commit step has only
+`if: !inputs.dry_run`, so it still runs (the implicit `success()` stays true) and commits the good articles'
+receipts and rows. The last step then turns the run red, and the command has already sent the alert. A
+`concurrency` group (`news-promote`, `cancel-in-progress: false`) keeps two runs from appending at once. A job
+cancelled at its 60-minute timeout commits nothing, and the next run's missing-row repair heals that from the held
+bytes, so it is not a lasting lag. But neither half is tested. Both plants leave all 745 green:
+- A16: the commit step limited to `steps.promote.outcome == 'success'`;
+- A17: `continue-on-error` removed.
+
+Either would strand the good records on every run that has a single rejection. **S3 (should fix, tests only):** a
+workflow test that the promote step has `continue-on-error: true` and that the commit step has no outcome condition.
+
+**B. A torn last manifest line: today it is neither tolerated nor safely loud (S4).** Reproduced on `2ad37d2` with the
+test helpers (scratch script, not committed). Two articles recorded, then the last row cut with no trailing newline,
+then a new run:
+- **Cut inside the article id:** the run reads clean (`no_ops 2`, nothing rejected). The repair appends the row
+  **onto** the torn line, leaving `2026-10-27,1aff2f3f02026-10-27,1aff2f3f0963...` in the manifest, which the commit
+  step would publish. That is silent corruption.
+- **Cut inside the SHA-256:** the manifest now holds a truncated hash for a recorded id, so every later run gives
+  `record_conflict` for that article. That is loud, but permanent until fixed by hand.
+
+My ruling: the load must check every row: 5 fields, a 64-hex id and hash, a known status, and an integer size.
+- A malformed **last** line with no trailing newline is a torn write: drop it (truncate the file to the last full
+  line) before appending, so the missing-row repair re-adds the row from the held bytes.
+- A malformed line anywhere else stops the run with a fixed code.
+- Add a test for each of the two cases above.
+
+How likely is it? A hard kill during the few-byte append is rare, but `continue-on-error` means an OOM-killed promote
+step is followed by the commit step, which would publish the torn file. **S4: should fix, code plus test.**
+
+**The kind limit.** The orchestrator rules that "kind from the newest list" is an accepted, documented limit, and I
+agree: the doc says so ("Do not change a feed's kind; add a new feed id"). **My S2 is a different case: a feed
+removed from the newest list.** The documented rule never says not to retire a feed, and retiring one leaves its
+staged polls unpromotable and makes every later run exit 1 with an alert (reproduced above). S2 stands.
+
+**Verdict: FAIL** (round 1): S1 and S3 are tests only; S2 and S4 are code plus test.
