@@ -821,8 +821,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and SAFE_PATTERN.fullmatch(pattern) is not None\n",
   "new": ""
  },
  {
@@ -884,8 +884,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or pattern.count(\"?\") > MAX_OPTIONALS\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and pattern.count(\"?\") <= MAX_OPTIONALS\n",
   "new": ""
  },
  {
@@ -920,8 +920,8 @@
   "tests": [
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or pattern.count(\"(?:\") > MAX_GROUPS\n",
+  "file": "fno/ingestion/news/safe_pattern.py",
+  "old": "        and pattern.count(\"(?:\") <= MAX_GROUPS\n",
   "new": ""
  },
  {
