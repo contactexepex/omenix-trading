@@ -59,3 +59,34 @@ across versions reveals nothing while the file stays private.
    a number and not a surprise (reasoning only on volume).
 
 **Verdict: FAIL** (round 1, `eb05a7b`). F1 and F2 are missing design rules, not wrong ones; both are a paragraph each.
+
+## Addendum 1: round 2 (final) on `8459517`, the plan document only
+
+I judged only `docs/stories/NP3-company-list-and-feed-planning.md`, as asked (NP3a's code at `91ae2a4` comes
+separately). `git diff eb05a7b 8459517` on that file:
+
+| Round-1 finding | Now |
+|---|---|
+| **F1 (feed ids)** | Fixed as a rule: content-derived `q-` plus 8 hex, never positional, never reused, re-plan test, wider pattern. |
+| **F2 (privacy guard)** | Fixed: `test_no_company_or_discovery_list_is_ever_in_the_repository` exists at that SHA (`tests/ingestion/news/companies/test_seed_and_cli.py:148`), plus marker-name tests. |
+| **F3 (session.py change)** | Fixed: listed as the third P2 change. |
+| **F4 (staging volume)** | Fixed: 4,800 polls a day against `--limit 500`, with a proposal. |
+
+## F5 (must fix, new, introduced by the F1 fix): the unsalted id reveals the owner's queries in the public repository
+
+- The plan's id is `q-` plus 8 hex of SHA-256(kind + normalised query), with no secret in it.
+- Feed ids are public. The committed poll log `research/data/manifests/news/polls.csv` has a `feed_id` column, one row
+  per poll (`snapshot_log.py:15`, `fetcher.py:80`), and P2 calls that id "opaque".
+- So anyone can hash a guess, for example "HDFC Bank" with the targeted-query template, and confirm from the
+  repository which companies and themes the owner follows.
+- That defeats the rule this plan and NP1 rely on ("what the owner reads stays private"). It is the very attack the
+  feed list's salt exists to stop (`snapshot_log.py:4-5`).
+
+Fix in the plan: derive the id from a keyed hash, `q-` plus 8 hex of HMAC-SHA256(salt, kind + normalised query), with
+the feed list's own private salt. The plan already keeps "the same salt" across versions, so ids stay stable. State that
+the salt and the normalisation function are then frozen (changing either renames every planned feed), and add a test
+that the id cannot be reproduced without the salt. Strong evidence on the leak (code read); reasoning only on how much
+a 32-bit prefix plus guessable queries reveals. Short queries such as company names are cheap to enumerate.
+
+**Verdict: FAIL** (round 2, `8459517`). F1 to F4 are fixed. F5 is a privacy hole that the F1 rule opens, with a
+one-line design fix. This was the second round, so per the round rule the orchestrator or the owner decides next.
