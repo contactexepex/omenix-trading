@@ -347,5 +347,17 @@
   "file": ".github/workflows/news-fetch.yml",
   "old": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n",
   "new": "          git pull --no-rebase --no-edit origin main && git push origin HEAD:main\n          echo masked\n"
+ },
+ {
+  "id": "K4",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_batch_file_with_a_half_line_last_is_cut_back_to_its_whole_lines_and_the_run_is_red",
+   "tests/ingestion/news/record/test_commit_guard.py::test_a_whole_batch_file_is_committed_unchanged_and_the_run_is_green",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_repair_cuts_only_a_fragment_and_never_a_whole_line",
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_repair_command_is_loud_with_a_fixed_text_and_quiet_when_every_batch_is_whole"
+  ],
+  "file": "ops/commit_news_record.sh",
+  "old": "python -m fno news repair-batches receipts/_batches || broken=1",
+  "new": ":"
  }
 ]

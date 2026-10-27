@@ -44,6 +44,20 @@ NOT_AT_LINE_END = "{file} does not end in a line break (an earlier write was cut
 SHORT_WRITE = "{file}: the receipt line was not written whole"
 
 
+def cut_torn_tails(folder: Path) -> list[Path]:
+    """Cuts the half line off the end of every batch file under `folder` that does not end in a line break, and returns
+    the files cut. Only a fragment that was never a whole receipt line is removed (it was never read as a receipt); no
+    whole line is ever touched. The commit step of the news workflows runs it so a killed run never publishes a torn
+    line to `main`."""
+    cut = []
+    for file in sorted(Path(folder).rglob(f"*{BATCH_SUFFIX}")) if Path(folder).is_dir() else []:
+        data = file.read_bytes()
+        if data and not data.endswith(b"\n"):
+            file.write_bytes(data[: data.rfind(b"\n") + 1])
+            cut.append(file)
+    return cut
+
+
 class BatchBroken(OSError):
     """A batch file cannot take the next line whole; the file is not changed, the run ends red."""
 

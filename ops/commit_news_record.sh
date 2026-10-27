@@ -15,6 +15,9 @@ else
   git checkout -- "$MANIFEST" 2>/dev/null || rm -f "$MANIFEST"
   broken=1
 fi
+# A killed run can leave a half line last in a receipt batch file; it must never reach main either. The fragment (never a
+# whole line) is cut off, the good lines are committed, and the run ends red.
+python -m fno news repair-batches receipts/_batches || broken=1
 for folder in $RECEIPTS; do
   if [ -e "$folder" ]; then git add -- "$folder"; fi
 done

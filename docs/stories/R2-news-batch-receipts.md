@@ -68,6 +68,12 @@ can; the protection against that is git history, same as before.
 - **M1:** a per-file receipt is read before a batch line, and a different digest between a batch line and a per-file receipt for the
   same path is reported. **M2:** this document now matches the code. **M3:** a line is read from its exact bytes (no newline translation).
 
+- **Judge #2 (judge_61) F1 part two, the commit guard.** `ops/commit_news_record.sh` runs `python -m fno news repair-batches
+  receipts/_batches` before it adds the receipt folders: a batch file left with a half line last (a run killed mid-write) is cut back to
+  its last whole line (only the never-valid fragment goes), the good lines are committed, the run ends red and a fixed-text alert is
+  sent. Contract row K4. **F2** (a per-file receipt and a batch line with different digests for one path) is reported to the syncs that
+  cover the path (row N8), not silently resolved.
+
 ## Fail closed (orchestrator, 27 Oct)
 A Record file with no valid receipt line is never passed silently. Verifiers that walk receipts (`DriveCache.sync`, `receipted_rows`) cannot see a file that has none, in the per-file layout either; so `DriveCache.unreceipted(prefix)` walks the Drive folder and lists every file with no receipt (per-file or batch), and `data-cache sync <prefix> --unreceipted` reports them and exits 1. It is opt-in so the existing `data/vix` check is unchanged. A torn last batch line names its file (`path: its receipt line is cut short, so the file is not proved`) and the file is listed as unreceipted too. The news writers' own reconcile-before-write on the next run also re-saves a missing line.
 
