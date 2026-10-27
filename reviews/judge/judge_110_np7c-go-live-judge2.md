@@ -64,3 +64,28 @@
 **Verdict: FAIL** (round 1, `8eeeab8`).
 - B1 is a merge-order or marking choice.
 - B2 is one sentence.
+
+## Addendum 1
+
+**Round 2 re-review at `7fc5dd8`.** Against main, only `docs/NEWS_GO_LIVE.md` changed (75 lines).
+
+**Gates (text only):**
+- The doc-reading tests: 79 passed.
+- `check_numbers`: clean.
+
+**B1: fixed by sequencing.**
+- The page now opens: "This page describes `main` **after NP8** ... it is merged after NP8".
+- NP8 passed my round 2 at `770cf76` (judge 109 Addendum 1), but it is **not yet on main** (`770cf76` is not an ancestor
+  of `origin/main` at this review).
+- **Condition:** merge this page only after NP8 is on main. Whoever merges it checks that `770cf76`, or NP8's merged
+  head, is an ancestor.
+
+**B2: fixed.**
+- The company-list and materiality rows now name `*_missing` only for a file used before.
+- The footnote covers both runs: never configured is green, with cluster v2 at version 0 and the read pass newest
+  first; used and then gone is red.
+- One nit, not blocking: "red in both (`company_list_missing`, `materiality_missing`): cluster v2 stops" can read as if
+  cluster v2 used the materiality file. It does not; only the company list stops it. Fix it in the next edit of the
+  page.
+
+**Verdict: PASS** (round 2, `7fc5dd8`), on the condition that it merges after NP8.

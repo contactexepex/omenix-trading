@@ -39,7 +39,8 @@ jobs:
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       MANIFEST: research/data/manifests/news/reads.csv
-      RECEIPTS: receipts/raw/news/reads receipts/_batches
+      EXTRA_MANIFESTS: research/data/manifests/news/read-passes.csv # the pass notes (NP8)
+      RECEIPTS: receipts/raw/news/reads receipts/raw/news/read-passes receipts/_batches
       COMMIT_MESSAGE: "NP4b Actions: news reads"
       APPLY: ${{ inputs.apply && '--apply' || '' }}
       LIMIT: ${{ inputs.limit }}

@@ -74,3 +74,38 @@
 
 **Verdict: FAIL** (round 1; at `e6aac2a`, and the same at `18f9111`). B1 and B2 are each one test and one row, and B1
 can also remove a duplicate expression.
+
+## Addendum 1
+
+**Round 2 re-review at `770cf76`.**
+
+**What changed since `18f9111`:**
+- Production: one change in `reads/run.py`. `limit = min(pages, PAGES)` is computed once and used by both ways of
+  choosing pages.
+- Tests:
+  - a material-first test of the cap;
+  - a wiring test asserting that `build_read_pass` has a `ReadPlanner` and `PassNotes` (`read-passes.csv`);
+  - a test where the outlet source decides materiality.
+- Contract plants: Y4 extended to both paths, plus M20 and M21.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2020 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 636 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- **`tools/contract_plants.py`: GREEN.** Every plant is caught, Y4 included.
+
+**The blockers:**
+
+| Item | My plant | Result |
+| --- | --- | --- |
+| B1, the cap on both paths | P15: `limit = pages` | caught (3 failed) |
+| B2, the planner wired in production | P12: planner `None` | caught (2 failed) |
+| N1, the source passed in `MaterialFirst` | P14: source dropped | caught (2 failed) |
+
+I re-ran two earlier plants as regression checks:
+- P10, the oldest note compared: still caught;
+- P1, a refused file still used: still caught.
+
+**Verdict: PASS** (round 2, `770cf76`).

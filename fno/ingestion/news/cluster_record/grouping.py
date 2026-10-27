@@ -26,6 +26,7 @@ from fno.ingestion.news.cluster.window import in_window
 from fno.ingestion.news.cluster_record.cluster_file import ClusterFile
 from fno.ingestion.news.companies.model import CompanyList, CompanyListSource
 from fno.ingestion.news.companies.parse import CompanyListError
+from fno.ingestion.news.pin import pin_violation
 from fno.ingestion.news.resolve.resolution_file import Resolution, parse_resolution, resolution_path
 from fno.ingestion.news.tagging.dictionary import NameDictionary
 from fno.ingestion.news.tagging.tagger import Tagger
@@ -91,9 +92,11 @@ def _refuse_going_behind(companies: CompanyList, previous: ClusterFile | None) -
     An older version is a rollback, and the same version with other bytes is a list edited in place (a version number
     alone would not show it). A newer version is simply a new list. Nothing to compare with before the first file, or
     after a run with no list."""
-    if previous is None or not previous.companies_version:
+    if previous is None:
         return
-    if companies.version < previous.companies_version:
-        raise GroupingBlocked(codes.COMPANY_LIST_ROLLED_BACK)
-    if companies.version == previous.companies_version and companies.sha256 != previous.companies_sha256:
-        raise GroupingBlocked(codes.COMPANY_LIST_DAMAGED)
+    refusal = pin_violation(
+        companies.version, companies.sha256, previous.companies_version, previous.companies_sha256,
+        codes.COMPANY_LIST_ROLLED_BACK, codes.COMPANY_LIST_DAMAGED,
+    )  # fmt: skip
+    if refusal:
+        raise GroupingBlocked(refusal)

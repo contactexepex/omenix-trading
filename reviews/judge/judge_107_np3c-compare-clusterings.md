@@ -71,3 +71,7 @@ I reviewed `git diff e7961aa 9d16261`. Before that, e7961aa added judge 106's wh
 **N1 fixed.** A first line, `input: articles N, manifest_rows_skipped K`, reports `source.skipped_rows`. My plant hard-coding 0 there fails a test.
 
 **Verdict: PASS round 2 at 9d16261.**
+
+## Addendum 2: plant runner re-check at 9d16261: the PASS stands
+
+I gave Addendum 1's PASS without running the full contract-plant runner, the same miss as in judge 108. I have now run `tools/contract_plants.py` at 9d16261 in the locked venv: **253 of 253 rows are `ok`**, with nothing unnoticed (strong evidence). The PASS at 9d16261 stands.

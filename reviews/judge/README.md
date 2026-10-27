@@ -118,6 +118,6 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 105 | NP8 material-first reads plan (plan doc, judge #1) | 2 | PASS (94e7c2a; round 2 4907707; round 1 FAIL d9f227b) | `judge_105_np8-plan.md` |
 | 106 | NP3c compare clusterings, code (judge #2) | 1 | PASS (round 2, 18527c3, final 9d16261; round 1 FAIL d001816, eb0ac05) | `judge_106_np3c-compare-clusterings-judge2.md` |
 | 107 | NP3c compare clusterings (code, judge #1) | 2 | PASS (round 2, 9d16261; round 1 FAIL eb0ac05) | `judge_107_np3c-compare-clusterings.md` |
-| 108 | NP8 material-first reads (code, judge #1) | 2 | PASS (round 2, 18f9111; round 1 FAIL e6aac2a) | `judge_108_np8-material-first-reads.md` |
-| 109 | NP8 material-first reads, code (judge #2) | 1 | FAIL (round 1, e6aac2a; same at 18f9111: Y4 gate red) | `judge_109_np8-material-first-judge2.md` |
-| 110 | NP7c news go-live checklist, doc (judge #2) | 1 | FAIL (round 1, 8eeeab8) | `judge_110_np7c-go-live-judge2.md` |
+| 108 | NP8 material-first reads (code, judge #1) | 2 | PASS (770cf76, runner 275/275; 18f9111 PASS withdrawn, Y4; round 1 FAIL e6aac2a) | `judge_108_np8-material-first-reads.md` |
+| 109 | NP8 material-first reads, code (judge #2) | 1 | PASS (round 2, 770cf76; round 1 FAIL e6aac2a, 18f9111) | `judge_109_np8-material-first-judge2.md` |
+| 110 | NP7c news go-live checklist, doc (judge #2) | 1 | PASS (round 2, 7fc5dd8, merge after NP8; round 1 FAIL 8eeeab8) | `judge_110_np7c-go-live-judge2.md` |
