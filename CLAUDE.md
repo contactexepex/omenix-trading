@@ -15,7 +15,7 @@ functionality**: no read or view contract, no knowledge of a dashboard's fields,
 separate repository that reads the Drive Record and the public rules itself. When a plan or a change would define what a consumer reads,
 stop and take it to the owner instead. "Derive" means derivation that a pipeline step uses or that is archived write-once to the Record;
 derivation code with no pipeline caller and no archive is not justified by this rule and falls under the no-dead-code standard (give it a
-caller or remove it). Every story, builder and judge honours this boundary.
+caller or remove it). The owner confirmed derive is in scope ("Option A is right", 27 Oct 2026; log). Every story, builder and judge honours this boundary.
 
 ## How to work with the owner (always)
 
