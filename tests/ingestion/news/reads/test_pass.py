@@ -175,12 +175,12 @@ def test_a_torn_reads_manifest_stops_the_pass_before_any_request(tmp_path):
     assert not report.ok and report.rejected[codes.MANIFEST_BROKEN] == 1 and world.fetcher.asked == []
 
 
-def test_the_read_file_holds_no_body_and_the_line_holds_no_link_key_or_host(tmp_path):
+def test_the_read_file_holds_only_a_short_snippet_and_the_line_holds_no_link_key_or_host(tmp_path):
     world = World(tmp_path)
     world.add_publisher(1)
     report = world.read()
     (path,) = world.read_files()
-    assert b"word word" not in (world.drive.folder / path).read_bytes()
+    assert len(json.loads((world.drive.folder / path).read_bytes())["summary_extract"]) <= 600
     line = report.line()
     assert line.startswith("news read-pages (applied): ") and "pub.example" not in line and "Zzpub" not in line
     assert json.loads((world.drive.folder / path).read_bytes())["host"] == "pub.example"

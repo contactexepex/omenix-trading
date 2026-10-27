@@ -19,10 +19,10 @@ workflow; it has no schedule.**
    Without `--apply` it is the probe: it fetches and extracts and writes nothing.
 
 ## The read file: facts and hashes, no text
-`format`, `key`, `host`, `access` (`full` for a measured body of 300 or more characters, `partial`, `paywalled`), `extractor`,
-`body_chars`, `body_sha256`, `published_at`, `modified_at`, up to 5 `authors`, `provider`. **No article body, no HTML and no key
-sentences** (the owner's default for decision E1, still pending with the owner): `to_bytes` refuses a file over 4,000 bytes (Y10). The
-body is measured and dropped; the strings kept are single-line and capped. The cost, said plainly (reasoning only): NP5's
+`format` (2 since NP10), `key`, `host`, `access` (`full` for a measured body of 300 or more characters, `partial`, `paywalled`), `extractor`,
+`body_chars`, `body_sha256`, `published_at`, `modified_at`, up to 5 `authors`, `provider`, `summary_extract` (NP10). **No article body and no HTML; the page snippet of NP10
+(owner decision E1 = YES, 28 Oct 2026) is the only page text**: `to_bytes` refuses a file over 6,000 bytes (Y10). The
+body is measured and dropped (the snippet is the first three sentences, 600 characters at most); the strings kept are single-line and capped. The cost, said plainly (reasoning only): NP5's
 wire-agency detection can use only the byline, the JSON-LD provider and the outlet, not a dateline in the first sentences.
 
 ## Bounds and alerts

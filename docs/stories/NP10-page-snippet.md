@@ -41,6 +41,14 @@ S1 first sentences only and at most 3 · S2 total at most 600 characters, word-b
 S8 `parse_read` refuses the old format / unknown key · S9 snippet never in a report, log, manifest row or alert · S10 tags and
 entities stripped · S11 a `partial` page (a body under 300 characters) gives its whole short body cut by the same caps, a `paywalled` page "" and a meta-only page "". Each with a plant (the cap, the count, the paywall guard, the join, the privacy check).
 
+## As built (rows)
+
+The planned S1-S11 became rows A1, A2, A2b, A3, A3b, A4-A7 in `docs/RECORD_CONTRACT.md` ("The page snippet (NP10)"; the row-id
+pattern is one capital letter, digits and an optional lower-case letter, and S was taken): A1 three sentences, A2/A2b 600
+characters at a word boundary, A3/A3b no split before a digit or lower-case letter or after a listed abbreviation, A4 paywalled
+and meta-only give "", A5 own field and a short partial page, A6 never printed (`repr`), A7 format 2 only. The privacy walk is
+pinned under Y10. Code: `reads/snippet.py` (pure), `extract.py` (`PageFacts.summary_extract`), `read_file.py` (format 2).
+
 ## Open (owner's, not decided here)
 
 1. Whether to add the paragraph-walk fallback after the first real read pass shows the `articleBody` share.

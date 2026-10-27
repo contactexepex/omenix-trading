@@ -105,21 +105,23 @@ def test_a_read_file_round_trips_holds_facts_only_and_is_deterministic():
     read = build_read("ab" + "c" * 62, "outlet.example", extract(page(ARTICLE)))
     data = read.to_bytes()
     assert parse_read(data) == read and data == read.to_bytes() and len(data) < MAX_BYTES
-    assert BODY.strip().encode() not in data and b"<html" not in data
-    assert set(json.loads(data)) == {"format", "key", "host", "access", "extractor", "body_chars", "body_sha256",
-                                     "published_at", "modified_at", "authors", "provider"}  # fmt: skip
+    assert b"<html" not in data and len(read.summary_extract) <= 600
+    assert set(json.loads(data)) == {
+        "format", "key", "host", "access", "extractor", "body_chars", "body_sha256",
+        "published_at", "modified_at", "authors", "provider", "summary_extract",
+    }  # fmt: skip
     assert read_path(read.key) == f"news/reads/ab/{read.key}.json"
 
 
 def test_a_read_file_that_could_carry_a_body_is_refused():
     facts = extract(page(ARTICLE))
-    big = build_read("k" * 64, "pub.example", facts.__class__(**{**facts.__dict__, "provider": "x" * 5000}))
+    big = build_read("k" * 64, "pub.example", facts.__class__(**{**facts.__dict__, "provider": "x" * 7000}))
     with pytest.raises(ValueError):
         big.to_bytes()
 
 
 def test_a_file_that_is_not_a_read_file_is_refused():
-    for bad in (b"{}", b"[]", json.dumps({"format": 2}).encode()):
+    for bad in (b"{}", b"[]", json.dumps({"format": 1}).encode()):
         with pytest.raises(ValueError):
             parse_read(bad)
 
