@@ -40,3 +40,14 @@
 No request is made by this change, no order path, no secret in a file, no Groww call.
 
 ## Verdict: PASS round 1 at 0d6adbe. Requested (not blocking): the D6 round-trip assert, and a story line that a hand-written salt must be random.
+
+## Addendum 1: superseded by 4fa33b2: PASS
+
+Reviewed `git diff 0d6adbe 4fa33b2`.
+- **The change:** `ID_HEX_LENGTH` and `FEED_ID` go from 8 to 12 hex characters (48 bits). The chance of an id collision refusing a 600-feed plan drops from about 4 in 10^5 to about 6 in 10^10. An 8-hex id is now refused.
+- **One definition:** `FEED_ID` is the only pattern; `feeds.py` and `planning/discovery.py` both import it, and `grep` finds no other feed-id parser in `fno/`, `ops/` or `.github/`.
+- **Gates (locked venv):** 1583 passed; ruff is clean; contract plants all `ok`.
+
+My two requests from round 1 (the D6 round-trip assert, and a story line that a hand-written salt must be random) still stand; neither blocks.
+
+**Verdict: PASS at 4fa33b2.**
