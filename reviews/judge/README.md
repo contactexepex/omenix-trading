@@ -124,4 +124,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 111 | NP9 clean stored title plan (plan doc, judge #1) | 1 | PASS on 2 text conditions (round 1, d346ece) | `judge_111_np9-plan.md` |
 | 112 | NP10 page snippet plan, plan doc (judge #2) | 1 | PASS (round 2, 97b6df6, condition C1; round 1 FAIL cb7cae9) | `judge_112_np10-plan-judge2.md` |
 | 113 | NP11 feed provenance plan, plan doc (judge #2) | 1 | FAIL (round 1, e050a46) | `judge_113_np11-plan-judge2.md` |
-| 114 | NP11 feed provenance plan (plan doc, privacy, judge #1) | 1 | FAIL (round 1, e050a46) | `judge_114_np11-plan.md` |
+| 114 | NP11 feed provenance plan (plan doc, privacy, judge #1) | 2 | PASS (round 2, bcd6f4e; round 1 FAIL e050a46) | `judge_114_np11-plan.md` |
