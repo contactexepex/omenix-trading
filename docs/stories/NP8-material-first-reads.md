@@ -26,17 +26,26 @@ news is unmeasured: reasoning only.)
    the last five hours, so a material headline is read only if a pass runs within about that time after it was recorded. The report carries
    `scored` and the Record files read, so the real figures show. Raising the split costs Drive reads and run time, both unmeasured; the plan does
    not change the total.
-3. **Which files the pass reads and what happens when they are missing (the orchestrator's rule, stated for the judge).**
-   - No materiality file configured (`materiality_missing`), or no company list configured (`company_list_missing`): the pass falls back to
-     `NewestFirst` (degraded but working) and says so in its line (`order newest_first`). Without a list nothing can be tagged, so nothing
-     could be material anyway.
-   - A file that EXISTS but cannot be used (invalid, rolled back, edited in place, damaged, or the store unreadable): the pass STOPS, writes
-     nothing and is red, like the company-list rule of NP7b. Not a fallback: a silent newest-first would hide that the owner's file is broken.
+3. **What the pass does with each file (orchestrator's rules; judge 105's recommendation).**
+   - **No file configured** (`materiality_missing` or `company_list_missing`): `NewestFirst` (degraded but working), said in the line
+     (`order newest_first`). Without a list nothing can be tagged, so nothing could be material anyway.
+   - **The MATERIALITY file exists but cannot be used** (invalid, rolled back, edited in place, damaged, store unreadable): **degrade and alert.**
+     The pass reads newest first, the run goes RED with the alert (loud, never silent), and **no pass note is written, so the pin does not move.** Reads
+     continue, because the materiality file only affects the ORDER of reads: it changes neither what is archived nor how an article is tagged, so a
+     broken ordering hint must not halt collection.
+   - **The COMPANY LIST exists but cannot be used:** here I **propose the same degrade-and-alert** as for materiality, and I flag that it goes beyond the
+     orchestrator's text. Reason: in the read pass the list also only orders the reads (the tag decides which articles are ranked first, and nothing is
+     archived from it), so the argument that spares collection applies equally. The hard stop for a bad company list stays where tagging is archived: the
+     version 2 cluster run (NP7b, `company_list_rolled_back` / `company_list_damaged`). If the judge or the orchestrator wants the read pass to hard-stop
+     on the list, it is one line and one test.
+   - A pass that wrote no note because a file was unusable leaves the next pass comparing with the last good note, so a rollback cannot hide behind a
+     red run.
 4. **The SHA and rollback rule is carried here** (the materiality file is first read in this story): a pass that writes (`apply`) also writes a
    small **write-once pass note** `news/read-passes/1/<stamp>.json` (receipt and manifest row, as every Record file), holding counts and the
    `materiality_version`, `materiality_sha256`, `companies_version`, `companies_sha256` it used, no title, URL, symbol or term. The next pass reads
-   the latest earlier note and applies the NP7b rule to both files (an older version stops with the `..._rolled_back` code, the same version with
-   other bytes with the `..._damaged` code, a file used before that is now missing stops). The comparison is the one function NP7b wrote, made
+   the latest earlier note and applies the NP7b rule to both files (an older version is a `..._rolled_back` and the same version with
+   other bytes a `..._damaged`; a file used before that is now missing counts as unusable; each is handled by rule 3 above: newest first, red, alert, no
+   note, reads go on). The comparison is the one function NP7b wrote, made
    shared rather than copied (DRY); a materiality version of its own gets the two `materiality_*` codes that already exist.
    **The pass note is a new file type**, which is the cost of carrying the rule: the read pass has no other per-run file to record the versions in
    (read files are per article). The first note only records. A pass without `apply` (the probe) writes nothing and so does not move the pin.
@@ -51,11 +60,9 @@ news is unmeasured: reasoning only.)
    the existing counts. `material_unresolved` shows when the resolve pass is behind: a material headline whose link has not been resolved yet
    cannot be read.
 
-## Owner decision, asked (judge 105 recommended)
-**What should a broken materiality file do?** As planned (orchestrator's rule): a materiality file that exists but cannot be used STOPS the pass, so
-no page is read while it stays broken (the read pass is the only way page facts are collected, and an alert fires each run). The alternative:
-read newest first anyway, run RED with the alert, and write no pass note, so reading continues and the failure stays visible. Reasoning only: the
-second loses less data and is just as loud; the first is stricter about a file the owner wrote on purpose. Default until the owner answers: stop.
+## Owner FYI (the orchestrator is putting it to the owner with this as the default)
+A broken materiality file degrades to newest first with a red run and an alert; reading is not halted. If the owner prefers a hard stop it is one
+line and one test. Reasoning only: the degrade loses no data and is as loud.
 
 ## Decisions I am making (the judge should overrule what is wrong)
 - Two tiers, not a score. Rejected: sorting by weight (the weights are the owner's guesses; a finer order would look more precise than it is).
@@ -72,10 +79,9 @@ second loses less data and is just as loud; the first is stricter about a file t
 - Tests use invented companies and terms; the privacy line holds (no term, symbol or title in git, a log or a pass note).
 
 ## Contract rows planned (docs/RECORD_CONTRACT.md, new section "Material-first reads (NP8)")
-The order is newest first when either file is not configured and the line says so; a file that exists but cannot be used stops the pass with
-its code and writes nothing; material articles are ranked before others and newest first inside a tier; the pass never reads more than
+The order is newest first when either file is not configured and the line says so; a materiality file (and, as proposed, the company list) that exists but cannot be used makes the pass read newest first, go red with the alert and write no pass note; material articles are ranked before others and newest first inside a tier; the pass never reads more than
 `MAX_RECORD_READS` (400) Record files in total, split 300 article reads for ranking and 100 resolution reads; the pass note has its manifest and receipt folder, the workflow commits them and `scored` is reported; the pass note holds counts and versions only and is written once; an older or edited file than the last note
-stops the pass; a probe (no `apply`) writes no note; and the default behaviour of `NewestFirst` is byte-for-byte what the pass did before.
+is treated as unusable (rule 3), never as a reason to stop reading; a probe (no `apply`) writes no note; and the default behaviour of `NewestFirst` is byte-for-byte what the pass did before.
 
 ## Size and order
 About 250 lines of code in four small files (`reads/order.py`, `reads/pass_note.py`, a shared pin function moved out of `grouping.py`, the wiring)
