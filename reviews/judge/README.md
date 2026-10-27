@@ -110,3 +110,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 97 | NP6b corroboration read-model, code (judge #2) | 1 | PASS (round 1, e7ff690) | `judge_97_np6b-corroboration-judge2.md` |
 | 98 | NP6b corroboration (code, judge #1) | 1 | PASS (round 1, e7ff690) | `judge_98_np6b-corroboration.md` |
 | 99 | NP6a grouper v2 (code, judge #1) | 1 | PASS (round 1, 7323c3f) | `judge_99_np6a-grouper-v2.md` |
+| 100 | NP6a grouper version 2, code (judge #2) | 1 | PASS (round 1, 7323c3f) | `judge_100_np6a-grouper-v2-judge2.md` |
