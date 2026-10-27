@@ -93,3 +93,20 @@ I reviewed `git diff 3d9ad45 18f9111`. 3d9ad45 was e6aac2a plus `main`, with no 
 **N2 fixed.** `parse_terms` takes the digest, and `MaterialTerms` gets it in its constructor.
 
 **Verdict: PASS round 2 at 18f9111.**
+
+## Addendum 2: correction: Addendum 1's PASS is withdrawn; FAIL at 18f9111 (my miss)
+
+**What I missed.** In both rounds I ran pytest, ruff, check_imports and my own plants, but **not** the full contract-plant runner, `tools/contract_plants.py`. Judge #2 found it red, and the orchestrator told me.
+
+**I re-ran it at 18f9111 in the locked venv (strong evidence).** 272 rows are `ok` and one is not:
+- `Y4: the plant went unnoticed: the claim is no longer pinned`.
+- Y4's plant replaces `min(pages, PAGES)` with `pages` in `reads/run.py`. Its only test, `test_at_most_eighty_pages_are_fetched_whatever_limit_is_asked`, drives the newest-first path.
+- NP8 added a second `min(pages, PAGES)` for the material-first queue, so the 80-page cap on that new path is not pinned by any test.
+- The cap limits outside requests to news outlets, so this is lane 1 politeness, not style.
+
+**Verdict: FAIL at 18f9111.** Required:
+- a test that a material-first pass fetches at most 80 pages whatever limit is asked;
+- Y4, or a new row, planting the material-first cap;
+- the runner all green.
+
+**My process change.** From now on, an all-green `tools/contract_plants.py` run at the frozen SHA is a condition of every PASS I give, and I record its count in the verdict.
