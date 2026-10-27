@@ -56,3 +56,53 @@ name (to about 40 characters) keeps one odd answer from writing a long line into
 ## Hard lines
 
 No orders and no secrets. No live NSE call: the tests and my reproduction are offline.
+
+## Addendum 1: round 2 at fbca4e2: PASS
+
+Reviewed `git diff 39f38e5 fbca4e2`. The content commit is 0fd9e2c. The merge commit fbca4e2 only brings in main's judge-58 files (lane 3; checked with `git diff --stat 0fd9e2c fbca4e2`).
+
+**N1 is fixed (strong evidence).**
+- The integrated loop now reads `listed(answer.get("data"), self.name)` (`fno/ingestion/filings/index.py:153`).
+- `listed` now also requires every row to be an object. This is wider than I asked, and correct: a list of text rows was the same AttributeError path.
+- My round-1 reproduction (`{"data": {"x": 1, "y": 2}, "totalCount": 5}`) now gives a named `ValueError` ("not a list of rows").
+- The new librarian test shows a bad integrated company recorded as failed while the next one is still checked (`failed == {"BAD"}`).
+
+**Gates at fbca4e2 (strong evidence).**
+- ruff, format and check_imports are clean.
+- Full suite: 930 passed on the second run.
+- On the first run, `tests/ingestion/test_nse_pacer.py::test_after_the_pause_one_probe_goes_alone...` failed once under `-n auto`. The diff does not touch the pacer, and the pacer file then passed 5 times alone plus one full re-run. This is a timing test under parallel load. It is not this change and not a root cause. I note it for whoever owns the pacer tests.
+- File sizes: 187, 107 and 31 lines.
+
+**Plants** (PYTHONDONTWRITEBYTECODE=1, each one undone). Every plant is caught:
+
+| Plant | Result |
+|---|---|
+| integrated `data` unchecked (`answer.get("data") or []`) | 5 failed |
+| rows not checked to be objects | 2 failed |
+| key names not cut | 1 failed |
+| failure line leaks the body | 2 failed |
+| any non-list read as empty | 16 failed |
+
+**Nit done.** Key names are cut to `KEY_NAME_LIMIT = 40`, and that is pinned.
+
+**Hard lines.** No order path, no secret, no Groww, and no change to a recorded file or receipt. NSE is never called by the tests.
+
+### N2: needed follow-up, not part of F1 (strong evidence; this predates F1 and is on main)
+
+The same kind of failure is still there one level down, inside a row that is an object.
+
+- The parsers `nse_day`, `nse_time` and `xbrl_link` call `.strip()` or `.startswith()` on whatever NSE puts in a field.
+- A non-text value (null, a number, an object, a list or a bool) raises an AttributeError. AttributeError is not in `LIST_ERRORS` (`librarian.py:38`), so it escapes `librarian.py:98` and **ends the whole run**.
+- I reproduced this on all four lists with full valid rows, changing one field at a time. 84 cases escape. The fields are:
+  - `toDate`, `periodEnd`, `qe_Date` and `date` (null included);
+  - `broadCastDate`, `exchdisstime`, `systemDate`, `broadcastDate`, `creation_Date` and `broadcast_Date` (any non-text that is not null);
+  - `xbrl` (any non-text that is not null).
+- The same probe on `origin/main` gives `"toDate": null` → AttributeError that escapes.
+- A `null` period end is a realistic NSE answer.
+- Root-cause fix to consider: make the three parsers raise `ValueError` for anything that is not text. Do not just add AttributeError to `LIST_ERRORS`: that would also hide real programming errors.
+- I missed this in round 1, because I checked only the list shape. It is outside F1's stated scope, which is the list. F1 makes it no worse.
+- I do not FAIL F1 for it in the last round. The orchestrator decides whether it becomes F2 (my recommendation) or is folded in.
+
+**Minor (reasoning only).** `{"data": 0}` or `{"data": false}` reads as "no filings", which is the same as before for empty values. It is not worth any code.
+
+**Verdict: PASS round 2 at fbca4e2. N2 is a needed follow-up story (lane 1).**
