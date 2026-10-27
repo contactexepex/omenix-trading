@@ -153,3 +153,20 @@ Fix: add `.` to the look-behind (`(?<![+\-:.\d])`), or apply the text scan only 
 
 **Verdict at 6ee9b6b: FAIL (round 2).** Both fixes are about a line plus a test each. Under the two-round rule this goes
 to the orchestrator.
+
+## Addendum 2: the routed SHA is 3707faf; how narrow the catch is
+
+The orchestrator routed `3707faf56798ec983be4c9bf95e5a980ac545a57`. I had already run it in Addendum 1: 704 passed, and
+E1 and E2 apply unchanged. Its one added test, the hostile-item privacy test, passes, and the reconciliation balances
+(4 items = 1 article + 3 `item_unreadable`).
+
+**Narrow catch: passes, with one caveat (code read).** `read_poll` catches `(ValueError, OverflowError)` only, not
+`Exception`. So a `KeyError`, `AttributeError` or `TypeError` from our own article-building code still raises loudly.
+
+The caveat: `ValueError` is also a type our own code could raise by mistake. Today, nothing in `build_article`,
+`canonical_url`, `item_key` or `normalise` raises one except through the standard library (`urlsplit().port`, IPv6
+parsing), so this is acceptable as it stands. If a later change adds its own `ValueError`, it would be counted as
+`item_unreadable`. Recommended, not required: catch only around `canonical_url(item.link)`, which is the one call that
+can raise.
+
+**Verdict at 3707faf: FAIL** for E1 and E2 (Addendum 1). The narrow-catch check passes.
