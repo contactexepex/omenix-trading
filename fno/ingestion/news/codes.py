@@ -23,3 +23,4 @@ HOST_STOPS = (BLOCK_PAGE, REFUSED, HOST_PAUSED)  # after one of these no other f
 POLL_TOO_LARGE, UNSAFE_XML = "poll_too_large", "unsafe_xml"
 NOT_A_FEED, NO_ITEMS = "not_a_feed", "no_items"
 ITEM_MISSING_TITLE, ITEM_MISSING_LINK, ITEM_TOO_LONG = "item_missing_title", "item_missing_link", "item_too_long"
+ITEM_UNREADABLE = "item_unreadable"  # a link or time the standard library cannot read: counted, the poll goes on

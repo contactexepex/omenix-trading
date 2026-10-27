@@ -94,3 +94,65 @@ def test_nothing_the_gate_reports_carries_a_headline_or_url_only_codes_and_count
     reported += str(refused.value) + repr(refused.value)
     assert not [m for m in (marker_title, marker_url, "MARKPATHZZ79", "MARKQUERYZZ80") if m in reported]
     assert set(reading.rejected) <= {codes.ITEM_MISSING_TITLE, codes.ITEM_MISSING_LINK}
+
+
+# ---- judge 46 K1: an unreadable item must not take the others with it ----------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_link",
+    ["https://x.example:abc/a", "https://[::1/a", "https://x.example:99999999/a"],
+    ids=["port", "ipv6", "range"],
+)
+def test_an_unreadable_link_is_one_counted_item_and_the_polls_good_items_survive(bad_link):
+    poll = rss(
+        rss_item(title="Good before", link="https://p.example/1"),
+        rss_item(title="Bad link", link=bad_link),
+        rss_item(title="Good after", link="https://p.example/2"),
+    )
+    reading = read_poll(poll, PUBLISHER, SEEN)
+    assert [a.title for a in reading.articles] == ["Good before", "Good after"]
+    assert reading.rejected == Counter({codes.ITEM_UNREADABLE: 1}) and reading.items == 3
+
+
+def test_a_wrapper_item_does_not_need_its_link_so_a_bad_link_does_not_cost_it_the_article():
+    poll = rss(rss_item(title="W", link="https://[::1/a", guid="gn-1"))
+    assert [a.title for a in read_poll(poll, WRAPPER, SEEN).articles] == ["W"]
+
+
+@pytest.mark.parametrize(
+    "pub",
+    [
+        "0001-01-01T00:00:00+05:00",
+        "9999-12-31T23:59:59-05:00",
+        "Mon, 01 Jan 0001 00:00:00 +0500",
+        "1850-01-01T00:00:00Z",
+    ],
+)
+def test_an_impossible_or_implausible_time_is_no_time_and_the_item_is_kept(pub):
+    from fno.ingestion.news.article.times import SEEN as SEEN_SOURCE
+    from fno.ingestion.news.article.times import parse_time
+
+    assert parse_time(pub) == (None, SEEN_SOURCE)  # no OverflowError, no accidental year 2001
+    (article,) = read_poll(rss(rss_item(pub=pub)), PUBLISHER, SEEN).articles
+    assert article.published_at == "" and article.time_source == SEEN_SOURCE
+
+
+# ---- judge 46 K2: every part of the Google News fallback key matters on its own -------------------------------
+
+SAME = dict(title="Stocks to watch", summary="s", source="Outlet")
+
+
+@pytest.mark.parametrize(
+    "different",
+    [dict(title="Another headline"), dict(summary="another summary"), dict(source="Another outlet")],
+    ids=["title", "summary", "source"],
+)
+def test_with_the_same_time_one_differing_text_part_alone_gives_a_different_wrapper_key(different):
+    from datetime import UTC, datetime
+
+    from fno.ingestion.news.article.keys import item_key
+
+    moment = datetime(2026, 10, 27, 2, 30, 0, tzinfo=UTC)
+    base = item_key(WRAPPER, RawItem(link="https://w.example/r", **SAME), moment)
+    assert item_key(WRAPPER, RawItem(link="https://w.example/r", **{**SAME, **different}), moment) != base

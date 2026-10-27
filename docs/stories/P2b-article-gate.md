@@ -87,7 +87,11 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   summary + source) with a separator that cannot occur in the parts. Tested: deterministic, 3,000 random distinct inputs give
   3,000 keys, two same-title items a minute apart give two keys, tracking-only differences give one key and a real parameter two.
   The writer-side collision test (two distinct items sharing a key must be surfaced, not hidden) is P2b2.
-- **Proof:** 55 offline tests on synthetic feeds; mutation plants on every check, the XML scan (declaration list, case, NUL view,
+- **One bad item never costs the poll its others (judge 46 K1).** A link the standard library cannot parse (a bad port, a broken
+  IPv6 host) is counted as `item_unreadable` and the rest of the poll is read; a wrapper item does not use its link, so it is kept.
+  A time that overflows, or has a year outside 1990-2100, is no time (RFC 822 reads "01 Jan 0001", a feed's minimum-date default,
+  as 2001): the item is kept as `seen`. This is not an age check; nothing is rejected for its time.
+- **Proof:** 67 offline tests on synthetic feeds; mutation plants on every check, the XML scan (declaration list, case, NUL view,
   cap), the parser's refusal order, the link choice, the tracking list, the zone rule, the separator, the key inputs, the fixed
   fields and the reconciliation count each fail a test. Two plants first survived because a test built its input from the constant
   it protected; the numbers are now pinned.
