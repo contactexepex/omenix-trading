@@ -1,5 +1,7 @@
 # NP6: tiered clustering and independent origins (PLAN)
 
+> **DELETED in DEL1 (28 Oct 2026, owner: "get rid of these 400 unused lines."):** the NP6b parts (`corroborate`, `ArticleView`) and `ArticleViewer` no longer exist; the URL now comes from `resolve/effective_url.py` directly. The text below is the record of what was built; `docs/stories/DEL1-delete-unused-derivation.md` says what stayed.
+
 PLAN for the orchestrator's check and one judge before any code. Lane 1 for the code that follows (it changes the write-once
 cluster record, adds a new algorithm-version folder, and decides what counts as an independent origin). Plan:
 [NP0](NP0-news-port-plan.md) section 2i, with the changes below. **This document builds nothing.** I read agentic's

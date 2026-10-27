@@ -64,3 +64,49 @@
   usual form but not always the exact original"). I agree a `raw_title` field is not needed.
 
 **Verdict: FAIL** (round 1, `ed90a5c`). B1 is a regression in what the clustering records, and the fix is small.
+
+## Addendum 1
+
+**Round 2 re-review at `7406cba`.**
+
+**What changed since `ed90a5c`:**
+- `cluster/title_text.py`: the blind heuristic is removed. `title_form(title, source)` now cuts only a tail equal to the
+  feed's own source, through `text_rules.without_outlet`.
+  - Both callers pass `article.source`: `matcher.py` (version 1) and `prepare.py` (version 2).
+  - The story states the algorithm change for both versions (no cluster files exist).
+- `text_rules._QUOTES` uses `" "` explicitly. That is judge 116's NBSP finding. I checked that `fold` maps a
+  no-break space to a plain space.
+- Rows F18 to F20.
+
+**Gates (locked venv, `__pycache__` cleared):**
+- `pytest -q -n auto`: 2030 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: 638 files clean.
+- `test_code_size`: 3 passed.
+- `check_numbers`: clean.
+- `tools/contract_plants.py`: every plant caught.
+
+**B1: fixed. My reproduction now gives:**
+
+| Title (source "Zztv Profit") | Form |
+| --- | --- |
+| "Zzalpha Q2 results - profit rises 20% - Zztv Profit", clean or raw | `zzalpha q2 results profit rises 20` |
+| "Zzalpha Q2 results - profit falls 5%" | `zzalpha q2 results profit falls 5` |
+
+The two forms are distinct, so the two headlines stay two stories.
+
+**My plants:**
+
+| Plant | Mutation | Result |
+| --- | --- | --- |
+| N1 | `Prepared.of` (version 1) calls `title_form(article.title)` without the source | survives (2030 passed) |
+| N2 | the same in `Preparer.prepare` (version 2) | survives (2030 passed) |
+
+- **Why they survive:** a Google News title is already clean when stored, so the source matters in clustering only for
+  a PUBLISHER item whose title ends in its own outlet. No test has such an item.
+- **The effect if broken:** a missed merge, two outlets' copies of one story kept apart. That is the safe direction.
+  Nothing wrong is merged.
+- **Not blocking:** add a matcher test with two publisher items from different outlets, each ending " - <its source>",
+  that cluster together. Add it in the next push that touches these files.
+
+**Verdict: PASS** (round 2, `7406cba`).
