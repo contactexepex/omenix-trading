@@ -61,12 +61,11 @@ class ResolvePass:
 
     @staticmethod
     def _check_service(asked: int, report: ResolveReport) -> None:
-        """A resolver that resolves nothing of three or more links, or fewer than half of a real batch, is loud (red and alerted): a broken
-        decoder, a blocked runner or a service pushing back must never finish green while links age out unresolved."""
+        """Loud (red and alerted): a resolver that resolves nothing of three or more links, or under half of a batch of
+        ten or more. A broken decoder, a blocked runner or a pushing-back service must never finish green while links
+        age out unresolved; one or two dead links are not a failing service."""
         resolved = report.results[RESOLVED]
-        nothing = (
-            resolved == 0 and asked >= NOTHING_RESOLVED_MIN_ASKED
-        )  # one or two dead links are not a failing service
+        nothing = resolved == 0 and asked >= NOTHING_RESOLVED_MIN_ASKED
         if nothing or (asked >= FAILING_MIN_ASKED and resolved / asked < FAILING_BELOW_SHARE):
             report.reject(codes.RESOLVER_FAILING)
 

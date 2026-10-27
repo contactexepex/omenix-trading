@@ -20,7 +20,7 @@ workflow; the workflow has no schedule.**
    capped requests) and writes nothing.
 
 A failure writes nothing and is counted by its fixed code; the link is asked again on the next pass until it leaves the
-look-back. **A resolver that resolves nothing, or under half of a batch of ten or more, is red and alerted (V13, judge 82)**: a broken decoder, a runner the service blocks, or a service that pushes back (`paused`) must never end green while links age out. The links still wait for the next pass. Staging is never read, so the staging cleanup
+look-back. **A resolver that resolves nothing of three or more links, or under half of a batch of ten or more, is red and alerted (V13, judge 82); one or two dead links are not (they would turn every pass red for three days)**: a broken decoder, a runner the service blocks, or a service that pushes back (`paused`) must never end green while links age out. The links still wait for the next pass. Staging is never read, so the staging cleanup
 trashing a promoted poll after 7 days loses nothing the pass needs (pinned by a test that deletes the staged polls).
 
 ## The resolution file
