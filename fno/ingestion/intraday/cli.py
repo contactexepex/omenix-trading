@@ -13,6 +13,7 @@ from fno.ingestion.intraday.cover import covered_until
 from fno.ingestion.intraday.dry_run import inside_repository
 from fno.ingestion.intraday.feed_cli import FEED_PROBE, add_feed_probe_parser, cmd_feed_probe
 from fno.ingestion.intraday.recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
+from fno.ingestion.intraday.sync import refused_for_foreign_staging
 from fno.ingestion.research_data.calendar import CalendarError
 from fno.ingestion.storage.manifest_commit import exit_for_commit
 from fno.shared.alerts.output import announce
@@ -68,7 +69,7 @@ def cmd_intraday(args) -> int:
         if args.intraday_cmd == "rv":
             settled = recorder.settle_day(args.day)
             print("\n".join(settled))
-            return exit_for_commit(settled, 0, lambda text: announce(alerts, text), "intraday rv")
+            return _exit_for_commit(settled, 0, alerts, "intraday rv")
         outcomes = [recorder.snapshot()] if args.intraday_cmd == "snapshot" else recorder.run(covered_until(args.until))
     except CalendarError as error:
         return _calendar_stop(error, alerts)
@@ -87,8 +88,15 @@ def report(outcomes: list[SlotOutcome], alerts) -> int:
     for outcome in outcomes:
         print("\n".join([outcome.summary(), *outcome.lines]))
     code = 0 if all(o.status in GOOD_OUTCOMES for o in outcomes) else 1
-    lines = [line for outcome in outcomes for line in outcome.lines]
-    return exit_for_commit(lines, code, lambda text: announce(alerts, text), "intraday recorder")
+    return _exit_for_commit([line for outcome in outcomes for line in outcome.lines], code, alerts, "intraday recorder")
+
+
+def _exit_for_commit(lines: list[str], code: int, alerts, what: str) -> int:
+    """A run whose rows were not committed is red, in two ways: the committer's "NOT committed" line (one alert from
+    here) and the sync's foreign-staged refusal (already alerted once per run by the sync, so no second alert)."""
+    if any(refused_for_foreign_staging(line) for line in lines):
+        code = max(code, 1)
+    return exit_for_commit(lines, code, lambda text: announce(alerts, text), what)
 
 
 def heartbeat_check(heartbeat, calendar, alerts, now: datetime) -> int:

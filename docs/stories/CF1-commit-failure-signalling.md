@@ -53,8 +53,7 @@ were lost, the run was green and silent; the coverage check and receipt repair r
 
 - **The definition** (`storage/manifest_commit.py`): `NOT_COMMITTED_MARK`, read from the `NOT_COMMITTED` template (so it cannot drift from the
   message), `commit_failed(line)` and `exit_for_commit(lines, code, send_alert, what)`. True only for the committer's own "NOT committed"
-  line; False for "committed and pushed", for "nothing new to commit" and for other lines that say "NOT" (the intraday sync's foreign-staged
-  line has its own once-per-run alert and is deliberately not this signal). Tests use the three REAL lines, made by the real committer in a throw-away
+  line; False for "committed and pushed", for "nothing new to commit" and for other lines that say "NOT" (the intraday sync's foreign-staged line is a separate, second signal handled in the intraday exit code). Tests use the three REAL lines, made by the real committer in a throw-away
   git repository (`tests/ingestion/commit_failure/real_lines.py`), never a string written by hand.
 - **Callers changed:** `run_librarian` (`data-librarian`), `cmd_data_snapshot`, `data-revisions sweep`, `cmd_promote` (including its refused-sign-in
   path), `nsdl-backfill`, the intraday `report` and its `rv` path. A crash is red already, so the commit is still made in a `finally` and the
@@ -71,9 +70,11 @@ were lost, the run was green and silent; the coverage check and receipt repair r
   the mark, "any" turned into "all", the alert removed, the exit code lowered, and the helper bypassed in each of the seven edited paths.
 - **Guard test blind spots closed (judge 55 F1):** a `\` continuation is joined before the scan, and a pair followed by `|| true`, `|| :`,
   `; exit 0` or `; true` is flagged even as the last command; one case each.
-- **Named as uncovered (judge 55 F2, awaiting the orchestrator's ruling):** the intraday sync's FOREIGN_STAGED refusal ("NOT pulled or committed":
-  another writer staged files, so the recorder pulled and committed nothing) still ends green. It is not silent: the sync posts its own alert once per
-  run. Counting it as a failure would change a Groww routine's exit code for a case already alerted; I recommend leaving it named here.
+- **The intraday foreign-staged refusal is now a failure too (judge 55 F2, orchestrator ruling):** when another writer has staged files in the
+  recorder's checkout, `GitLedgerSync` pulls and commits nothing and returns "NOT pulled or committed". It was alerted once per run by the sync but
+  the run ended green. `report` and `rv` now exit 1 on it, with the sync's own alert as the one (no second alert; a run that also has a failed
+  commit gets that commit's alert). The mark is read from the sync's own `FOREIGN_STAGED` template, the same way as the committer's.
+- **After this, the only green-without-commit case is a crashed commit step** (it is red already from the traceback, with no commit alert).
 - **Not done, listed:** swapping the seven already-correct callers to the helper (a later behaviour-preserving refactor); failing a run when the
   commit itself crashes (it is already red); the Python committer's other callers' own alert wording.
 

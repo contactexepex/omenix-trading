@@ -15,7 +15,13 @@ PULLED = "pulled main"
 NOT_PULLED = "pull failed, settling from this checkout as it is: {reason}"
 NOT_PUBLISHED = "dry run: nothing pulled, committed or pushed"
 FOREIGN_STAGED = "{label} NOT pulled or committed: {count} file(s) staged that are not the recorder's: {paths}"
+FOREIGN_STAGED_MARK = FOREIGN_STAGED.partition("{label}")[2].partition(":")[0]  # " NOT pulled or committed"
 SHOWN_PATHS = 5  # an alert names at most this many staged paths, then how many more
+
+
+def refused_for_foreign_staging(line: str) -> bool:
+    """True for the sync's refusal line: another writer staged files, so this run pulled and committed nothing."""
+    return FOREIGN_STAGED_MARK in line
 
 
 class LedgerSync(ABC):

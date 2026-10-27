@@ -291,3 +291,67 @@ def test_intraday_rv_a_good_commit_stays_green(monkeypatch, lines, line):
 def test_intraday_rv_a_failed_commit_is_red_with_one_alert(monkeypatch, lines):
     code, sent = intraday_rv(monkeypatch, ["settled", lines.failed])
     assert code == 1 and len(sent) == 1 and "intraday rv" in sent[0]
+
+
+# ---- the intraday sync's foreign-staged refusal (judge 55 F2) ----------------------------------------
+
+
+def foreign_staged_line(alerts):
+    """The REAL line, made by the real GitLedgerSync with a checkout that has another writer's file staged."""
+    from fno.ingestion.intraday.sync import GitLedgerSync
+
+    class Committer:
+        label = "intraday ledger"
+
+        def foreign_staged(self):
+            return ["research/data/other.csv"]
+
+    return GitLedgerSync(Committer(), alerts).commit("x")
+
+
+def test_the_real_foreign_staged_line_is_the_sync_alerting_once_and_naming_the_refusal():
+    from fno.ingestion.intraday.sync import refused_for_foreign_staging
+
+    sync_alerts = Alerts()
+    line = foreign_staged_line(sync_alerts)
+    assert refused_for_foreign_staging(line) and len(sync_alerts.sent) == 1
+
+
+def test_a_foreign_staged_refusal_makes_the_intraday_run_red_without_a_second_alert(lines):
+    from fno.ingestion.intraday.cli import report
+    from fno.ingestion.intraday.recorder import SlotOutcome
+
+    refusal = foreign_staged_line(Alerts())
+    ours = Alerts()
+    assert report([SlotOutcome("good", "09:30", lines=[refusal])], ours) == 1 and ours.sent == []
+    assert (
+        report(
+            [SlotOutcome("good", "09:30", lines=[lines.pushed]), SlotOutcome("good", "09:45", lines=[refusal])], ours
+        )
+        == 1
+    )
+    assert ours.sent == []
+
+
+def test_a_refusal_and_a_failed_commit_in_one_run_alert_once_for_the_commit_only(lines):
+    from fno.ingestion.intraday.cli import report
+    from fno.ingestion.intraday.recorder import SlotOutcome
+
+    ours = Alerts()
+    outcomes = [
+        SlotOutcome("good", "09:30", lines=[foreign_staged_line(Alerts())]),
+        SlotOutcome("good", "09:45", lines=[lines.failed]),
+    ]
+    assert report(outcomes, ours) == 1 and len(ours.sent) == 1 and "intraday recorder" in ours.sent[0]
+
+
+def test_intraday_rv_with_a_foreign_staged_refusal_is_red_without_a_second_alert(monkeypatch, lines):
+    code, sent = intraday_rv(monkeypatch, ["settled", foreign_staged_line(Alerts())])
+    assert code == 1 and sent == []
+
+
+def test_the_refusal_mark_is_the_whole_phrase_and_matches_neither_the_committer_failure_nor_a_push(lines):
+    from fno.ingestion.intraday.sync import refused_for_foreign_staging
+
+    assert not refused_for_foreign_staging(lines.failed) and not refused_for_foreign_staging(lines.pushed)
+    assert not refused_for_foreign_staging(lines.nothing) and not refused_for_foreign_staging("x NOT pulled: dry run")
