@@ -394,6 +394,8 @@ The plan called these rows W1 to W12; `W0` to `W6` already belong to the write-o
 | J7 | The workflow is manual, read only, commits nothing and sends no alert. | `news-compare-clusterings.yml` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing` | can commit | **tested, plant run** |
 | J8 | The report carries counts and distributions only: never a title or a URL of an article. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story` | a title is printed | **tested, plant run** |
 | J9 | The report names no company symbol or name of the owner's list. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_the_comparison_writes_nothing_to_the_drive_or_the_manifests_and_names_no_story` | the symbols are printed | **tested, plant run** |
+| J10 | Every word the command prints is a fixed label or a count (a whitelist over all output, CLI stdout included); a cluster key in a line is caught. | `ComparisonRun.run` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count` | anchor keys appended to a line | **tested, plant run** |
+| J11 | Nothing is printed to stdout by the counting itself (a symbol counter printed is caught). | `coverage` | `tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count` | the symbol counter printed | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

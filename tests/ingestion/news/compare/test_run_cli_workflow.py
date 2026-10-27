@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fno.ingestion.news import codes
@@ -111,3 +112,34 @@ def test_the_workflow_is_manual_read_only_and_commits_and_alerts_nothing():
     assert "contents: read" in body and "contents: write" not in body
     for word in ("commit_news_record", "git push", "FNO_SLACK_BOT_TOKEN", "--apply"):
         assert word not in body, word
+
+
+LABELS = {
+    "v1", "v2", "vs", "clustered", "clusters", "singletons", "largest", "sizes", "inputs", "tags", "articles", "tagged",
+    "tagged_high", "companies_seen", "url_joins", "url_joins_refused", "url_joins_unlike_title", "companies_version",
+    "resolutions_used", "v2_clusters_merging_v1_clusters", "v1_clusters_split_by_v2",
+}  # fmt: skip
+NUMBER = re.compile(r"^(?:\d+|\d+-\d+:\d+|>=\d+:\d+)$")
+
+
+def unexplained_words(text: str) -> list[str]:
+    """Every word of the output that is neither a fixed label nor a count or a count by bucket."""
+    words = [word.strip(":,") for line in text.splitlines() for word in line.split()]
+    return [w for w in words if w and w not in LABELS and not NUMBER.match(w.rstrip(":"))]
+
+
+def test_every_word_the_command_prints_is_a_fixed_label_or_a_count(tmp_path, monkeypatch, capsys):
+    """Judge 106 B1: not only a few forbidden strings, but a whitelist over ALL output, CLI stdout included."""
+    world = seeded(tmp_path)
+    run = comparison(world, Scripted(CompanyList(7, COMPANIES)))
+    monkeypatch.setattr("fno.ingestion.news.compare.wiring.build_comparison", lambda: run)
+    shown = []
+    assert cmd_news_compare(type("A", (), {"as_of": AS_OF})(), out=shown.append) == 0
+    printed = capsys.readouterr().out
+    text = "\n".join(shown) + "\n" + printed
+    assert len(shown[0].splitlines()) == 5 and printed == ""  # the run itself prints nothing
+    assert unexplained_words(text) == []
+    assert unexplained_words("v1: clustered 3, largest 64e5aa17c3b94fbc") == [
+        "64e5aa17c3b94fbc"
+    ]  # the whitelist does bite
+    assert unexplained_words("tags: companies_seen ZZAL:3") == ["ZZAL:3"]

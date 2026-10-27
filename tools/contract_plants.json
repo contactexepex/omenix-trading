@@ -2287,5 +2287,23 @@
   "file": "fno/ingestion/news/compare/run.py",
   "old": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))",
   "new": "report.lines.append(_coverage_line(metrics.coverage(found.articles, inputs.preparer.tagger)))\n        report.lines.append(\",\".join(sorted(inputs.preparer.tagger.dictionary.symbols)))"
+ },
+ {
+  "id": "J10",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count"
+  ],
+  "file": "fno/ingestion/news/compare/run.py",
+  "old": "f\"largest {shape.largest}, sizes {sizes}\"",
+  "new": "f\"largest {shape.largest}, sizes {sizes} {[c.anchor_key for c in clustering.clusters]}\""
+ },
+ {
+  "id": "J11",
+  "tests": [
+   "tests/ingestion/news/compare/test_run_cli_workflow.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count"
+  ],
+  "file": "fno/ingestion/news/compare/metrics.py",
+  "old": "    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))",
+  "new": "    print(dict(seen))\n    return Coverage(total, tagged, high, tuple(sum(n >= t for n in seen.values()) for t in COMPANY_THRESHOLDS))"
  }
 ]
