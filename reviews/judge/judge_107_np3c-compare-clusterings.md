@@ -46,3 +46,28 @@ In a venv installed from `requirements.lock`:
 No order path, no secret printed, no Groww call. No write and no commit.
 
 ## Verdict: FAIL round 1 at eb0ac05. B1 (pin `url_joins_unlike_title`, singletons and the 11 boundary) required; N1 requested.
+
+## Addendum 1: round 2 at 9d16261: PASS
+
+I reviewed `git diff e7961aa 9d16261`. Before that, e7961aa added judge 106's whitelist test (J10, J11) and merged `main`; I re-ran my plants there too. This round changes one line in `run.py` (the `input:` line), adds tests and adds rows J12 to J15.
+
+**Gates (locked venv, strong evidence).**
+- 1992 passed.
+- ruff check and format are clean; check_imports is clean.
+
+**B1 fixed (strong evidence, replanted).** Each plant was undone after its run.
+
+| Plant | At eb0ac05 / e7961aa | At 9d16261 |
+|---|---|---|
+| `url_joins_unlike_title` prints `url_joins` | passed | 1 failed |
+| singletons as `sizes.count(2)` | passed | 2 failed |
+| the 11+ bucket starts at 12 | passed | 1 failed |
+| the 6–10 bucket stretched to 11 (my new plant) | not run | 1 failed |
+| `url_joins_refused` prints `url_joins` (my new plant) | not run | 2 failed |
+
+- **The new run test.** It builds a URL join that is alike in title and one that is not, giving `url_joins 2` and `url_joins_unlike_title 1`. Both are nonzero and they differ.
+- **The new J1 fixture.** Its sizes give 3 singletons and buckets (1, 2, 4, 4), with clusters of exactly 11 in the last bucket.
+
+**N1 fixed.** A first line, `input: articles N, manifest_rows_skipped K`, reports `source.skipped_rows`. My plant hard-coding 0 there fails a test.
+
+**Verdict: PASS round 2 at 9d16261.**
