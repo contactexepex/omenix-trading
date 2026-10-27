@@ -73,3 +73,36 @@ purpose is to put the primitives in the shared layer; I accept it.
    lane-2 follow-up, not R1d1.
 
 **Verdict: FAIL** (round 1). S1 is tests only; everything else holds.
+
+## Addendum 1: decisive round 2, b1bebc4 (PASS)
+
+Branch `story/R1d1-groww-r2`, SHA `b1bebc4139a512a0697dd18ad2f6e576666e8172`. Compared with `4dcc886`, the only code
+change is in `rate_limit.py`; the rest is tests, the two story texts and judge files.
+
+**Gates** (`__pycache__` cleared): 555 passed; ruff check and format clean; imports clean; code size passed.
+
+**The `_slots` change in shared code is behaviour-neutral.** `_slots` is read only inside `if s.per_minute is not None`
+(`rate_limit.py:110-113`), and the append is now under the same condition. With a per-minute budget, nothing
+changes. Without one, the deque was never read. The production `RateLimit` instances are NSE's per-host pacer
+(`nse_pacer.py:141`), the intraday pacer and the candle source, and all three have `per_minute` None.
+`settings_for("groww")` does carry `per_minute=300` (`settings.py:64`), but no `RateLimit` is built from it, so
+"every source has None" is true of every limiter in use, not of every settings entry.
+
+**Plants on b1bebc4** (each restored):
+
+| Plant | Failed |
+|---|---|
+| G10 intraday `per_minute=100` / G10b candle `per_minute=10` / G10c intraday `per_day=50` / G10d candle `per_day=20` | 1 / 1 / 1 / 1 (S1 fixed) |
+| G11 `_slots` appended always / G12 never appended | 1 / 2 |
+| G1 spacing removed / G2 interval halved / G4 pause never active / G9 pause 59 s | 15 / 7 / 5 / 2 |
+| G6 a second provider in `intraday/wiring.py` / G7 quiet check after the pause | 1 / 1 |
+
+(I also tried a hidden cap inside `RateLimit`, plant G10e. It was a broken mutant that crashed instead of capping, so
+it proves nothing and I discard it.)
+
+My three notes are in the story: the candle micro-delta, the scan described as a tripwire, and the `_slots` fix.
+Only nit: the story calls the candle delta "never weaker". Strictly, the gap between actual starts can be a few
+milliseconds under 0.5 s; "a millisecond difference, as the intraday pacer always had" is the exact wording. Not
+blocking.
+
+**Verdict: PASS** (lane 1, code round 2, judge #2).
