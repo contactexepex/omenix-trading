@@ -104,3 +104,22 @@ Fix: a test with a listed earlier file whose `get` returns None, asserting `prev
   is low. A pre-write check would match P2b2.
 - **Skipped rows.** `ArticleSource` does not report the articles manifest's skipped rows. The guard keeps such rows off
   `main`, so this is defensive only.
+
+## Addendum 1: round 2, 5aa0af3: PASS
+
+Reviewed `5aa0af341c2d8273828d20792c5d6a83223ecc5b`. The delta is `run.py` (+9), `writer.py` (+8),
+`article_source.py` (+5), tests and the story.
+
+**Gates:** 839 passed, 2 runs out of 2. ruff, imports (469 files) and size are clean.
+
+**R1 is closed.** The plant that ignores a listed earlier file whose read returns None is now caught.
+
+**Both should-fixes are done:**
+- `writer.check_ready()`, which is `check_appendable` on `clusters.csv`, runs before any read or Drive write. A torn line
+  gives `manifest_broken`, and the plant removing it is caught.
+- Skipped rows of either manifest give `manifest_row_skipped` and nothing is written. The plants silencing each side are
+  caught.
+
+**No regression:** the writer-conflict and guard-bypass plants are still caught.
+
+**Verdict: PASS (strong evidence).** Round 1's holds stand. P2d needs judge #2's PASS as well before it merges.
