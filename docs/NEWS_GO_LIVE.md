@@ -1,5 +1,7 @@
 # News pipeline: go-live checklist (NP7c)
 
+This page describes `main` **after NP8** (the material-first read order, the pass note and their codes); it is merged after NP8 so every line is true on main.
+
 The one owning document for turning the news pipeline on. **Ingestion only** (CLAUDE.md, "Scope"): this repository fetches, derives and stores
 write-once to the Drive; what a dashboard or an API reads is another repository's job and is not described here. Every news workflow is
 `workflow_dispatch` only today (no `schedule:`, checked on main): nothing runs until the owner dispatches it or enables a schedule. No news
@@ -42,11 +44,11 @@ main. `news-resolve` and `news-read-pages` are probes unless `apply` is ticked.
 |---|---|---|
 | `resolver_failing`, `reader_failing` | the pass asked and almost nothing came back | check reach (gate 1); the outlet or resolver may block the runner |
 | `unexamined`, `budget_stopped` | the read cap or the time budget left work undone | normal for a backlog; watch whether it persists |
-| `company_list_missing/invalid/rolled_back/damaged/unavailable` | the company list cannot be used. **Cluster v2 STOPS** (it archives grouping built from tags). **The read pass DEGRADES** to newest first, red, reads continue, no pass note | publish a new, higher version number; never edit a version in place |
-| `materiality_missing/invalid/rolled_back/damaged/unavailable` | the same for the materiality terms, which only order reads: always degrade, never stop | as above |
+| `company_list_invalid/rolled_back/damaged/unavailable`, and `company_list_missing` for a list used before | the company list cannot be used. **Cluster v2 STOPS** (it archives grouping built from tags). **The read pass DEGRADES** to newest first, red, reads continue, no pass note | publish a new, higher version number; never edit a version in place |
+| `materiality_invalid/rolled_back/damaged/unavailable`, and `materiality_missing` for a file used before | the same for the materiality terms, which only order reads: always degrade, never stop | as above |
 | `pass_note_unreadable` | the last read-pass note is damaged, so the pin cannot be checked | the pass degrades; look at the newest note under `news/read-passes/1/` |
 | `read_conflict`, `cluster_conflict`, `resolution_conflict` | a write-once file exists with other bytes; nothing was overwritten | investigate; do not delete |
-A file that was **never configured** is not an error: the read pass is green and newest first. A file **used before and now gone** is red.
+A file that was **never configured** is not an error, for either run: **cluster v2 records `companies_version` 0 and the run is green; the read pass is green and newest first.** A file **used before and now gone** is red in both (`company_list_missing`, `materiality_missing`): cluster v2 stops, the read pass degrades.
 
 ## 5. Retiring the version 1 cluster run
 Only after the owner reads gate 4 and switches the scheduled cluster run to algorithm 2: the version 1 run stops; its files stay forever
