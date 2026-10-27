@@ -130,3 +130,34 @@ blocking (as I graded it in round 1). Two tests, recommended before the first `a
 
 **Verdict: PASS** (`d88f82c`, final round). Open as should-fix: the F2 tests and the one stale line. The orchestrator
 decides whether they ride this merge or the next touch.
+
+## Addendum 2: `c909933` (supersedes `d88f82c`)
+
+The implementer's message named `c909930`, which does not exist in the repository. The branch head is `c909933`,
+"S1: resolve merge of main (RR1) ...", on top of `20c2e42` (the F2 round). I judged `c909933`. There are no conflict
+markers in `fno`, `tests`, `docs`, `tools` or `.github`. The RR1 files in the range come from main (judge 65 PASS) and
+are not re-judged here.
+
+**Gates (cleared `__pycache__`):** 1234 passed; ruff check and format clean; imports clean (502 files); code size
+passed; contract plants all ok.
+
+**F2: fixed.**
+- **(a) The empty poll.** The implementer's point is correct: an empty feed already raises
+  `PollRejected("no_items")` (`parse_feed.py:76`), so `not reading.articles` cannot be reached today. The new test
+  pins the clause anyway. My plant that drops it now fails 1 test.
+- **(b) An unreadable copy.** It now turns the run red. My plant that drops `UNREADABLE` from `ok` fails 1 test.
+
+**The note on the feed list:** done. The news rule, and so the feed list, is built only when news is requested. A
+plant that builds it always fails 1 test. A requested source with no rule is kept (`NO_RULE`).
+
+**The explicit `plan.held is not None`:** present. A plant that removes it survives, but that plant is equivalent: the
+`TypeError` from `sha256(None)` is caught, which also answers False.
+
+**The trash warning:** present (story line 50).
+
+**The NSE manifest-row check:** still killed (row ignored: 3 tests failed).
+
+**Still open, should-fix only:** `S1-staging-cleanup.md:60` still lists "a news poll trashed" among the deliberate
+breaks, from the superseded design.
+
+**Verdict: PASS** (`c909933`).
