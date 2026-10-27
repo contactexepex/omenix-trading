@@ -114,3 +114,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 101 | NP7 cutover and read-contract plan (plan doc, judge #1) | 2 | PASS (reshaped plan 8c350c5; round 2 6eb4f1d; round 1 FAIL f69aef7) | `judge_101_np7-plan.md` |
 | 102 | NP7b company-list pin (code, judge #1) | 1 | FAIL (round 1, aee8a96) | `judge_102_np7b-company-list-pin.md` |
 | 103 | NP7b company-list pin, code (judge #2) | 1 | PASS (round 2, 7d496ae; round 1 FAIL aee8a96) | `judge_103_np7b-company-list-pin-judge2.md` |
+| 104 | SCOPE ingestion-only rule, rule doc (judge #2) | 1 | FAIL (round 1, 3142c92; owner quote not on record) | `judge_104_scope-ingestion-only-judge2.md` |
