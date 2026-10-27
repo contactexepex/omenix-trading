@@ -128,3 +128,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 115 | NP9 clean stored title, code (judge #2) | 1 | FAIL (round 1, ed90a5c) | `judge_115_np9-clean-title-judge2.md` |
 | 116 | NP9 clean stored title (code, judge #1) | 1 | FAIL (round 1, ed90a5c) | `judge_116_np9-clean-title.md` |
 | 117 | DEL1 delete unused derivation, code (judge #2) | 1 | PASS (round 1, d3b9f04) | `judge_117_del1-delete-judge2.md` |
+| 118 | DEL1 delete unused derivation (code, judge #1) | 1 | PASS (round 1, d3b9f04; runner 251/251) | `judge_118_del1-delete.md` |
