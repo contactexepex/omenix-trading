@@ -108,3 +108,49 @@ Fix: a test that drives `_take` (or the slot run) over a Drive that fails every 
 - No Groww call: plants and probes used fakes only.
 - The record scan ran on this commit.
 - Write-once is untouched: no store's put or conflict logic changed. Only the session's retry loop changed.
+
+## Addendum 1: the 401 behaviour change, and every finding in one list (same round)
+
+The orchestrator asked two questions: whether the change to the re-send after a 401 is acceptable, and whether a
+persistent 401 can loop.
+
+**The re-sign cannot loop (strong evidence: code read and tests).** `signed_in_again` is a `nonlocal` flag of the whole
+call, not of one attempt. So the re-sign happens at most once per call, which is stricter than once per attempt and the
+same as today. A second 401 is classified `OK`. Its status is not in `accept`, so `_raise_with_reason` raises it at once.
+Two characterization tests pin this:
+- `test_a_second_401_is_raised_and_the_token_is_asked_only_twice`;
+- the test at `test_drive_behaviour.py:149`: 401, then 503, then 401, which raises with no third sign-in.
+
+**The behaviour change is accepted (strong evidence on its bounds, reasoning on its value).** Today a `ConnectionError`
+on the re-send after a 401 is raised at once. It is now retried, within the same five tries and waits, so there are
+more tries, never more than five, and no new loop. A retried create is safe because it reuses its reserved ID: a
+repeat answers 409, which `accept` takes. Keeping today's quirk would need a special case for one rare path, and that
+gains nothing. I do not think a refactor must keep it.
+
+**But nothing pins it (strong evidence: plant survives).** Plant: the re-send's `ConnectionError` is turned into a
+non-retried error. **511 passed.** A test must pin the new behaviour: 401, then a dropped connection on the re-send, then
+200, ends OK after one wait. That gives the orchestrator's condition "pinned by a test" a real test.
+
+**On the "780 s < 900 s margin test": it does not fix finding 1.** A test whose attempts last 60 s passes at 900 s.
+Finding 1 is about attempts longer than 60 s: `requests`' timeout limits each read, not the whole request. Two fixes
+are acceptable:
+- raise Drive's `max_total_seconds`, so the 5-try count is the only stop;
+- or ask the owner to accept a time bound below today's.
+
+The test must use attempts longer than 105 s and still assert 5 tries.
+
+**Every finding for the superseding SHA:**
+1. Drive's total time limit can cut a call to fewer than 5 tries (round-1 finding 1).
+2. No test that a failed quote save writes no canonical marker, and the story text says "exactly one reader"
+   (finding 2, judge_30 Addendum 4).
+3. No test that a failed intraday save writes no `taken` ledger row: the plant on `intraday/recorder.py:_take`
+   survives (finding 3).
+4. No test pins the retried `ConnectionError` on the re-send after a 401 (this addendum).
+
+**On a stopgap for the writer-side test (finding 2):** a reader-level test in `compare` plus a written argument from the
+code is not enough on its own. The thing to pin is the writer's rule: `complete` stays false when the save failed. The
+harness can be small. `_save_quote_file` already runs alone in the new tests, and `complete` is one expression
+(`recorder.py:263`). If building the harness really is out of proportion, pulling that expression into a small pure
+function that is tested directly is enough for me. A comment or a written argument is not.
+
+There are no other findings. I re-read the whole diff for this addendum.
