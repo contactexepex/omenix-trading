@@ -2185,5 +2185,23 @@
   "file": "fno/ingestion/news/cluster_record/cluster_file.py",
   "old": "\"url_joins_unlike_title\": clustering.url_joins_unlike_title,",
   "new": "\"url_joins_unlike_title\": 0,"
+ },
+ {
+  "id": "Z7",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_version_two_run_reads_its_previous_file_from_its_own_folder"
+  ],
+  "file": "fno/ingestion/news/cluster_record/run.py",
+  "old": "version = self.grouping.version if self.grouping else clustering_module.ALGORITHM_VERSION",
+  "new": "version = clustering_module.ALGORITHM_VERSION"
+ },
+ {
+  "id": "Z16",
+  "tests": [
+   "tests/ingestion/news/cluster_record/test_version_two_run.py::test_a_version_two_run_writes_a_format_two_file_in_its_own_folder_with_what_fed_it"
+  ],
+  "file": "fno/ingestion/news/cluster_record/report.py",
+  "old": "\"resolutions_used\", \"companies_version\",",
+  "new": "\"resolutions_used\","
  }
 ]

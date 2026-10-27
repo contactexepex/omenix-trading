@@ -11,7 +11,9 @@ from fno.ingestion.news.cluster_record.writer import Written
 
 NOT_WRITTEN = "not_written"
 COUNTS = ("articles", "clusters", "clustered", "outside_window", "repeated_keys")
-URL_COUNTS = ("url_joins", "url_joins_refused", "url_joins_unlike_title")  # version 2 only
+URL_COUNTS = (  # version 2 only; companies_version 0 means no company list was read (shown so a mistake is visible)
+    "url_joins", "url_joins_refused", "url_joins_unlike_title", "resolutions_used", "companies_version",
+)  # fmt: skip
 CONFLICT_ALERT = (
     "cluster_conflict: the closed window's cluster file exists with other bytes; the inputs, the algorithm "
     "version or the determinism changed for that window: investigate, nothing was overwritten"

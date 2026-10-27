@@ -80,6 +80,7 @@ def test_a_version_two_run_writes_a_format_two_file_in_its_own_folder_with_what_
     assert (document["companies_version"], document["resolutions_used"]) == (7, 0)
     assert (document["url_joins"], document["url_joins_unlike_title"], document["url_joins_refused"]) == (0, 0, 1)
     assert "url_joins 0" in report.line() and "url_joins_refused 1" in report.line()
+    assert "companies_version 7" in report.line() and "resolutions_used 0" in report.line()
     assert parse_cluster_file(json.dumps(document).encode()).version == "2"
 
 
@@ -214,3 +215,17 @@ def test_the_command_passes_the_algorithm_to_the_build_and_the_workflow_offers_i
     assert seen == ["1", "2"]
     text = (Path(__file__).parents[4] / ".github/workflows/news-cluster.yml").read_text()
     assert 'options: ["1", "2"]' in text and '--algorithm "${ALGORITHM:-1}"' in text and 'default: "1"' in text
+
+
+def test_a_version_two_run_reads_its_previous_file_from_its_own_folder(tmp_path):
+    earlier = AS_OF - timedelta(hours=1)
+    world = seeded(tmp_path)
+    world.cluster(earlier)
+    v2_bytes = world.drive.get(f"raw/{cluster_path('2', earlier)}")
+    other = json.loads(v2_bytes)  # a NEWER version 1 file with other ids: a version 2 run must not read it
+    other |= {"format": 1, "algorithm_version": "1", "window_end": "20261027T114500Z"}
+    other["clusters"] = [dict(c, cluster_id="f" * 64) for c in other["clusters"]]
+    world.drive.put("raw/news/clusters/1/20261027T114500Z.json", json.dumps(other).encode())
+    previous = world.run_object._previous(AS_OF)
+    assert previous == parse_cluster_file(v2_bytes).clusters
+    assert all(c.cluster_id != "f" * 64 for c in previous)
