@@ -96,4 +96,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 83 | NP2c resolve pass, code + workflow (judge #2) | 2 | PASS (b1917e7, feb5fa9) | `judge_83_np2c-resolve-pass-judge2.md` |
 | 84 | NP4 page-reads plan, plan doc (judge #2) | 2 | PASS (a12cae7; FAIL c886e5a) | `judge_84_np4-plan-judge2.md` |
 | 85 | NP2d wrapper index, code (judge #2) | 2 | PASS (2ac29df; FAIL dbb4905) | `judge_85_np2d-wrapper-index-judge2.md` |
-| 86 | NP2d wrapper index (code, judge #1) | 1 | PASS (round 1, dbb4905; story sentence to correct) | `judge_86_np2d-wrapper-index.md` |
+| 86 | NP2d wrapper index (code, judge #1) | 1 | PASS (round 1, dbb4905; round 2, 2ac29df; wiring pin to add) | `judge_86_np2d-wrapper-index.md` |
