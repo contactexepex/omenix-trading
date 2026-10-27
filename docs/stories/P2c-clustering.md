@@ -52,6 +52,16 @@ this plan only turns them into files and tests. **P2c is a pure function: no I/O
   buckets are the next step if it is not (reasoning only; not measured). (2) The entity list can raise or lower the bar, so a wrong
   entry changes which stories merge, never whether an article is kept (invariant 4 holds regardless).
 
+## Why revisions are not clustering inputs, and a scale watch
+
+- **Revisions.** An article's key is stable across versions, so a corrected title changes no key and no cluster id. The
+  point-in-time rule uses `first_seen_at`, which a revision never changes. A cluster holds keys only, so a changed title is never
+  copied into it. A reader who wants the revised text follows the key into the revisions area. Accepted cost: a correction that
+  would make a story match a different one is not re-clustered, because the design clusters on the first text of record.
+- **Scale watch.** Pairwise comparison inside a window is O(n²). The window bounds it; a wide `--from` backfill is the risk, so
+  the run reports the number of articles in the window, and a window over a stated cap (set in P2d, not guessed here) is reported
+  rather than silently slow.
+
 ## What I cannot prove, said plainly
 
 - **The threshold and the window length have no real data behind them yet.** The design says they are set from collected data;
