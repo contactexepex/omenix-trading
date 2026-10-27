@@ -60,3 +60,35 @@ all ok.
   pass will count as `not_wrapper`. No format-1 news exists today, so this is not live.
 
 **Verdict: FAIL** (round 1, `dbb4905`). F1 is a one-line shell fix plus a test; F2 is text.
+
+## Addendum 1: round 2 on `2ac29df` (main with NP2c merged in)
+
+`git diff origin/main 2ac29df -- fno ops .github`:
+- the commit guard runs `git add` only when the file exists (`commit_news_record.sh:16`), for every manifest;
+- `resolve/wiring.py` hands the pass `wrappers.csv`;
+- the S1 news proof also requires the wrapper-index row for a resolvable article (`_indexed`, X8);
+- the story is updated.
+
+**F1 fixed: re-run with the real script in a scratch repository.** With `articles.csv` holding a new row and
+`wrappers.csv` absent, the script exits 0 and commits and pushes (`0478ff3`).
+
+**F2 fixed:** the resolve pass now reads the index.
+
+**Gates** (in the locked venv): 1636 passed; ruff clean; imports clean (559 files); code size passed; contract plants all
+ok.
+
+**My plants (3 of 4 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| unconditional `git add` | 3 |
+| proof without `_indexed` | 2 |
+| resolve wiring reading `articles.csv` | 2 |
+| staging-cleanup **wiring** not passing the wrapper index | **survived** |
+
+**Should fix (not blocking):** the survivor means `NewsPollProof` is tested with an index, but nothing checks that
+`staging_cleanup/wiring.py:82-84` really gives it one. With the index left out, `_indexed` is always True, which is
+the round-1 behaviour that judge 86's recommendation was meant to close. One wiring test (the news rule holds a
+wrapper index) pins it.
+
+**Verdict: PASS** (`2ac29df`), with the wiring test as a should-fix.

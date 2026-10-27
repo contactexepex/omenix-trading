@@ -40,3 +40,22 @@ If the index ever held another SHA-256 for a key (only a hand edit could do that
 No order path, no secret, no Groww call, no request; no Record file changes.
 
 ## Verdict: PASS round 1 at dbb4905, on condition of the corrected sentence. The S1 index check is the recommended follow-up.
+
+## Addendum 1: round 2 at 2ac29df: PASS, on condition of one wiring pin
+
+Reviewed `git diff dbb4905 2ac29df` (main with NP2c merged in).
+
+**Gates (locked venv).** 1636 passed; ruff is clean; contract plants all `ok`.
+
+**What changed, and what I checked.**
+- **The round-1 condition is met:** the story now says a torn index loses the rows of its whole run, and that the repair is the `manifest_broken` re-run.
+- **The recommended follow-up is built (X8).** `NewsPollProof._indexed` requires the index row (the same SHA-256 of the held bytes) for a resolvable article's main file. Plant: `_indexed` dropped → 1 failed.
+- **Judge 85's F1 (X7):** a manifest that doesn't exist yet is skipped by `[ -e ]` before `git add`, so `set -e` no longer kills the commit step.
+- **Judge 85's F2 (X9):** the resolve pass reads `wrappers.csv`. Plant: it reads `articles.csv` again → 1 failed.
+
+**Condition (test or signature only): the X8 protection is not pinned at the wiring.**
+- `NewsPollProof(..., wrappers=None)` skips the index check when no index is given.
+- My plant removing the index from `staging_cleanup/wiring.proofs()` passes all 745 news and cleanup tests. So a wiring slip would silently turn the protection off.
+- **Fix:** either make `wrappers` a required argument (preferred: there is no caller without it), or add a test that `proofs(..., sources=["news"])` builds a proof with an index. Then show my plant failing.
+
+**Verdict: PASS round 2 at 2ac29df, on condition of the wiring pin.**

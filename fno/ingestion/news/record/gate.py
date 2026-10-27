@@ -32,9 +32,10 @@ class NewsGate:
 
     def promote(self, start: date, end: date) -> PromotionReport:
         report = PromotionReport()
-        self.writer.manifest.check_appendable()  # a torn manifest stops the run before any write (TableFileBroken)
-        if self.writer.manifest.skipped:
-            report.reject(codes.MANIFEST_ROW_SKIPPED, self.writer.manifest.skipped)
+        self.writer.check_appendable()  # a torn manifest stops the run before any write (TableFileBroken)
+        skipped = self.writer.manifest.skipped + (self.writer.wrappers.skipped if self.writer.wrappers else 0)
+        if skipped:
+            report.reject(codes.MANIFEST_ROW_SKIPPED, skipped)
         days = days_between(start, end)
         for feed in self.staging.children(SOURCE):
             if feed not in self.kinds and self._staged_in(feed, days):

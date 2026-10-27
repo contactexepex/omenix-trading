@@ -8,6 +8,7 @@ from collections.abc import Iterable
 
 from fno.ingestion.news.feeds import FeedEntry, PrivateFeedLists
 from fno.ingestion.news.record.manifest import NewsManifest
+from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
 from fno.ingestion.news.resolve.decoder_adapter import GoogleNewsDecoderResolver
 from fno.ingestion.news.resolve.guard import guard_from_feeds
 from fno.ingestion.news.resolve.model import LinkResolver
@@ -43,4 +44,4 @@ def build_resolve_pass(env=os.environ) -> ResolvePass:
     run_id = new_run_id(now_utc())
     store = DataStore(drive, RAW_AREA, batch_receipt_writer(run_id), RESOLVER_WRITER, run_id)
     writer = WriteOnceWriter(record, store, NewsManifest(POLL_LOG_FOLDER, RESOLVED_MANIFEST), key_of_path)
-    return ResolvePass(record, NewsManifest(POLL_LOG_FOLDER), build_link_resolver(feeds), writer)
+    return ResolvePass(record, NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE), build_link_resolver(feeds), writer)
