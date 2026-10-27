@@ -79,3 +79,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 66 | S1 staging cleanup (code, judge #1 of 2) | 1 | FAIL (round 1, f41b1df); PASS (round 2, d88f82c then c909933; spy test to fix) | `judge_66_s1-staging-cleanup.md` |
 | 67 | S1 staging cleanup, code (judge #2 of 2) | 2 | PASS (c909933, d88f82c; FAIL f41b1df) | `judge_67_s1-staging-cleanup-judge2.md` |
 | 68 | S1b loud proof errors, code (judge #2, sole) | 1 | PASS (cead192) | `judge_68_s1b-loud-proof-errors-judge2.md` |
+| 69 | CP2 re-enable the circulars cron (judge #2, sole) | 1 | PASS (c07e721) | `judge_69_cp2-circulars-cron-on-judge2.md` |
