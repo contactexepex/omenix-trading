@@ -62,3 +62,34 @@ The gate list now includes the scheduled `data-cache sync --unreceipted raw/news
 **Hard lines.** None of these steps calls Groww. No orders. View files and lists stay in the private Drive.
 
 **Verdict: PASS round 2 at 6eb4f1d.** The owner still has to choose A, B or C before NP7a.
+
+## Addendum 2: reshaped plan at 8c350c5: PASS (this supersedes Addendum 1's subject)
+
+The owner narrowed NP7 to ingestion only. The new file is `docs/stories/NP7-company-list-safeguard-and-cutover.md` (77 lines). The implementer named 91ec114; the branch tip is 8c350c5, which adds one paragraph (aba7085) plus a merge from `main`. I reviewed the tip.
+
+**What was dropped, and whether that is safe (some evidence).**
+- The view file (NP7a), the consumer contract, `view_rules_version` and the A/B/C "which clusters" choice are all gone.
+- My Addendum 1 condition on the view-rules hash guard and the A/B/C owner decision lapse with them.
+- Dropping the view loses no data, because the filter lived only in the view. Fetch and promote do not filter by company tag, so market-wide news is still archived.
+- `ArticleViewer` and `corroborate` stay as code that no run uses; that is stated plainly.
+
+**B1 kept (strong evidence, checked against `main`).**
+- The plan's starting claim is true. `cluster_record/wiring.py:40` builds `PrivateCompanyFile(AreaStore(...))` with the default `lowest_version=0` and `used=None` (`private_file.py:20`).
+- NP7b's fix is unchanged from round 2: record `companies_sha256`, pass `used=`, and refuse when `Picked.damaged` is non-empty.
+
+**Dropping the materiality rollback is correct (strong evidence).**
+- No run reads the materiality file. `MaterialTerms` is used only by `view.py` and the corroboration code, which no workflow calls.
+- The plan ties the rollback rule to the first run that reads the file. That is the right trigger.
+
+**B2 kept.** The order is fetch → promote → resolve → read-pages → cluster (algorithm 2) → staging cleanup (report-only first), with the `--unreceipted` gate. The six news workflows still have no `schedule:` on `main`.
+
+**"Found while planning" is accurate (strong evidence).**
+- `reads/run.py:76` sorts `newest_first`. Nothing in `reads/` imports the tagger or `MaterialTerms`, and `PAGES = 80` per run.
+- So the owner's materiality list would currently change nothing.
+- Making it a separate lane 1 story, with a stop-or-fallback decision, is right.
+
+**Note for NP7b's code review (not a condition).** Feed planning (`planning/wiring.py:33`) also reads the company list without `used`. A rolled-back list there changes which feeds are queried, not a write-once grouping, so it is a lesser harm. The NP7b story should say whether it is in scope or deliberately left out.
+
+**Hard lines.** No Groww, no orders, and no titles, URLs or symbols in git or logs.
+
+**Verdict: PASS at 8c350c5.**
