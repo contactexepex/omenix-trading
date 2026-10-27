@@ -266,6 +266,7 @@ Requests to the pages of listed outlets, and the outlet probe. It stores nothing
 | H14 | Deprecated site-local IPv6 (`fec0::/10`) is refused. | `REFUSED_V6` | `tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused` | site-local reachable | **tested, plant run** |
 | H15 | ORCHIDv2 (`2001:20::/28`) is refused. | `REFUSED_V6` | `tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused` | ORCHID reachable | **tested, plant run** |
 | H16 | The fetcher's session takes no proxy or other setting from the environment, so no hop can bypass the guards. | `HttpsPageFetcher` | `tests/ingestion/news/pages/test_fetcher.py::test_the_session_takes_no_proxy_or_settings_from_the_environment` | environment proxy honoured | **tested, plant run** |
+| H17 | The probe job runs with unbuffered output, so a run killed hard keeps the outlet lines already printed. | `news-probe-outlets.yml` | `tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_job_does_not_buffer_its_output_so_a_hard_kill_keeps_the_lines_already_printed` | output buffered | **tested, plant run** |
 
 ## News page reads (NP4b)
 

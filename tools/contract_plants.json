@@ -1547,5 +1547,14 @@
   "file": ".github/workflows/news-read-pages.yml",
   "old": "        if: ${{ !inputs.dry_run && inputs.apply }}",
   "new": "        if: ${{ !inputs.dry_run }}"
+ },
+ {
+  "id": "H17",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_job_does_not_buffer_its_output_so_a_hard_kill_keeps_the_lines_already_printed"
+  ],
+  "file": ".github/workflows/news-probe-outlets.yml",
+  "old": "      PYTHONUNBUFFERED: \"1\"",
+  "new": "      PYTHONUNBUFFERED_OFF: \"1\""
  }
 ]
