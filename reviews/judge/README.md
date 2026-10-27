@@ -130,3 +130,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 117 | DEL1 delete unused derivation, code (judge #2) | 1 | PASS (round 1, d3b9f04) | `judge_117_del1-delete-judge2.md` |
 | 118 | DEL1 delete unused derivation (code, judge #1) | 1 | PASS (round 1, d3b9f04; runner 251/251) | `judge_118_del1-delete.md` |
 | 119 | NP10 page snippet, code (judge #2) | 1 | FAIL (round 1, cfb87c6) | `judge_119_np10-snippet-judge2.md` |
+| 120 | NP10 page snippet (code, judge #1) | 1 | FAIL (round 1, cfb87c6; quadratic sentence split) | `judge_120_np10-snippet.md` |
