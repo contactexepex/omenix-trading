@@ -70,3 +70,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 57 | P5b contract follow-ups, code (judge #2) | 1 | PASS (round 2, f7740e2) | `judge_57_p5b-followups-judge2.md` |
 | 58 | F1 filings non-list answer (code) | 1 | FAIL (round 1, 39f38e5); PASS (round 2, fbca4e2; N2 follow-up) | `judge_58_f1-filings-non-list.md` |
 | 59 | F2 filings non-text row fields (code) | 1 | PASS (round 1, 5f00329) | `judge_59_f2-filings-field-text.md` |
+| 60 | T1 test reliability and filings field messages, code (judge #2) | 1 | PASS (147d15c) | `judge_60_t1-test-reliability-judge2.md` |
