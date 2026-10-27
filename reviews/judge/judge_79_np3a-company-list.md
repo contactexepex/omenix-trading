@@ -78,3 +78,26 @@ Reviewed `git diff 6504962 c5aeb93`, which folds in judge 78's F1 to F3; they ov
 **M1 still open (requested, not a condition).** Swapping the EQUITY_L and Nifty 500 name order still passes all 60 tests.
 
 **Verdict: PASS at c5aeb93, on condition of the stated limit.**
+
+## Addendum 2: round 2 at 1a1e5d6: PASS, nothing left open (this supersedes Addendum 1's condition)
+
+Reviewed 1a1e5d6. Exclusions are now an allow-list grammar (`EXCLUSION_GRAMMAR`, fullmatch): plain text, `(?:A|B)` groups of plain text, `x?`, and one trailing `\w*`. At most 4 `?` per pattern.
+
+**Gates (locked venv).** 1515 passed; ruff and check_imports are clean; contract plants all `ok`.
+
+**B1 fixed (strong evidence, attacked).**
+- Refused:
+  - `.*.*x` and `\w*\w*\w*!`;
+  - `(a|a)x`, because capture groups are not in the grammar;
+  - `a?b?c?d?e?`, a fifth optional;
+  - my round-1 alternation bypass, `(?:a|a)` × 16 + `x`. Every `(?:` spends one of the 4 `?`, so a pattern holds at most 4 groups.
+- **The worst shape I could build that is accepted:** 4 groups of 13 identical alternatives, 117 characters.
+  - It costs 0.08 s on 300 characters, 0.28 s on 1,000 and 1.43 s on 5,000: linear in the text, with a bounded constant (13^4).
+  - That is acceptable for owner-written patterns.
+- Realistic patterns are accepted: `Mahindra(?: Finance| Lifespace)`, `Tata (?:Steel|Power)\w*`.
+
+**B2 fixed (see Addendum 1).**
+
+**M1 fixed.** My swap plant (the Nifty 500 name before EQUITY_L) now fails a test.
+
+**Verdict: PASS round 2 at 1a1e5d6.** The "state the limit" condition of Addendum 1 no longer applies: the grammar replaces the heuristic.
