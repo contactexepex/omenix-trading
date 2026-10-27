@@ -55,7 +55,7 @@ class Session:
 
 
 class LocalServer:
-    """A real HTTP server on an ephemeral localhost port for the tests that must reach urllib3. It is started in a thread
+    """A real HTTP server on an ephemeral localhost port, for the tests that must reach urllib3. It runs in a thread
     and the constructor returns only once the server really accepts a connection (a bounded wait, never a blind
     sleep); `close()` stops it and joins its thread."""
 
