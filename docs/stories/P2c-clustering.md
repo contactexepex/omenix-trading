@@ -82,6 +82,28 @@ constants' docstring. The hard guards (no merge on an entity alone, no chaining)
 "too many or too few clusters", never to a lost or hidden article. Corroboration and wire-credit counting stay out (owner
 decision). One judge, as for P2b1 (a pure module), after P2b3 merges.
 
+## P2c as built
+
+- **Code:** `fno/ingestion/news/cluster/` (`title_text`, `similarity`, `entities`, `window`, `matcher`, `assign`, `cluster_id`,
+  `cluster`), 270 lines in all, each file under 70. No I/O, no clock, no logging, no randomness (an AST test pins the imports
+  and calls). `cluster_articles(articles, as_of, previous=())` returns `Clustering` (clusters of hash keys, the counts of articles
+  outside the window and of repeated keys, `ALGORITHM_VERSION`).
+- **As planned:** same key; title shingles (2-word) and Jaccard at `THRESHOLD` 0.55 within a 36-hour match window; an entity
+  moves the bar by 0.10 (lower when shared, higher when each names only others) and never merges alone; the anchor rule with no
+  chaining; the cluster id is the SHA-256 of the anchor's key; `previous_cluster_ids` names replaced ids (an earlier article
+  arriving, or an anchor that left the 48-hour window); window membership by `max(published, first seen)`.
+- **Decisions made while building:** a repeated key is one article and its EARLIEST sighting is kept (as the Record keeps the
+  first file); an article first seen after the run's end waits for a later run; the redundant `first seen <= as_of` check was
+  removed because the effective time is never earlier than the first-seen time.
+- **Measured, on invented pairs only (test_labelled_pairs.py):** 16 pairs I wrote (8 the same story, 8 not): precision 5 of 5,
+  recall 5 of 8. The defaults under-merge short rewordings ("wins" against "bags", "a record low" against "record low") and
+  merge nothing they should not. That is the safe direction (an unmerged duplicate is still a kept article), but it means a
+  story count from these clusters is an OVERCOUNT until the threshold is re-tuned. I did not tune on my own 16 pairs: that would
+  fit the numbers to my own invention. Reasoning only; no real news is behind any of it.
+- **Proof:** 31 tests; plants fail a test for stage 1, the title stage and the outlet trim, an entity merging alone, the entity
+  bar, the match window, chaining, the two-anchor choice, the assignment order, the id hash, `previous_cluster_ids`, the window
+  edges and the effective time, the earliest-sighting rule, the repeated-key count, a dropped article, and input order.
+
 ## Order and gates
 
 P2c, then P2d (the cluster record). Gates: full suite, ruff, imports, numbers, size (350 per file and class), record scan,
