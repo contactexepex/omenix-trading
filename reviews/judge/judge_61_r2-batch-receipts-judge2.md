@@ -179,3 +179,27 @@ The module docstring (lines 11-12, "until the file has a valid receipt") is stil
 The one-line fix from Addendum 1 still applies and should ride the next R2 code push.
 
 **Verdict: PASS** (`e919a29`), with F3 as a should-fix.
+
+## Addendum 3: `d7f7c3a` (the F3 fix only, on top of `e919a29`)
+
+`git diff e919a29 d7f7c3a -- fno tests docs tools`:
+- `BatchIndex.problems()` now returns every problem.
+- `ReceiptFolder.batch_problems` (`receipts.py:48-52`) drops a settled problem once `self.read(path)` finds any
+  receipt, in a batch or per file.
+- There is one new test, added to row N10.
+- The story's "Fail closed" text and row N9 now state the guard, the three signals, and that the default sync cannot
+  see a file with no receipt.
+
+**Gates (cleared `__pycache__`):** 1156 passed; ruff check and format clean; imports clean; code size passed; contract
+plants N10, N11, C1, C2 and K1-K4 ok.
+
+**My F3 reproduction:** a torn line for a Drive file, then a correct per-file receipt via `ReceiptFolder.write`, now
+gives `sync("raw/news")` complete with no problems. The pathless TORN warning remains, which is correct. A per-file
+receipt with the wrong digest still ends red (DAMAGED). My other Addendum 1 cases are unchanged.
+
+**Plants (3 of 3 killed):** never settle (2 failed); settle every problem that names a path, which would hide
+CONFLICT (9); settle without the `settled_by_a_receipt` flag (1).
+
+**The doc text:** the new wording matches the code and the guard I reviewed in Addendum 2.
+
+**Verdict: PASS** (`d7f7c3a`). F3 is fixed; no finding of mine is open on R2.
