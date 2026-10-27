@@ -140,3 +140,16 @@ The rest of that diff is NP10 and NP9b coming in from `main`, each already passe
 - **Recommended later, a small lane 1 change:** have the staging cleanup report count polls kept *because of provenance* separately, so a kept poll says why.
 
 **Verdict: PASS at 423ac92**, the merge-gating head.
+
+## Addendum 3: the final head 24459f1: PASS (this supersedes Addendum 2's SHA)
+
+I reviewed `git diff 423ac92 24459f1`: 2 files, +10 lines.
+- In `provenance/sweep.py`: two `#` comment lines, the comment I asked for. No executable line changed.
+- In the NP11 story: 8 lines on the re-listed empty day and the two mutants that change nothing written.
+
+**Gates at 24459f1 (locked venv, strong evidence).**
+- 2037 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 302 of 302 `ok`.**
+
+**Verdict: PASS at 24459f1.** The logic is byte-identical to 423ac92 (Addendum 2).
