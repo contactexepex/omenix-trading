@@ -28,6 +28,10 @@ def add_news_parser(subparsers) -> None:
     promote.add_argument("--to", dest="end", type=date.fromisoformat, default=None,
                          help="YYYY-MM-DD (default: today, UTC: the day polls are staged under)")  # fmt: skip
     promote.set_defaults(func=cmd_news_promote)
+    check = actions.add_parser(
+        "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
+    )
+    check.set_defaults(func=cmd_news_check_manifest)
 
 
 def cmd_news_fetch(args, out=print) -> int:
@@ -65,3 +69,14 @@ def cmd_news_promote(args, out=print) -> int:
     if not ok:
         out(build_alert_sender().send(PROMOTE_ALERT.format(line=line)))
     return 0 if ok else 1
+
+
+def cmd_news_check_manifest(args, out=print) -> int:
+    """The promote workflow commits the manifest only when this says it is whole, so a promote killed mid-write can
+    never publish a torn line. Judged on the file, not on promote's exit code: a rejection still commits good rows."""
+    from fno.ingestion.news.record.manifest import NewsManifest
+    from fno.ingestion.news.wiring import POLL_LOG_FOLDER
+
+    whole = NewsManifest(POLL_LOG_FOLDER).well_formed()
+    out("news manifest: whole" if whole else f"news manifest: {codes.MANIFEST_BROKEN}")
+    return 0 if whole else 1

@@ -60,12 +60,18 @@ jobs:
         run: |
           set -o pipefail
           python -m fno news promote --from "$FROM_DATE" | tee promote.log
-      - name: Commit the news manifest and receipts
+      - name: Commit the news manifest and receipts (only when the manifest is whole)
         if: ${{ !inputs.dry_run }}
         run: |
-          git add "$MANIFEST" "$RECEIPTS"
-          git diff --cached --quiet || git commit -m "P2b2 Actions: news record $(date -u +%FT%TZ)"
-          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+          # A promote killed mid-write can leave a torn last line; it must never reach main. The guard judges the
+          # file, not promote's exit code, so a mere rejection still commits the good rows.
+          if python -m fno news check-manifest; then
+            git add "$MANIFEST" "$RECEIPTS"
+            git diff --cached --quiet || git commit -m "P2b2 Actions: news record $(date -u +%FT%TZ)"
+            git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+          else
+            echo "commit skipped: the next clean run repairs the missing rows"
+          fi
       - name: Fail the run when the promotion was not clean (the alert was sent by the command)
         if: ${{ steps.promote.outcome != 'success' && !inputs.dry_run }}
         run: exit 1

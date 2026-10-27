@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 
 from fno.ingestion.storage.raw_store import RawFileConflict
-from fno.ingestion.storage.row_log import CsvRowLog
+from fno.ingestion.storage.row_log import CsvRowLog, TableFileBroken
 
 FIELDS = ("date", "article_id", "status", "sha256", "size_bytes")
 RECORDED, REVISION = "recorded", "revision"
@@ -42,6 +42,14 @@ class NewsManifest:
         self.skipped = len(rows) - len(whole)  # rows that are not whole: reported by the gate, never silently dropped
         self.rows: set[tuple[str, str, str]] = {(r["article_id"], r["status"], r["sha256"]) for r in whole}
         self.recorded: dict[str, str] = {r["article_id"]: r["sha256"] for r in whole if r["status"] == RECORDED}
+
+    def well_formed(self) -> bool:
+        """True when the file ends in a new line and every row is whole: safe to commit to the shared repository."""
+        try:
+            self.check_appendable()
+        except TableFileBroken:
+            return False
+        return not self.skipped
 
     def check_appendable(self) -> None:
         """TableFileBroken when the file ends in a torn line (checked before anything is written)."""
