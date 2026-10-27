@@ -333,6 +333,8 @@ Which of the owner's companies an article is about, computed when the article is
 | U11 | A Google News article takes its URL only from the resolution file, never from the feed. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file`<br>`tests/ingestion/news/test_view.py::test_the_feed_text_a_label_or_a_page_can_never_set_the_url` | wrapper link used as URL | **tested, plant run** |
 | U12 | An unlisted host is unlisted. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_an_unlisted_host_is_unlisted_and_a_non_news_path_of_a_desk_outlet_is_opinion` | unlisted shown as listed | **tested, plant run** |
 | U13 | With no URL an article has no host: the domain a feed claims never makes it listed, a tier-1 outlet or an agency copy. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file` | claimed domain used as the host | **tested, plant run** |
+| U14 | The outlet name after a separator at the end of a title is not weighed by a material term. | `MaterialTerms.weight` | `tests/ingestion/news/materiality/test_terms_and_file.py::test_the_outlet_name_after_a_separator_never_makes_a_headline_material` | outlet suffix weighed | **tested, plant run** |
+| U15 | The view hands the article's source to the materiality check. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_the_outlet_suffix_of_a_title_never_makes_the_view_material` | source dropped | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

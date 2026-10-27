@@ -100,3 +100,12 @@ def test_a_view_is_pure_the_same_inputs_give_the_same_view():
     assert VIEWER.view(article(canonical_url="https://pub.example/news/a")) == VIEWER.view(
         article(canonical_url="https://pub.example/news/a")
     )
+
+
+def test_the_outlet_suffix_of_a_title_never_makes_the_view_material():
+    url = "https://pub.example/news/a"
+    suffixed = article(canonical_url=url, title="Zzalpha names new chief - Zzmerger Daily", source="Zzmerger Daily")
+    assert not VIEWER.view(suffixed).material
+    assert VIEWER.view(
+        article(canonical_url=url, title="Zzalpha merger talks - Pub Daily", source="Pub Daily")
+    ).material

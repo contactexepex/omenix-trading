@@ -60,6 +60,6 @@ class ArticleViewer:
                 host, provider, authors, article.source, article.title, article.summary
             ).promotional,
             tag=tag,
-            material=self.terms.is_material(article.title, tag),
+            material=self.terms.is_material(article.title, tag, article.source),
             access=read.access if read else "",
         )

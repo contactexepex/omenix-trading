@@ -33,3 +33,10 @@ written, no Record change, no workflow, no dependency.** Everything is computed 
 - B1 accepted, reproduced: an unresolved wrapper whose feed claims a tier-1 agency domain was listed, tier 1 and an agency copy,
   against NP0 section 3. The host is now empty with no URL (U13); the first test had pinned the bug.
 - Merge artifact accepted: my branch carried the old H7 plant; main's entry is taken.
+
+## Judge 95 round 1 (judge #2)
+- F1 accepted, reproduced: a term equal to the outlet name made "Acme Motors names new chief - Zztv Profit" material. `MaterialTerms`
+  now takes the source and drops a trailing " - Source" with the NP5a `without_outlet` (U14, U15). The raw title still goes to
+  `OriginReader` (the suffix is how it finds a title attribution). The promotional filter still reads the full title: a marker
+  phrase in an outlet's suffix is a signal about the outlet, left as is (reasoning only).
+- F2 and the H7 plant: already in fb94003 (NP5a ab4acd2 merged in; main's H7).

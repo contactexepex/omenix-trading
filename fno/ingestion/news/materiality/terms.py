@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from fno.ingestion.news import codes
 from fno.ingestion.news.safe_pattern import compile_safe
 from fno.ingestion.news.tagging.tagger import HIGH, Tag
-from fno.ingestion.news.tagging.text import capped
+from fno.ingestion.news.tagging.text import capped, without_outlet
 
 FORMAT = 1
 MAX_TERMS = 200
@@ -38,12 +38,13 @@ class MaterialTerms:
     def __init__(self, terms: tuple[Term, ...], version: int = 0):
         self.terms, self.version = terms, version
 
-    def weight(self, title: str | None) -> float:
-        text = capped(title)
+    def weight(self, title: str | None, source: str | None = None) -> float:
+        """`source`: the outlet name, whose " - Outlet" suffix on a title is not about the story (judge 95 F1)."""
+        text = without_outlet(capped(title), source)
         return sum(term.weight for term in self.terms if term.pattern.search(text))
 
-    def is_material(self, title: str | None, tag: Tag) -> bool:
-        return self.weight(title) >= MATERIAL_AT and tag.confidence == HIGH
+    def is_material(self, title: str | None, tag: Tag, source: str | None = None) -> bool:
+        return self.weight(title, source) >= MATERIAL_AT and tag.confidence == HIGH
 
 
 def parse_terms(data: bytes, version: int) -> MaterialTerms:

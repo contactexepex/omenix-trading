@@ -89,3 +89,11 @@ def test_a_materiality_file_is_never_in_the_repository():
 
 def test_the_empty_terms_object_weighs_nothing():
     assert MaterialTerms(()).weight("zzmerger") == 0 and not MaterialTerms(()).is_material("zzmerger", ONE)
+
+
+def test_the_outlet_name_after_a_separator_never_makes_a_headline_material():
+    """Judge 95 F1: a term that equals the outlet's name must not weigh a story the outlet merely published."""
+    title = "Acme names new chief - Zzmerger Daily"
+    assert TERMS.weight(title) == 1.0 and TERMS.is_material(title, ONE)
+    assert TERMS.weight(title, "Zzmerger Daily") == 0 and not TERMS.is_material(title, ONE, "Zzmerger Daily")
+    assert TERMS.weight("Zzmerger talks begin", "Zzmerger Daily") == 1.0

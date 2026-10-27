@@ -1805,8 +1805,8 @@
    "tests/ingestion/news/materiality/test_terms_and_file.py::test_a_headline_is_material_only_with_weight_one_or_more_and_exactly_one_high_confidence_company"
   ],
   "file": "fno/ingestion/news/materiality/terms.py",
-  "old": "return self.weight(title) >= MATERIAL_AT and tag.confidence == HIGH",
-  "new": "return self.weight(title) >= MATERIAL_AT"
+  "old": "return self.weight(title, source) >= MATERIAL_AT and tag.confidence == HIGH",
+  "new": "return self.weight(title, source) >= MATERIAL_AT"
  },
  {
   "id": "U9",
@@ -1880,5 +1880,23 @@
   "file": "fno/ingestion/news/view.py",
   "old": "if parts else \"\"  # the domain",
   "new": "if parts else plain_host(article.source_domain)  # the domain"
+ },
+ {
+  "id": "U14",
+  "tests": [
+   "tests/ingestion/news/materiality/test_terms_and_file.py::test_the_outlet_name_after_a_separator_never_makes_a_headline_material"
+  ],
+  "file": "fno/ingestion/news/materiality/terms.py",
+  "old": "text = without_outlet(capped(title), source)",
+  "new": "text = capped(title)"
+ },
+ {
+  "id": "U15",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_the_outlet_suffix_of_a_title_never_makes_the_view_material"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "is_material(article.title, tag, article.source)",
+  "new": "is_material(article.title, tag)"
  }
 ]
