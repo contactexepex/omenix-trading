@@ -23,8 +23,12 @@ RSS = (
 CONSENT_PAGE = f"<html><body>consent {MARK_HEADLINE} {FEED_URL}</body></html>".encode()
 
 
-def feed_list_bytes(*urls: str) -> bytes:
-    return json.dumps({"feeds": [{"id": f"feed-{n:02d}", "url": u} for n, u in enumerate(urls, start=1)]}).encode()
+SALT = "0123456789abcdef-salt"
+
+
+def feed_list_bytes(*urls: str, salt: str = SALT) -> bytes:
+    feeds = [{"id": f"feed-{n:02d}", "url": u} for n, u in enumerate(urls, start=1)]
+    return json.dumps({"salt": salt, "feeds": feeds}).encode()
 
 
 def put_version(store, version: int, *urls: str) -> None:

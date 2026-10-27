@@ -20,6 +20,7 @@ FEEDS_FOLDER = "feeds"
 VERSION_NAME = re.compile(r"^feeds-v(\d+)\.json$")
 FEED_ID = re.compile(r"^feed-\d{2,3}$")
 MAX_FEEDS = 50
+MIN_SALT_LENGTH = 16  # a random salt makes the list's logged SHA-256 useless for confirming a guessed list
 
 
 class FeedListError(Exception):
@@ -46,13 +47,16 @@ class FeedList:
 
 def parse_feed_list(data: bytes, version: int) -> FeedList:
     try:
-        entries = json.loads(data)["feeds"]
+        document = json.loads(data)
+        salt, entries = document["salt"], document["feeds"]
         feeds = tuple(FeedEntry(item["id"], item["url"]) for item in entries)
     except (UnicodeDecodeError, ValueError, KeyError, TypeError):
         raise FeedListError(codes.FEED_LIST_INVALID) from None
     ids = [feed.feed_id for feed in feeds]
     valid = (
-        0 < len(feeds) <= MAX_FEEDS
+        isinstance(salt, str)
+        and len(salt) >= MIN_SALT_LENGTH
+        and 0 < len(feeds) <= MAX_FEEDS
         and len(set(ids)) == len(ids)
         and all(FEED_ID.match(i) for i in ids)
         and all(isinstance(f.url, str) and f.url.startswith("https://") and f.host for f in feeds)

@@ -45,7 +45,6 @@ def test_a_feed_is_staged_once_with_a_log_row_of_ids_and_hashes_only(tmp_path):
     (row,) = log.log.rows()
     assert row["feed_id"] == "feed-01" and row["sha256"] == hashlib.sha256(RSS).hexdigest()
     assert row["size_bytes"] == str(len(RSS)) and row["feed_list_version"] == "3"
-    assert log.highest_feed_list_version() == 3
 
 
 def test_the_same_bytes_again_are_unchanged_with_no_new_copy_and_no_new_row(tmp_path):

@@ -77,8 +77,6 @@ class NewsFetcher:
         if not staged:
             return codes.UNCHANGED
         self.log.append(
-            PollRow(
-                fetched_at, feed.feed_id, path, hashlib.sha256(data).hexdigest(), len(data), feeds.version, feeds.sha256
-            )
+            PollRow(fetched_at, feed.feed_id, path, hashlib.sha256(data).hexdigest(), len(data), feeds.version)
         )
         return codes.FETCHED

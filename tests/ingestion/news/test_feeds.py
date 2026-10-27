@@ -67,3 +67,20 @@ def test_a_feed_entry_never_prints_its_url():
     entry = FeedEntry("feed-01", FEED_URL)
     assert MARK_QUERY not in repr(entry) and MARK_QUERY not in str(entry)
     assert parse_feed_list(feed_list_bytes(FEED_URL), 1).feeds[0].host == "marker-host-zz43.example"
+
+
+@pytest.mark.parametrize("salt", [None, "", "short", "a" * 15])
+def test_a_list_without_a_salt_of_16_characters_or_more_is_refused(salt):
+    import json
+
+    document = {"feeds": [{"id": "feed-01", "url": FEED_URL}]}
+    if salt is not None:
+        document["salt"] = salt
+    with pytest.raises(FeedListError, match=codes.FEED_LIST_INVALID):
+        parse_feed_list(json.dumps(document).encode(), 1)
+
+
+def test_the_logged_hash_depends_on_the_salt_so_it_cannot_confirm_a_guessed_list():
+    first = parse_feed_list(feed_list_bytes(FEED_URL, salt="a" * 16), 1)
+    second = parse_feed_list(feed_list_bytes(FEED_URL, salt="b" * 16), 1)
+    assert first.sha256 != second.sha256 and len(first.sha256) == 64

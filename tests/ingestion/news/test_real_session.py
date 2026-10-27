@@ -9,6 +9,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
+import requests
+from requests.adapters import BaseAdapter
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedEntry, FeedList
@@ -16,10 +18,10 @@ from fno.ingestion.news.fetcher import NewsFetcher
 from fno.ingestion.news.session import NEWS_PACER, NewsSession
 from fno.ingestion.news.snapshot_log import NewsSnapshotLog
 from fno.ingestion.promotion.staging import StagingArea
-from fno.ingestion.storage.raw_store import LocalFolderStore
+from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
 from fno.shared.http_pacing import SHARED_PACER, PacedSession
 from fno.shared.resilience.transition_log import LayeredLog
-from tests.ingestion.news.fakes import MARK_PATH, MARK_QUERY, NOW, RSS
+from tests.ingestion.news.fakes import MARK_HOST, MARK_PATH, MARK_QUERY, NOW, RSS
 
 
 class Server:
@@ -101,3 +103,54 @@ def test_the_control_the_shared_session_does_write_a_refused_host_to_the_pause_l
     finally:
         server.close()
     assert run_local.exists() and "127.0.0.1" in run_local.read_text("utf-8") and alerts
+
+
+# ---- judge 45: the fetcher's store is the staging area; a marker host through the real pacer ------------------
+
+
+def test_the_wired_fetcher_writes_only_under_staging_and_reads_the_feed_list_from_config(tmp_path, monkeypatch):
+    from fno.ingestion.news import wiring
+    from tests.ingestion.news.fakes import FEED_URL, Reply, Session, put_version
+
+    class Recording(LocalFolderStore):
+        saved: list = []
+
+        def put(self, path, data):
+            self.saved.append(path)
+            super().put(path, data)
+
+    drive = Recording(tmp_path / "drive")
+    drive.saved = []
+    put_version(AreaStore(drive, wiring.CONFIG_AREA), 1, FEED_URL)
+    drive.saved.clear()
+    monkeypatch.setattr(wiring, "build_owner_drive", lambda env: drive)
+    monkeypatch.setattr(wiring, "NewsSession", lambda: Session(**{FEED_URL: Reply()}))
+    monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "repo")
+    assert wiring.build_news_fetch({}).run().ok
+    assert drive.saved and all(path.startswith("staging/news/") for path in drive.saved)  # never `raw/` (the Record)
+
+
+def test_two_refusals_from_a_marker_host_leave_no_trace_in_the_pause_log_or_the_alerts(tmp_path, quick_pacers):
+    alerts = []
+    committed, run_local = attached_pause_log(tmp_path, alerts)
+    url = f"https://{MARK_HOST}/{MARK_PATH}?q={MARK_QUERY}"
+
+    class Refusing(BaseAdapter):
+        def send(self, request, **kwargs):
+            response = requests.Response()
+            response.status_code, response._content, response.url = 429, b"", request.url
+            return response
+
+        def close(self):
+            pass
+
+    session = NewsSession()
+    session.mount("https://", Refusing())
+    feeds = FeedList(1, (FeedEntry("feed-01", url),))
+    drive = LocalFolderStore(tmp_path / "drive")
+    fetcher = NewsFetcher(session, StagingArea(drive), NewsSnapshotLog(tmp_path / "repo"), lambda: NOW)
+    for _ in range(2):  # two refusals in a row open a host's breaker on the shared pacer
+        assert fetcher.run(feeds).counts == {codes.REFUSED: 1}
+    assert NEWS_PACER._hosts[MARK_HOST].breaker.state.value == "open"
+    assert not committed.exists() and not run_local.exists() and alerts == []
+    assert MARK_HOST not in "".join(p.read_text("utf-8") for p in (tmp_path / "repo").rglob("*") if p.is_file())

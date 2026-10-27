@@ -54,7 +54,9 @@ def test_no_marker_reaches_anything_committed_or_public_on_any_path(tmp_path, mo
         }
     )
     log = NewsSnapshotLog(repo)
-    run = NewsFetchJob(PrivateFeedLists(drive), NewsFetcher(session, StagingArea(drive), log, lambda: NOW), log)
+    run = NewsFetchJob(
+        PrivateFeedLists(drive), NewsFetcher(session, StagingArea(drive), log, lambda: NOW), log, lambda: NOW
+    )
     alerts = []
     monkeypatch.setattr("fno.ingestion.news.wiring.build_news_fetch", lambda: run)
     monkeypatch.setattr(

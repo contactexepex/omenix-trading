@@ -29,4 +29,4 @@ def build_news_fetch(env=os.environ) -> NewsFetchJob:
     log = NewsSnapshotLog(POLL_LOG_FOLDER)
     staging = StagingArea(AreaStore(drive, STAGING_AREA))
     fetcher = NewsFetcher(NewsSession(), staging, log, now_utc)
-    return NewsFetchJob(PrivateFeedLists(AreaStore(drive, CONFIG_AREA)), fetcher, log)
+    return NewsFetchJob(PrivateFeedLists(AreaStore(drive, CONFIG_AREA)), fetcher, log, now_utc)

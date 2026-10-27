@@ -14,7 +14,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedListError, PrivateFeedLists
 from fno.ingestion.news.fetcher import NewsFetcher
 from fno.ingestion.news.job import NewsFetchJob
-from fno.ingestion.news.snapshot_log import NewsSnapshotLog, PollRow
+from fno.ingestion.news.snapshot_log import NewsSnapshotLog
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.raw_store import LocalFolderStore
 from tests.ingestion.news.fakes import FEED_URL, NOW, OTHER_URL, Reply, Session, put_version
@@ -26,7 +26,7 @@ def job(tmp_path, session):
     drive = LocalFolderStore(tmp_path / "drive")
     log = NewsSnapshotLog(tmp_path / "repo")
     fetcher = NewsFetcher(session, StagingArea(drive), log, lambda: NOW)
-    return NewsFetchJob(PrivateFeedLists(drive), fetcher, log), drive, log
+    return NewsFetchJob(PrivateFeedLists(drive), fetcher, log, lambda: NOW), drive, log
 
 
 def test_a_missing_list_stops_the_run_before_any_request(tmp_path):
@@ -41,7 +41,7 @@ def test_a_list_older_than_the_newest_one_already_used_stops_the_run(tmp_path):
     session = Session(**{FEED_URL: Reply()})
     run, drive, log = job(tmp_path, session)
     put_version(drive, 1, FEED_URL)
-    log.append(PollRow(NOW, "feed-01", "p", "0" * 64, 1, 2, "f" * 64))  # a poll already made with version 2
+    log.note_feed_list(2, "f" * 64, NOW)  # version 2 was already used
     with pytest.raises(FeedListError, match=codes.FEED_LIST_ROLLED_BACK):
         run.run()
     assert session.asked == []
@@ -146,3 +146,24 @@ def test_the_command_alerts_when_a_version_was_edited_after_use(tmp_path, monkey
     )
     assert news_cli.cmd_news_fetch(None, out=lambda line: None) == 1
     assert alerts and codes.FEED_LIST_DAMAGED in alerts[0]
+
+
+def test_a_run_of_only_unchanged_polls_still_records_the_feed_list_version_it_used(tmp_path):
+    run, drive, log = job(tmp_path, Session(**{FEED_URL: Reply()}))
+    put_version(drive, 1, FEED_URL)
+    run.run()
+    (tmp_path / "repo" / "polls.csv").unlink()  # forget the poll rows: only the version record is left
+    again = run.run()
+    assert again.counts == {codes.UNCHANGED: 1} and log.log.rows() == []
+    (row,) = log.lists.rows()  # one row per version ever used, however many runs
+    assert row["feed_list_version"] == "1" and len(row["feed_list_sha256"]) == 64
+
+
+def test_the_commit_step_adds_only_the_poll_log_folder():
+    document = yaml.safe_load((ROOT / ".github" / "workflows" / "news-fetch.yml").read_text("utf-8"))
+    steps = document["jobs"]["fetch"]["steps"]
+    adds = [line.strip() for s in steps for line in str(s.get("run", "")).splitlines() if "git add" in line]
+    assert adds == ['git add "$POLLS"'] + [
+        line for line in adds if "commit_pause_log" in line
+    ]  # the pause step is a script
+    assert document["jobs"]["fetch"]["env"]["POLLS"] == "research/data/manifests/news"
