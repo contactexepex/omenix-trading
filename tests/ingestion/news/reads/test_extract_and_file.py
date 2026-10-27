@@ -143,13 +143,15 @@ def test_the_depth_limit_holds_for_lists_as_well_as_graphs():
     assert extract(page([[[ARTICLE]]])) is not None  # a few levels are fine
 
 
-def test_five_long_names_in_a_three_byte_script_still_fit_the_read_file():
-    """judge 89 (1): ASCII-escaped, five 80-character Devanagari names overflowed the old 2,000-byte cap."""
+def test_five_long_names_and_a_full_snippet_in_a_three_byte_script_still_fit_the_read_file():
+    """judge 89 (1): ASCII-escaped, five 80-character Devanagari names overflowed the old cap. NP10: the snippet (600
+    characters) is the biggest field, so the proof is names AND a full snippet: escaped, that is over 6,000 bytes."""
     names = ["\u0928" * 80 + str(i) for i in range(5)]
-    facts = extract(page({**ARTICLE, "author": names, "publisher": {"name": "\u0928" * 80}}))
+    body = "\u0928" * 700
+    facts = extract(page({**ARTICLE, "author": names, "publisher": {"name": "\u0928" * 80}, "articleBody": body}))
     data = build_read("k" * 64, "pub.example", facts).to_bytes()
-    assert len(data) < MAX_BYTES and parse_read(data).authors[0].startswith("\u0928")
-    emoji = extract(
-        page({**ARTICLE, "author": ["\U0001f600" * 79 + str(i) for i in range(5)]})
-    )  # 12 bytes escaped, 4 raw
-    assert len(build_read("k" * 64, "pub.example", emoji).to_bytes()) < MAX_BYTES
+    assert (
+        len(facts.summary_extract) == 600 and len(data) < MAX_BYTES and parse_read(data).authors[0].startswith("\u0928")
+    )
+    emoji = extract(page({**ARTICLE, "author": ["\U0001f600" * 79 + str(i) for i in range(5)], "articleBody": body}))
+    assert len(build_read("k" * 64, "pub.example", emoji).to_bytes()) < MAX_BYTES  # 12 bytes escaped, 4 raw
