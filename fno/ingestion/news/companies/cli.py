@@ -7,7 +7,10 @@ from __future__ import annotations
 from fno.ingestion.news import codes
 from fno.shared.models import now_utc
 
-LINE = "news seed-companies ({mode}): stocks {stocks}, indices {indices}, names given their full form {renamed}"
+LINE = (
+    "news seed-companies ({mode}): stocks {stocks}, indices {indices}, "
+    "names given their full form {renamed}, rows skipped {skipped}"
+)
 STOPPED = "news seed-companies stopped: {code}"
 
 
@@ -29,5 +32,5 @@ def cmd_seed_companies(args, out=print) -> int:
         out(STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}"))
         return 1
     mode = "written" if args.apply else "report only"
-    out(LINE.format(mode=mode, stocks=seed.stocks, indices=seed.indices, renamed=seed.renamed))
+    out(LINE.format(mode=mode, stocks=seed.stocks, indices=seed.indices, renamed=seed.renamed, skipped=seed.skipped))
     return 0

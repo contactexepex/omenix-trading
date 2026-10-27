@@ -32,8 +32,10 @@ def refused(data: bytes) -> str:
 
 
 def test_a_good_list_is_read_with_its_defaults():
-    parsed = parse_company_list(file_bytes(company(), company("TCS", "Tata Consultancy Services", aliases=["TCS"])), 3)
-    assert parsed.version == 3 and [c.symbol for c in parsed.companies] == ["ZZMARK", "TCS"]
+    parsed = parse_company_list(
+        file_bytes(company(), company("ZZTWO", "Zztwo Consultancy Services", aliases=["ZZTWO"])), 3
+    )
+    assert parsed.version == 3 and [c.symbol for c in parsed.companies] == ["ZZMARK", "ZZTWO"]
     first = parsed.companies[0]
     assert (first.aliases, first.exclusions, first.targeted, first.kind) == ((), (), False, "stock")
 
@@ -57,16 +59,31 @@ def test_a_list_with_a_mistake_is_refused_with_one_fixed_code(data):
     assert refused(data) == codes.COMPANY_LIST_INVALID
 
 
-@pytest.mark.parametrize("pattern", ["(unclosed", "x" * 121, "(a+)+b", "(a|b)*c", "(?:a+){2,}", "(a)+"])
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "(unclosed",
+        "x" * 121,
+        "(a+)+b",
+        "(a|b)*c",
+        "(?:a+){2,}",
+        "(a)+",
+        ".*.*.*.*.*.*Z",
+        r"\w*\w*\w*\w*\w*\w*!",
+        ".*.*.*Z",
+        "a?a?a?a?a?aaaa",
+        "x{2,}y{2,}z{2,}",
+    ],
+)
 def test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused(pattern):
     assert refused(file_bytes(company(exclusions=[pattern]))) == codes.COMPANY_LIST_INVALID
 
 
 @pytest.mark.parametrize(
     "pattern",
-    ["Kotak Mahindra\\w*", "Mahindra (?:Lifespaces?|Holidays|Logistics)\\w*", "ITC Hotels", "L&T (?:Finance|Tech)\\w*"],
+    ["Zzfoo Bar\\w*", "Zzbar (?:Lifespaces?|Holdings|Logistics)\\w*", "Zzfoo Hotels", "ZZ&Q (?:Finance|Tech)\\w*"],
 )
-def test_the_kind_of_exclusion_agentic_uses_is_accepted(pattern):
+def test_a_plain_name_pattern_with_a_word_tail_and_an_optional_letter_is_accepted(pattern):
     assert parse_company_list(file_bytes(company(exclusions=[pattern])), 1).companies[0].exclusions == (pattern,)
 
 
@@ -131,3 +148,13 @@ def test_a_newest_version_that_is_invalid_stops_the_run_rather_than_falling_back
     store = config(tmp_path, v1=file_bytes(company()), v2=b"broken")
     with pytest.raises(CompanyListError, match=codes.COMPANY_LIST_INVALID):
         PrivateCompanyFile(store).companies()
+
+
+def test_no_exclusion_the_list_accepts_can_run_long_on_a_crafted_headline():
+    import time
+
+    pattern = r"Zzfoo (?:Alpha|Beta)\w*.*Z"  # two open-ended repeats: the most the list allows
+    parse_company_list(file_bytes(company(exclusions=[pattern])), 1)
+    start = time.monotonic()
+    __import__("re").search(pattern, "Zzfoo Alpha " + "a" * 400)
+    assert time.monotonic() - start < 1

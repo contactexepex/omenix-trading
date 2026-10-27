@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass
 
 from fno.ingestion.news.companies.model import INDEX, STOCK
-from fno.ingestion.news.companies.parse import FORMAT, SYMBOL
+from fno.ingestion.news.companies.parse import FORMAT, MAX_TEXT, SYMBOL, parse_company_list
 from fno.ingestion.news.sources.labels import normalise_label
 from fno.ingestion.research_data.fo_masters import LOT_KEY_COLUMNS, LOT_SECTION_SYMBOL
 
@@ -37,6 +37,7 @@ class Seed:
     stocks: int
     indices: int
     renamed: int  # names that collided and were given their full form
+    skipped: int = 0  # NSE rows the list checks would refuse (odd symbol, empty or long name, name taken twice)
 
 
 def clean_name(raw: str) -> str:
@@ -75,17 +76,25 @@ def build_seed(lots: bytes, equity_list: bytes | None, nifty500: bytes | None) -
     n500 = {r["Symbol"]: r["Company Name"] for r in _rows(nifty500)} if nifty500 else {}
     master = dict(fno_stocks)
     symbols = sorted(set(master) | set(n500))
-    entries, taken, renamed = [], set(), 0
+    entries, taken, renamed, skipped = [], set(), 0, 0
     for symbol in symbols:
         raw = legal.get(symbol) or n500.get(symbol) or master[symbol]
-        name = clean_name(raw)
+        name = clean_name(raw) or re.sub(r"\s+", " ", raw).strip()
         if normalise_label(name) in taken:  # two symbols with one cleaned name: the second keeps its full form
             name, renamed = re.sub(r"\s+", " ", raw).strip().title(), renamed + 1
+        if not SYMBOL.match(symbol) or not normalise_label(name) or len(name) > MAX_TEXT:
+            skipped += 1
+            continue
+        if normalise_label(name) in taken:  # even its full form is taken
+            skipped += 1
+            continue
         taken.add(normalise_label(name))
         entries.append({"symbol": symbol, "name": name, "kind": STOCK})
+    stocks = len(entries)
     for symbol, underlying in indices:
         entries.append({"symbol": symbol, "name": clean_name(underlying), "kind": INDEX,
                         "aliases": list(INDEX_ALIASES.get(symbol, ()))})  # fmt: skip
     document = {"format": FORMAT, "companies": entries}
     data = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
-    return Seed(data, len(symbols), len(indices), renamed)
+    parse_company_list(data, 1)  # what a consumer will apply: a file it would refuse is never handed back to be written
+    return Seed(data, stocks, len(indices), renamed, skipped)

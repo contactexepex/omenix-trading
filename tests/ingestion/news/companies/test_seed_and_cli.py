@@ -22,19 +22,19 @@ LOTS = (
     b"NIFTY BANK                          ,BANKNIFTY ,30         ,30\n"
     b"NIFTY 50                            ,NIFTY     ,75         ,75\n"
     b"Symbol                              ,Symbol    ,           ,\n"
-    b"APOLLO HOSPITALS ENTER. L           ,APOLLOHOSP,125        ,125\n"
-    b"ITC LTD                             ,ITC       ,1600       ,1600\n"
+    b"ZZALPHA HOLDINGS ENTER. L           ,ZZALPHA,125        ,125\n"
+    b"ZZBE LTD                             ,ZZBE       ,1600       ,1600\n"
     b"ZZONLYMASTER CORP LTD               ,ZZMASTER  ,100        ,100\n"
 )
 EQUITY = (
     b"SYMBOL,NAME OF COMPANY, SERIES, DATE OF LISTING, PAID UP VALUE, MARKET LOT, ISIN NUMBER, FACE VALUE\n"
-    b"APOLLOHOSP,Apollo Hospitals Enterprise Limited,EQ,06-OCT-2008,5,1,INE000000001,5\n"
-    b"ITC,ITC Limited,EQ,06-OCT-2008,1,1,INE000000002,1\n"
+    b"ZZALPHA,Zzalpha Holdings Enterprise Limited,EQ,06-OCT-2008,5,1,INE000000001,5\n"
+    b"ZZBE,ZZBE Limited,EQ,06-OCT-2008,1,1,INE000000002,1\n"
 )
 NIFTY500 = (
     b"Company Name,Industry,Symbol,Series,ISIN Code\n"
     b"Zzextra Industries Ltd.,Capital Goods,ZZEXTRA,EQ,INE000000003\n"
-    b"Apollo Hospitals Enterprise Ltd.,Healthcare,APOLLOHOSP,EQ,INE000000001\n"
+    b"Zzalpha Holdings Enterprise Ltd.,Healthcare,ZZALPHA,EQ,INE000000001\n"
 )
 
 
@@ -46,32 +46,30 @@ def seeded(lots=LOTS, equity=EQUITY, n500=NIFTY500):
 def test_the_universe_is_the_master_stocks_plus_the_nifty_500_and_the_indices_are_kept_apart():
     seed, by_symbol = seeded()
     assert (seed.stocks, seed.indices) == (4, 2) and set(by_symbol) == {
-        "APOLLOHOSP",
-        "ITC",
+        "ZZALPHA",
+        "ZZBE",
         "ZZMASTER",
         "ZZEXTRA",
         "BANKNIFTY",
         "NIFTY",
     }
-    assert by_symbol["BANKNIFTY"]["kind"] == "index" and by_symbol["ITC"]["kind"] == "stock"
+    assert by_symbol["BANKNIFTY"]["kind"] == "index" and by_symbol["ZZBE"]["kind"] == "stock"
 
 
 def test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master():
     _, by_symbol = seeded()
-    assert (
-        by_symbol["APOLLOHOSP"]["name"] == "Apollo Hospitals Enterprise"
-    )  # not the master's "Apollo Hospitals Enter. L"
+    assert by_symbol["ZZALPHA"]["name"] == "Zzalpha Holdings Enterprise"  # not the master's "Zzalpha Holdings Enter. L"
     assert by_symbol["ZZEXTRA"]["name"] == "Zzextra Industries"  # nifty 500 only
     assert by_symbol["ZZMASTER"]["name"] == "Zzonlymaster Corp"  # the master's own, cleaned
 
 
 def test_a_short_all_capital_name_stays_capital_and_a_long_one_is_title_cased():
     assert (
-        clean_name("ITC LTD") == "ITC"
-        and clean_name("TRENT LTD") == "TRENT"
-        and clean_name("MOTILAL OSWAL FIN LTD") == "Motilal Oswal Fin"
+        clean_name("ZZBE LTD") == "ZZBE"
+        and clean_name("ZZTRN LTD") == "ZZTRN"
+        and clean_name("ZZDELTA CAPITAL FIN LTD") == "Zzdelta Capital Fin"
     )
-    assert clean_name("ABB India Ltd.") == "ABB India" and clean_name("  Tata  Motors Limited ") == "Tata Motors"
+    assert clean_name("ZZQ India Ltd.") == "ZZQ India" and clean_name("  Zzeta  Motors Limited ") == "Zzeta Motors"
 
 
 def test_the_four_index_underlyings_get_their_public_names_and_nothing_else_has_an_alias():
@@ -81,10 +79,10 @@ def test_the_four_index_underlyings_get_their_public_names_and_nothing_else_has_
 
 
 def test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form():
-    equity = EQUITY + b"ZZDUP,Itc Limited,EQ,06-OCT-2008,1,1,INE000000009,1\n"
+    equity = EQUITY + b"ZZDUP,Zzbe Limited,EQ,06-OCT-2008,1,1,INE000000009,1\n"
     lots = LOTS + b"ZZDUP LTD                           ,ZZDUP     ,10         ,10\n"
     seed, by_symbol = seeded(lots, equity)
-    assert seed.renamed == 1 and by_symbol["ZZDUP"]["name"] != by_symbol["ITC"]["name"]
+    assert seed.renamed == 1 and by_symbol["ZZDUP"]["name"] != by_symbol["ZZBE"]["name"]
     assert parse_company_list(seed.data, 1).companies  # and the whole file passes the checks a consumer applies
 
 
@@ -120,8 +118,10 @@ class World:
 def test_without_apply_nothing_is_written_and_the_line_is_counts_only(tmp_path, monkeypatch):
     world = World(tmp_path, monkeypatch)
     assert world.run(False) == 0 and world.config.checksums("companies") == {}
-    assert world.lines == ["news seed-companies (report only): stocks 4, indices 2, names given their full form 0"]
-    assert not any(name in world.lines[0] for name in ("APOLLO", "Apollo", "ITC", "ZZ"))
+    assert world.lines == [
+        "news seed-companies (report only): stocks 4, indices 2, names given their full form 0, rows skipped 0"
+    ]
+    assert not any(name in world.lines[0] for name in ("ZZALPHA", "Zzalpha", "ZZBE", "ZZ"))
 
 
 def test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused(tmp_path, monkeypatch):
@@ -151,3 +151,34 @@ def test_no_company_or_discovery_list_is_ever_in_the_repository():
     found = [p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file() and not ignored & set(p.parts)
              and (p.name.startswith(("companies-v", "discovery-v")) and p.suffix == ".json")]  # fmt: skip
     assert found == []
+
+
+def test_rows_the_list_checks_would_refuse_are_skipped_and_counted_so_the_seed_still_passes_them():
+    equity = (
+        EQUITY
+        + b"zzlower,Zzlower Industries Limited,EQ,06-OCT-2008,1,1,INE000000010,1\n"
+        + b"ZZWAYTOOLONGSYMBOLNAME1,Zzlong Industries Limited,EQ,06-OCT-2008,1,1,INE000000011,1\n"
+        + b"ZZEMPTY,.,EQ,06-OCT-2008,1,1,INE000000012,1\n"
+    )
+    n500 = (
+        NIFTY500
+        + b"Zzlower Industries,Cap,zzlower,EQ,INE000000010\n"
+        + b"Zzlong Industries,Cap,ZZWAYTOOLONGSYMBOLNAME1,EQ,INE000000011\n"
+        + b"Zzltd Ltd,Cap,ZZLTD,EQ,INE000000013\n"
+        + b".,Cap,ZZEMPTY,EQ,INE000000012\n"
+    )
+    seed, by_symbol = seeded(equity=equity, n500=n500)
+    assert seed.skipped == 3 and "zzlower" not in by_symbol and "ZZWAYTOOLONGSYMBOLNAME1" not in by_symbol
+    assert parse_company_list(seed.data, 1).companies  # the whole file passes what a consumer applies
+
+
+def test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned(monkeypatch):
+    import fno.ingestion.news.companies.seed as seed_module
+    from fno.ingestion.news.companies.parse import CompanyListError
+
+    def refuse(data, version):
+        raise CompanyListError(codes.COMPANY_LIST_INVALID)
+
+    monkeypatch.setattr(seed_module, "parse_company_list", refuse)
+    with pytest.raises(CompanyListError):
+        build_seed(LOTS, EQUITY, NIFTY500)

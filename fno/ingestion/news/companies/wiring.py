@@ -8,6 +8,7 @@ from datetime import date, timedelta
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.companies.model import CompanyListSource
+from fno.ingestion.news.companies.parse import CompanyListError
 from fno.ingestion.news.companies.private_file import COMPANIES_FOLDER, PrivateCompanyFile
 from fno.ingestion.news.companies.seed import Seed, build_seed
 from fno.ingestion.news.wiring import CONFIG_AREA
@@ -50,7 +51,10 @@ def seed_companies(apply: bool, today: date, env=os.environ) -> Seed:
     lots = latest_copy(raw, FoLotSizeSource, today)
     if lots is None:
         raise SeedFailed(codes.SEED_SOURCE_MISSING)
-    seed = build_seed(lots, latest_copy(raw, EquityListSource, today), latest_copy(raw, Nifty500ListSource, today))
+    try:
+        seed = build_seed(lots, latest_copy(raw, EquityListSource, today), latest_copy(raw, Nifty500ListSource, today))
+    except CompanyListError:
+        raise SeedFailed(codes.COMPANY_LIST_INVALID) from None
     if apply:
         config.put(FIRST_FILE, seed.data)
     return seed

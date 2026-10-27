@@ -3,8 +3,9 @@ content, so a refusal is ONE fixed code and never names a symbol, a name or a li
 
 - a symbol that is not an NSE-style symbol, or a repeated one; a name or alias that is empty once normalised;
 - two companies claiming one normalised name or alias (a tag would be ambiguous);
-- an exclusion that is not a regular expression, is long, or puts a quantifier after a group (the nested-quantifier
-  shape that makes a pattern run for ever on a crafted headline);
+- an exclusion that is not a regular expression, is long, puts a quantifier after a group, or has more than
+  `MAX_OPEN_REPEATS` open-ended repeats (`*`, `+`, `{n,}`) or `MAX_OPTIONALS` optional parts: each extra open repeat
+  multiplies the work on a crafted headline (measured: six `.*` on 90 characters ran 18 s), each extra `?` doubles it;
 - an unknown key, a kind other than stock or index, more entries or longer texts than the caps below."""
 
 from __future__ import annotations
@@ -24,6 +25,9 @@ SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9&-]{0,19}$")
 QUANTIFIED_GROUP = re.compile(
     r"\)\s*(?:[*+{]|\?\?)"
 )  # a group followed by * + {n,m} (`)?` is allowed: one optional group)
+MAX_OPEN_REPEATS, MAX_OPTIONALS = 2, 4
+CLASS_OR_ESCAPE = re.compile(r"\[(?:\\.|[^\]\\])*\]|\\.")  # `[...]` and `\x` count as one plain character
+OPEN_REPEAT = re.compile(r"[*+]|\{\d*,\d*\}")
 COMPANY_KEYS = frozenset({"symbol", "name", "aliases", "exclusions", "targeted", "kind"})
 TOP_KEYS = frozenset({"format", "companies"})
 
@@ -46,10 +50,16 @@ def _texts(value: object, limit: int) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _too_costly(pattern: str) -> bool:
+    plain = CLASS_OR_ESCAPE.sub("x", pattern).replace("(?", "(")  # a group's own `(?` is not a repeat
+    plain = re.sub(r"([*+?}])\?", r"\1", plain)  # a lazy mark is not a second repeat
+    return len(OPEN_REPEAT.findall(plain)) > MAX_OPEN_REPEATS or plain.count("?") > MAX_OPTIONALS
+
+
 def _exclusions(value: object) -> tuple[str, ...]:
     patterns = _texts(value, MAX_EXCLUSIONS)
     for pattern in patterns:
-        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern):
+        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern) or _too_costly(pattern):
             raise _invalid()
         try:
             re.compile(pattern)

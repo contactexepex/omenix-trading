@@ -698,8 +698,8 @@
    "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
   ],
   "file": "fno/ingestion/news/companies/parse.py",
-  "old": "        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern):",
-  "new": "        if len(pattern) > MAX_PATTERN:"
+  "old": "        if len(pattern) > MAX_PATTERN or QUANTIFIED_GROUP.search(pattern) or _too_costly(pattern):",
+  "new": "        if len(pattern) > MAX_PATTERN or _too_costly(pattern):"
  },
  {
   "id": "Q2",
@@ -869,5 +869,32 @@
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
   "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
   "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
+ },
+ {
+  "id": "Q8",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "    return len(OPEN_REPEAT.findall(plain)) > MAX_OPEN_REPEATS or plain.count(\"?\") > MAX_OPTIONALS",
+  "new": "    return False"
+ },
+ {
+  "id": "Q9",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_rows_the_list_checks_would_refuse_are_skipped_and_counted_so_the_seed_still_passes_them"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if not SYMBOL.match(symbol) or not normalise_label(name) or len(name) > MAX_TEXT:",
+  "new": "        if False:"
+ },
+ {
+  "id": "Q10",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_a_seed_whose_own_bytes_a_consumer_would_refuse_is_never_returned"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "    parse_company_list(data, 1)  # what",
+  "new": "    (lambda *a: None)(data, 1)  # what"
  }
 ]

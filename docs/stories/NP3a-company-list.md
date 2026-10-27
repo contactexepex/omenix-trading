@@ -22,18 +22,20 @@ service; reads NSE lists from the Drive archive; the one write is `companies/com
   only with `--apply`, and a test proves no `companies-v*.json` or `discovery-v*.json` is in the repository.
 
 ## Decisions and why
-- **The starter aliases of agentic's 20 are NOT in this code.** They would put the owner's selection in a public repository. The
+- **The starter aliases of the reference project's 20 are NOT in this code.** They would put the owner's selection in a public repository. The
   seed has aliases only for the four index underlyings (NSE's own public names); everything else is the owner's to add in a new version
   of the file. This lowers the quality of the first tags until the owner edits, and I say so.
-- **Exclusions are restricted** (no quantifier after a group, at most 120 characters, at most 20): agentic's real exclusions pass, a
-  nested-quantifier pattern that could run for ever on a crafted headline does not (judge 72's ReDoS point, applied where the owner's
-  patterns first enter the system).
+- **Exclusions are restricted** (no quantifier after a group, at most 120 characters, at most 20, at most two open-ended repeats and four
+  optional parts): plain name patterns pass; a pattern that could run long on a crafted headline does not (judge 72's ReDoS point, applied
+  where the owner's patterns first enter the system; judge 78 F1: six `.*` on 90 characters measured 18.7 s here, six `\w*` 57 s).
+- **The seed skips and counts rows the list checks would refuse, and parses its own bytes before returning them** (judge 78 F2), so a
+  bad NSE row can never produce a file that is written once and then stops every consumer.
 - **No hash or content of the list is ever printed or logged** (unlike the feed list, whose salted hash is in the poll log).
 - **A seed is never written over an existing list;** the owner adds `companies-v2.json` by hand or by a later command.
 
 ## What is NOT established (said plainly)
 - The seed has not been written to the real Drive (a dispatch needs the owner's go; the report-only run is the first step).
-- Short all-capital names stay capital ("ITC", "LTM"), longer ones are title-cased ("Motilal Oswal Fin"): mechanical, sometimes wrong.
+- Short all-capital names stay capital ("ITC", "LTM"), longer ones are title-cased (a long all-capital name becomes "Xxxx Yyyy Zzzz"): mechanical, sometimes wrong.
 - Ambiguous names ("Titan", "Page Industries") will tag wrong text in NP5; the owner's exclusions are the tool, not code.
 
 ## Judges: please try to break
