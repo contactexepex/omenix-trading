@@ -289,6 +289,9 @@ def test_the_manifest_itself_refuses_to_append_to_a_torn_file(tmp_path):
 @pytest.mark.parametrize(
     "line",
     [
+        f"2026-10-27,{'a' * 20},recorded,{'b' * 64},10",  # a line torn inside the article id
+        f"2026-10-27,{'a' * 64},recorded,{'b' * 30},10",  # a line torn inside the sha256
+        f"2026-10-27,{'g' * 64},recorded,{'b' * 64},10",  # an article id that is not hex
         f"2026-10-27,{'a' * 64},recorded,{'z' * 64},10",  # a sha256 that is not hex
         f"2026-10-27,{'a' * 64},recorded,{'b' * 64},ten",  # a size that is not a number
         f"2026-10-27,{'a' * 64},maybe,{'b' * 64},10",  # a status that is not ours

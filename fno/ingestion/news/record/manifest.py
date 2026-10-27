@@ -19,7 +19,7 @@ from fno.ingestion.storage.row_log import CsvRowLog
 FIELDS = ("date", "article_id", "status", "sha256", "size_bytes")
 RECORDED, REVISION = "recorded", "revision"
 FILE_NAME = "articles.csv"
-SHA256 = re.compile(r"[0-9a-f]{64}")
+HEX64 = re.compile(r"[0-9a-f]{64}")  # an article id and a SHA-256 are both 64 hex characters
 
 
 def _whole(row: dict) -> bool:
@@ -28,7 +28,8 @@ def _whole(row: dict) -> bool:
         all(cell for cell in cells)
         and None not in row  # extra cells land under the key None
         and row["status"] in (RECORDED, REVISION)
-        and bool(SHA256.fullmatch(row["sha256"]))
+        and bool(HEX64.fullmatch(row["article_id"]))
+        and bool(HEX64.fullmatch(row["sha256"]))
         and row["size_bytes"].isdigit()
     )
 

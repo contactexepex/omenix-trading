@@ -126,11 +126,13 @@ command takes `--from YYYY-MM-DD` like `promote` and may be re-run; the same stu
   `record_conflict`, never a no-op.
 - **Torn manifest line (judge 47 B):** the manifest is appended through `CsvRowLog`; a file that does not end in a new line
   stops the run before any write with the fixed code `manifest_broken` (the owner trims the torn line by hand; the
-  missing-row repair then re-adds it). The load skips and counts rows that are not whole (`manifest_row_skipped`, alerted).
+  missing-row repair then re-adds it). The load skips and counts rows that are not whole (5 cells, a 64-hex article id and SHA-256, a known status, a numeric size:
+  `manifest_row_skipped`, alerted); a torn line is never truncated silently, because it means a crash the owner should see.
+  The workflow keeps committing the good rows and receipts when the promotion exits 1 (pinned by a test), then fails the run.
 - **Wiring (judge 48 S1):** `build_news_promotion` itself runs on a recording fake Drive: every write lands under
   `raw/news/articles|revisions`, every read under `staging/news`, `config/feeds` or `raw/news`, and a second process reads the
   Record back (all no-ops); plants that swap the writer, the reader or the gate onto the wrong area fail.
-- **Proof:** 38 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
+- **Proof:** 42 offline tests; plants that fail a test: the compared fields, the sha8 length, the missing-row repair, the
   file-before-row order, the manifest conflict check, the conflict catch, the unknown-feed check, the poll-reject count, and the
   reconciliation sum. The master privacy test runs a marker headline, host, path and query through the article file, manifest,
   receipts, report line and DEBUG logs, including a refused poll.

@@ -83,3 +83,21 @@ def test_the_workflow_has_no_schedule_and_commits_only_its_own_paths():
     assert set(flow[True]) == {"workflow_dispatch"}  # YAML reads `on` as True; no schedule key
     assert 'git add "$MANIFEST" "$RECEIPTS"' in text and "receipts/raw/news" in text
     assert "research/data/manifests/news/articles.csv" in text and "--no-verify" not in text
+
+
+def _steps():
+    (job,) = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text()).get("jobs").values()
+    return {step.get("name", ""): step for step in job["steps"]}
+
+
+def test_the_promote_step_may_fail_without_stopping_the_commit_and_the_commit_has_no_outcome_condition():
+    """judge 48 S3: good articles' receipts and rows are committed even when the promotion exits 1; then the run fails."""
+    steps = _steps()
+    promote = steps["Promote staged polls through the article gate"]
+    commit = steps["Commit the news manifest and receipts"]
+    final = next(s for n, s in steps.items() if n.startswith("Fail the run"))
+    assert promote["continue-on-error"] is True
+    assert (
+        commit["if"] == "${{ !inputs.dry_run }}" and "steps." not in commit["if"] and "continue-on-error" not in commit
+    )
+    assert "steps.promote.outcome != 'success'" in final["if"] and final["run"] == "exit 1"
