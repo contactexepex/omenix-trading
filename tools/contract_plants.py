@@ -1,4 +1,4 @@
-"""Re-runs the plants behind docs/RECORD_CONTRACT.md (story P5).
+"""Re-runs the plants behind docs/RECORD_CONTRACT.md and docs/NEWS_RECORD_CONTRACT.md (story P5).
 
 For every claim in `contract_plants.json`, its tests must pass and, with the claim's plant applied to the source, at
 least one of them must fail. A claim in EXPECT_SURVIVE is one the document calls "stated only": its plant is
