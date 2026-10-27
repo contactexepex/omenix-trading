@@ -53,3 +53,9 @@ read again on every pass; at about 1,500 articles a day the 600-read cap saturat
 `unexamined` on every run. That alert is honest but noisy. The real fix is a small sidecar the gate writes when it records a
 wrapper article (or a kind column), so the pass reads only those: a change to the gate and the manifest, so its own story and
 two judges (proposed NP2d). Until then the cap and the alert keep it safe, not quiet.
+
+## Go-live step (owner's dispatch)
+The decoder's endpoint is unproven from a GitHub runner. The first dispatch of `news-resolve` **without `apply`** is that probe: it
+sends real, paced, capped requests and writes nothing. If its counts-only line shows the service blocks the runner (a failing
+resolver is red and alerted), the fallback is our own small adapter behind `LinkResolver`: one new class and one line in
+`resolve/wiring.py`.
