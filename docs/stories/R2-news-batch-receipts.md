@@ -2,7 +2,7 @@
 
 **Lane 1, two judges (the writer of the write-once Record and the proof of it).** Owner decision, 27 Oct 2026 (relayed by the
 orchestrator): "we don't want to lose any data anymore"; receipts for news go from one file per Drive file to one file per run.
-**Status: PLAN, no code yet.** Scope: the news article and cluster writers only. vix, flows and every other source keep one receipt per file.
+**Status: built, awaiting two judges.** Scope: the news article and cluster writers only. vix, flows and every other source keep one receipt per file.
 
 ## What is true today (read from the code, 27 Oct 2026)
 - `DataStore.put` (fno/ingestion/storage/data_store.py) writes the Drive file, then calls `ReceiptFolder.write(receipt)`: one
@@ -51,6 +51,9 @@ can; the protection against that is git history, same as before.
 - The news writers end to end with the batch strategy (article and cluster): every Drive file has a line, no per-file receipt files are made.
 - `RECORD_CONTRACT.md`: row W4 names both strategies; a new row for the batch guarantee with its plants; the "Not guaranteed" list
   keeps the verified-cache coverage bullet. `EXPECT_SURVIVE == stated_only_rows` stays true.
+
+## Built (27 Oct 2026)
+`fno/ingestion/storage/batch_receipts.py` (`BatchIndex`, `BatchReceiptWriter`), `receipt.py` (the `Receipt` dataclass moved out so the two modules do not import each other; `receipts.py` still exports it), `ReceiptWriter` Protocol and the combined reader in `receipts.py`, `DataStore` typed to the Protocol, `DriveCache.sync` reports batch problems, `batch_receipt_writer()` in `data_wiring.py` used by the two news wiring roots, `receipts/_batches` added to the two news workflows' commit paths. Contract rows N6 to N8 (plants run). Existing news tests changed only where they patched the old `receipt_folder` or asserted the old `RECEIPTS` path.
 
 ## Questions for the orchestrator (none is a blocker unless you disagree)
 1. One batch file per workflow run (so articles and clusters get separate files); the brief says "one receipt file per run
