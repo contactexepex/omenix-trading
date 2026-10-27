@@ -78,3 +78,48 @@ clean (537 files); code size passed; contract plants all ok.
      main's history at `f735e94` (disclosed to the orchestrator).
 
 **Verdict: FAIL** (round 1, `6504962`). Each fix is small: one more check, one self-parse, and renamed fixtures.
+
+## Addendum 1: round 2 (final) on `c5aeb93`
+
+`git diff 6504962 c5aeb93 -- fno tests docs`:
+- `_too_costly` allows at most 2 open-ended repeats and 4 `?`;
+- `build_seed` skips and counts rows that would be refused, and parses its own bytes;
+- `wiring.py` turns a refusal into `SeedFailed`;
+- the test fixtures are renamed.
+
+**Gates** (in the locked venv): 1514 passed; ruff check and format clean; imports clean; code size passed; contract
+plants all ok.
+
+**Plants (3 of 3 killed):**
+
+| Plant | Tests failed |
+|---|---|
+| repeat cap raised to 6 | 4 |
+| no self-parse | 2 |
+| no skip | 2 |
+
+**F2: fixed.** My round-1 rows (a symbol over 20 characters, a lower-case symbol, the name "Ltd", a duplicate full
+name) now give `stocks 3, skipped 2, renamed 1`, and the bytes parse.
+
+**F3: fixed for the tests.** A grep of `tests/ingestion/news/companies/` for real names is clean. The story (lines
+18-19, 38) and `seed.py:5,48` still use a few real listed names, but only as examples of NSE's abbreviations and of
+title-casing. They are not exclusions and do not mark the owner's selection, since the seed covers NSE's whole list. So
+they are not the leak F3 was about. The message's "the story no longer names real companies" is not quite accurate;
+should-fix.
+
+**F1: improved, and the rest belongs to NP5.**
+- `.*.*.*.*.*.*Z` and `\w*\w*\w*\w*\w*\w*!` are now refused, so the exponent is bounded.
+- Patterns at the cap still grow with the text length:
+
+  | Pattern | 1,000 chars | 3,000 chars |
+  |---|---|---|
+  | `\w*\w*!` | 1.1 s | 25.5 s |
+  | `.*.*Z` | 0.3 s | 5.5 s |
+
+- Article summaries have no length cap (`build_article` stores `item.summary.strip()`), and a publisher feed's summary
+  can run to thousands of characters.
+- Whether this matters is decided where the patterns run. **Condition carried to NP5's judges: the tagger must bound
+  the text an exclusion sees** (for example the first 1,000 characters, about 1 s at worst), **or this check must also
+  refuse two adjacent open repeats over overlapping classes.** Reasoning only on real summary lengths.
+
+**Verdict: PASS** (`c5aeb93`, final round), with the NP5 condition above.
