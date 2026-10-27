@@ -107,4 +107,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 94 | NP5b origins, promotional, materiality (code, judge #1) | 1 | FAIL (round 1, 691f315); PASS (fb94003, 1002195, 1b7ff3d) | `judge_94_np5b-origins-materiality.md` |
 | 95 | NP5b origins, materiality and view, code (judge #2) | 1 | PASS (round 2, 1002195; re-checked 1b7ff3d; round 1 FAIL 691f315) | `judge_95_np5b-origins-materiality-judge2.md` |
 | 96 | NP6 tiered clustering plan, plan doc (judge #2) | 1 | PASS (round 2, e5e0d10, condition C1 for NP6a code; round 1 FAIL 30e3f89) | `judge_96_np6-plan-judge2.md` |
+| 97 | NP6b corroboration read-model, code (judge #2) | 1 | PASS (round 1, e7ff690) | `judge_97_np6b-corroboration-judge2.md` |
 | 98 | NP6b corroboration (code, judge #1) | 1 | PASS (round 1, e7ff690) | `judge_98_np6b-corroboration.md` |
