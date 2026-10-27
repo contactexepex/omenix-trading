@@ -116,3 +116,33 @@ Reviewed `git diff e9b98b2 498151a`. That covers the round-1 fold f6d44cc (the o
 **Hard lines.** No order path, no secret, no Groww call, and no change to a recorded Drive file. The workflow changes are the `RECEIPTS` value only.
 
 **Verdict: PASS round 2 at 498151a, on condition of the one-sentence doc correction above. F-a and F-b are recommended follow-ups.**
+
+## Addendum 2: round 2 superseded by e919a29: PASS, same condition, reworded
+
+Reviewed `git diff 498151a e919a29`. The only change is the commit guard from judge 61's F1 part (ii): `cut_torn_tails`, `news repair-batches`, one line in `ops/commit_news_record.sh` (`|| broken=1`), contract row K4 and real-git tests. Everything in Addendum 1 still holds at e919a29.
+
+**Gates (strong evidence).** ruff, format and check_imports are clean; 1155 passed; contract plants all `ok`.
+
+**Plants** (each one undone):
+
+| Plant | Result |
+|---|---|
+| the repair also cuts the last whole line | 2 failed |
+| a file cut but the command exits 0 with no alert | 2 failed |
+| the repair's red ignored in the script (`|| true`) | 1 failed |
+| the repair removed from the script | 1 failed |
+| the repair does nothing | 3 failed |
+
+My first try at the "cuts a whole line" plant changed nothing in practice: it used `data[:-1].rfind`, which finds the same line break. I replanted it properly before counting it.
+
+**Design (reasoning only).** Cutting the fragment edits a receipt file. It is acceptable: the fragment was never a receipt and was never read as one, every whole line stays byte for byte, git history keeps nothing of it (it was never committed), and the run is red with a fixed-text alert that names no path.
+- One side effect: `cut_torn_tails` walks *every* batch file in the checkout, not only this run's. A committed file that ends in a fragment cannot arise through the code once this guard exists; it could only come from a hand edit. Such a file would also be cut and committed. That is acceptable, but limiting the walk to files git does not yet track would match "never edits a committed receipt" exactly. Optional.
+
+**The condition, reworded (required before merge, text only).**
+- With the repair, a torn line never reaches `main`. So on `main`, a file whose receipt line was cut has **no signal at all in a default sync**: the UNPROVED problem went with the fragment.
+- What remains: that run's red status, the `batch_torn` alert, and `data-cache sync <prefix> --unreceipted`.
+- The "Fail closed" sentence "A torn last batch line names its file ... and the file is listed as unreceipted too" must be replaced with that. The UNPROVED message now matters only inside the run that wrote the fragment, before the guard runs.
+
+**F-a is now strongly recommended (some evidence).** After this guard, the only durable record that a Record file has lost its receipt is `--unreceipted`, and no workflow runs it. Schedule `data-cache sync raw/news --unreceipted`, for example in data-checks.
+
+**Verdict: PASS at e919a29, on condition of the reworded doc sentence. F-a strongly recommended; F-b and the walk limited to untracked files optional.**
