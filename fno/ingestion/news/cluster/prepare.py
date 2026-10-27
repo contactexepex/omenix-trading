@@ -34,5 +34,10 @@ class Preparer:
         symbols = frozenset(self.tagger.tag(article.title, None, article.source).symbols)
         identity = identity_of(effective_url(article, self.resolutions.get(article.key)))
         return Prepared(
-            article, shingles(title_form(article.title)), symbols, story_time(article), identity.url, identity.refused
+            article,
+            shingles(title_form(article.title, article.source)),
+            symbols,
+            story_time(article),
+            identity.url,
+            identity.refused,
         )

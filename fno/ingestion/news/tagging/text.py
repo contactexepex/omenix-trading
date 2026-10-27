@@ -9,6 +9,8 @@ import html
 import re
 from collections.abc import Iterator
 
+from fno.ingestion.news.text_rules import fold
+
 MAX_RAW = 20_000  # of a summary, before cleaning (the cleaners are linear except the bare-domain one)
 MAX_TEXT = 1_000  # of a title or of a CLEANED summary: what any pattern is run against
 
@@ -17,15 +19,8 @@ _URLS = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
 _DOMAINS = re.compile(  # bounded labels and count: a long run of "a.a.a." is linear, not quadratic
     r"\b(?:[a-z0-9-]{1,63}\.){1,5}(?:com|in|org|net|co|io|uk|us|news|biz|info)\b(?:/\S*)?", re.IGNORECASE
 )
-_QUOTES = str.maketrans({"’": "'", "‘": "'", " ": " "})
 _WORD = re.compile(r"[\w&']+")
 _POSSESSIVE = re.compile(r"'s?$")  # "Acme's" and "banks'" are the name, not another word
-_SEPARATORS = " -–—|"
-
-
-def fold(text: str) -> str:
-    """Typographic quotes and no-break spaces folded to plain ones."""
-    return text.translate(_QUOTES)
 
 
 def plain_text(summary: str | None, source: str | None = None) -> str:
@@ -42,17 +37,6 @@ def plain_text(summary: str | None, source: str | None = None) -> str:
 
 def capped(title: str | None) -> str:
     return fold(title or "")[:MAX_TEXT]
-
-
-def without_outlet(title: str, source: str | None) -> str:
-    """A title without a trailing " - Outlet" or " | Outlet" naming the source (Google News adds it), so the outlet's
-    own name never tags. Only after a separator: a title that ends in the source's name as a word keeps it."""
-    name = fold(source or "").strip()
-    if name and title.lower().endswith(name.lower()):
-        head = title[: -len(name)]
-        if head.rstrip() != head and head.rstrip().endswith(tuple(_SEPARATORS.strip())):
-            return head.rstrip(_SEPARATORS)
-    return title
 
 
 def words(text: str) -> list[tuple[str, int, int]]:
