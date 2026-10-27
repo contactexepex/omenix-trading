@@ -43,3 +43,5 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 30 | R1c Drive session (story text) | 1 | PASS b057f5a; FAIL ddbcf60 (text, Addendum 4) | `judge_30_r1c-story.md` |
 | 31 | R1c Drive session, code (judge #2) | 1 | PASS (round 2, 60ab2d8) | `judge_31_r1c-code-judge2.md` |
 | 32 | R1c Drive session (code) | 1 | PASS (round 2, 60ab2d8; code = c05a1d7) | `judge_32_r1c-code.md` |
+| 33 | R1d4 characterization, lane-2 check (judge #2) | 2 | PASS (e5ea34d) | `judge_33_r1d4-characterization-check.md` |
+| 34 | R1d plan (Groww and the rest) | 1 | FAIL (b3891f8, quotes pacer missing) | `judge_34_r1d-plan.md` |
