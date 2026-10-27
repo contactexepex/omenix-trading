@@ -61,9 +61,28 @@ def nse_day(text: str) -> date:
     return datetime.strptime(text.strip(), "%d-%b-%Y").date()
 
 
-def public_time(*texts: str | None) -> datetime:
-    """The later of NSE's times for one filing: from then on it was surely public (ValueError when none is given)."""
-    times = [t for t in map(nse_time, texts) if t is not None]
+def time_field(row: dict, name: str) -> datetime | None:
+    """The time in a field of a row (None when the field is empty); text that is not a time NSE writes is a ValueError
+    naming the field only: Python's own message would quote the text."""
+    text = text_field(row, name)
+    try:
+        return nse_time(text)
+    except ValueError:
+        raise ValueError(f"field {name}: not a time in NSE's format") from None
+
+
+def day_field(row: dict, name: str) -> date:
+    """The date in a required field of a row; text that is not a date NSE writes is a ValueError naming the field."""
+    text = required_text(row, name)
+    try:
+        return nse_day(text)
+    except ValueError:
+        raise ValueError(f"field {name}: not a date in NSE's format") from None
+
+
+def public_time(*times: datetime | None) -> datetime:
+    """The latest of NSE's times for one filing: from then on it was surely public (ValueError when none is given)."""
+    times = [t for t in times if t is not None]
     if not times:
         raise ValueError("NSE gives no time for this filing")
     return max(times)
@@ -79,13 +98,13 @@ def xbrl_link(value: str | None) -> str:
 def _timed(row: dict) -> bool:
     """Whether a classic results row has NSE's broadcast or dissemination time (rows before about 2008 have only the
     filing date and minute)."""
-    return bool(nse_time(text_field(row, "broadCastDate")) or nse_time(text_field(row, "exchdisstime")))
+    return bool(time_field(row, "broadCastDate") or time_field(row, "exchdisstime"))
 
 
 def _placeable(row: dict) -> bool:
     """Rows before about 2008 may have neither a time nor an XBRL file: nothing to archive and no moment to place
     them at, so they are left out (rows with an XBRL file always have a time; one without would fail loudly)."""
-    return _timed(row) or bool(nse_time(text_field(row, "filingDate"))) or bool(xbrl_link(text_field(row, "xbrl")))
+    return _timed(row) or bool(time_field(row, "filingDate")) or bool(xbrl_link(text_field(row, "xbrl")))
 
 
 def listed(body: object, what: str) -> list[dict]:
@@ -126,7 +145,7 @@ class NseLegacyResultsIndex(FilingIndex):
         params = {"index": self.MARKET, "symbol": symbol, "period": "Quarterly"}
         rows = listed(self.get_json(NSE_LEGACY_RESULTS, params), self.name)
         oldest = since - OLDEST_LATE_FILING
-        recent = [r for r in rows if nse_day(required_text(r, self.PERIOD_END)) >= oldest and _placeable(r)]
+        recent = [r for r in rows if day_field(r, self.PERIOD_END) >= oldest and _placeable(r)]
         found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 
@@ -134,10 +153,10 @@ class NseLegacyResultsIndex(FilingIndex):
         return Filing(
             FILING_RESULTS,
             symbol,
-            nse_day(required_text(row, self.PERIOD_END)),
-            public_time(text_field(row, "broadCastDate"), text_field(row, "exchdisstime"))
+            day_field(row, self.PERIOD_END),
+            public_time(time_field(row, "broadCastDate"), time_field(row, "exchdisstime"))
             if _timed(row)
-            else public_time(text_field(row, "filingDate")),
+            else public_time(time_field(row, "filingDate")),
             xbrl_link(text_field(row, "xbrl")),
             NSE_CONSOLIDATION.get(text_field(row, "consolidated"), ""),
         )
@@ -177,8 +196,8 @@ class NseIntegratedResultsIndex(FilingIndex):
         return Filing(
             FILING_RESULTS,
             symbol,
-            nse_day(required_text(row, "qe_Date")),
-            public_time(text_field(row, "broadcast_Date"), text_field(row, "creation_Date")),
+            day_field(row, "qe_Date"),
+            public_time(time_field(row, "broadcast_Date"), time_field(row, "creation_Date")),
             xbrl_link(text_field(row, "xbrl")),
             NSE_CONSOLIDATION.get(text_field(row, "consolidated"), ""),
         )
@@ -198,7 +217,7 @@ class NseShareholdingIndex(FilingIndex):
         return Filing(
             FILING_SHAREHOLDING,
             symbol,
-            nse_day(required_text(row, "date")),
-            public_time(text_field(row, "broadcastDate"), text_field(row, "systemDate")),
+            day_field(row, "date"),
+            public_time(time_field(row, "broadcastDate"), time_field(row, "systemDate")),
             xbrl_link(text_field(row, "xbrl")),
         )

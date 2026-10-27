@@ -126,3 +126,14 @@ def test_a_row_with_no_times_is_judged_placeable_only_by_a_readable_link(bad):
     row = {**legacy_row(), "broadCastDate": "-", "exchdisstime": "-", "xbrl": bad}
     with pytest.raises(ValueError, match="field xbrl: NSE sent"):
         read("legacy", row)
+
+
+MALFORMED = "31/03/2026 zz-secret-looking"
+
+
+@pytest.mark.parametrize(("name", "field"), [(n, f) for n, f in EVERY_FIELD if f not in ("xbrl", "consolidated")])
+def test_text_that_is_not_a_date_or_time_names_the_field_and_never_quotes_the_text(name, field):
+    """Python's own date-parsing message quotes its input; ours says the field and what it should have been."""
+    with pytest.raises(ValueError) as error:
+        read(name, {**CASES[name][2], field: MALFORMED})
+    assert f"field {field}: not a " in str(error.value) and "secret-looking" not in str(error.value)

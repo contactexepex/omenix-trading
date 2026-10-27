@@ -19,6 +19,9 @@ Every field of a row is read through one of two functions:
 A field we cannot read is a failure of that company's read, surfaced and retried by the next run, never dropped and never a crash.
 `ValueError` is already in the librarian's `LIST_ERRORS`; widening that to AttributeError would hide real bugs, so it is not widened.
 
+## Follow-up (T1, judge 58 minor)
+A field that is text but not a date or time NSE writes (`time_field`, `day_field`) is a ValueError "field NAME: not a date in NSE's format": Python's own message quoted the text, which broke this story's "field and type, never the value" rule.
+
 ## Pinned by
 `tests/ingestion/filings/test_non_text_fields.py` (offline): for each of five list shapes (classic, insurance, classic without times,
 integrated, shareholding) and every field, each of six non-text values gives the named ValueError; a null or missing period date is
