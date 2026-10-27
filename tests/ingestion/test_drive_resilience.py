@@ -340,7 +340,9 @@ def test_INTENTIONAL_DELTA_a_connection_error_on_the_re_send_after_a_401_is_now_
         d.get("u")
     assert waits == [2, 8, 30, 60] and session.calls == 6  # the 401, then five tries that each dropped
     d, session, waits = drive(Reply(401), requests.ConnectionError("blip"), Reply(200))
-    assert d.get("u").status_code == 200 and waits == [2]  # retried, and recovers (today: raised at the blip)
+    assert (
+        d.get("u").status_code == 200 and waits == [2] and session.calls == 3
+    )  # retried, and recovers (today: raised)
 
 
 def test_the_401_re_sign_happens_at_most_once_per_call_and_a_persistent_401_cannot_spin():
@@ -392,7 +394,7 @@ def test_the_comparison_never_builds_a_snapshot_from_a_quote_file_that_was_not_s
 
     store = DriveOnlyQuoteStore(Repo(), lambda: Repo(), DATASET, "unset")
     assert SIDECAR  # the sidecar name the guarded store reads
-    with pytest.raises(AttributeError):
+    with pytest.raises(Exception):  # noqa: B017 - a loud failure of any kind; never a snapshot
         compare._snapshot(store, DATASET, day)  # None.decode(): loud, never a snapshot of a missing file
 
 
@@ -446,6 +448,12 @@ def test_a_csv_save_that_fails_every_try_is_incomplete_writes_no_canonical_marke
     (sidecar,) = [data for path, data in store.files.items() if path.endswith(".meta.json")]
     meta = json.loads(sidecar)
     assert meta["raw_file_saved"] is False and meta["complete"] is False
+    # and reading that snapshot returns None: the guarded reader honours the flag (judge 2, S3)
+    from fno.ingestion.quotes.drive_only_store import QUOTE_FILE, DriveOnlyQuoteStore
+    from fno.ingestion.quotes.recorder import DATASET
+
+    csv_path = next(path for path in store.files if path.endswith(".meta.json")).removesuffix(".meta.json") + QUOTE_FILE
+    assert DriveOnlyQuoteStore(store, lambda: MemoryStore(), DATASET, "unset").get(csv_path) is None
 
 
 def test_the_worst_retry_after_case_stays_inside_the_total_limit():
@@ -453,7 +461,7 @@ def test_the_worst_retry_after_case_stays_inside_the_total_limit():
     under the total-time backstop, so the policy never gives up early on a long Retry-After (judge 1)."""
     retry = settings_for("drive").retry
     worst = 4 * min(300, DRIVE_RETRY_AFTER_CAP_SECONDS) + 5 * drive_session.TIMEOUT_SECONDS
-    assert worst == 780 and worst < retry.max_total_seconds == 3600.0
+    assert worst == 780 and retry.max_total_seconds == float("inf")  # no total bound, as today
 
 
 # ---- round-1 findings on the code (judge 1: total limit, intraday ledger; judge 2: receipt repair refusals) ------
@@ -468,7 +476,7 @@ def test_long_attempts_never_cut_a_call_below_five_tries():
 
     class SlowSession(Scripted):
         def get(self, url, **kw):
-            clock[0] += 200.0  # each attempt takes 200 s of the policy's clock, plus its wait
+            clock[0] += 1000.0  # each attempt takes 1000 s of the policy's clock, plus its wait
             return super().get(url, **kw)
 
     session = SlowSession(*[with_retry_after(503, "300")] * 5)
@@ -485,13 +493,18 @@ def test_long_attempts_never_cut_a_call_below_five_tries():
     )
     with pytest.raises(requests.HTTPError):
         d.get("u")
-    assert session.calls == 5 and waits == [120.0] * 4  # 5 x 200 s + 4 x 120 s = 1480 s on the clock; still five tries
+    assert session.calls == 5 and waits == [120.0] * 4  # 5 x 1000 s + 4 x 120 s on the clock; still five tries
 
 
-def test_the_total_limit_leaves_room_for_five_slow_tries():
-    retry = settings_for("drive").retry
-    five_slow = 5 * 200.0 + 4 * DRIVE_RETRY_AFTER_CAP_SECONDS
-    assert five_slow < retry.max_total_seconds  # the backstop is above even attempts of 200 s
+def test_drive_has_no_total_time_bound_as_today_and_nse_keeps_its_own_unchanged():
+    assert settings_for("drive").retry.max_total_seconds == float("inf")  # today's loop: four waits, no total bound
+    nse = settings_for("nse").retry  # R1b1's numbers, untouched by R1c
+    assert (nse.waits, nse.max_total_seconds, nse.retry_after_ceiling_seconds, nse.jitter) == (
+        (5.0, 15.0, 45.0),
+        900.0,
+        120.0,
+        0.25,
+    )
 
 
 def _repair_with(copies):

@@ -121,7 +121,7 @@ that is a bug to fix in R1c.
 
 One failing call today: waits 2+8+30+60 = 100 s plus five requests that each time out at 60 s = **400 s**. With jitter
 0.25: 125 + 300 = **425 s** (+6%). With a `Retry-After` of 120 s or more on every retry: four waits of 120 s (the cap), so
-**780 s** (new: today the header is ignored, so this case does not exist), under the policy's total-time limit, which Drive sets to 3600 s as a backstop (see the round-1 fold: a 900 s limit could cut a call below five tries when attempts run long).
+**780 s** (new: today the header is ignored, so this case does not exist), with **no total-time bound for Drive**, as today (see the round-1 fold: a total limit, even a high one, could cut a call below five tries when attempts run long).
 Honest reading: a Drive outage already exceeds the shortest workflow timeouts (15 minutes, flows-download,
 participant-oi-watch, circulars, 900 s) after three failing calls today (3 × 400 s = 1200 s), and the Drive-using workflows make many Drive calls per run (a count per workflow is not made here; reasoning
 only), so a total outage most likely ends in a timeout today and after; R1c adds 6% (25 s per call) to
@@ -215,18 +215,20 @@ Branch `story/R1c-code` (built to the story as passed, plus its two text additio
   canonical); the not-saved flag not set on the sidecar; the quote reader ignoring the flag (now also caught by the comparison
   test); the Retry-After cap raised to 300 s; the library ceiling lowered to 120 s (judge 2's plant); the retry of a
   `ConnectionError` removed from the classifier.
-- **Retry-After worst case pinned:** a test computes 4 x 120 + 5 x 60 = 780 s and asserts it is under the policy's total-time limit (now 3600 s)
+- **Retry-After worst case pinned:** a test computes 4 x 120 + 5 x 60 = 780 s and asserts that Drive's total-time bound is none, as today
   limit, so a long header never makes the policy give up early.
 - Gates: ruff, imports, numbers, size clean; 517 tests pass.
 
 ### R1c code round-1 findings (both judges on 1381a8e; each checked and accepted)
 
-- **Judge 1, item 1 (real, found by a new test):** the policy's 900 s total-time limit could cut a call below today's five
-  tries, because `requests` bounds each connect or read, not the whole request, so one attempt can run past 60 s (attempts of
-  110 s gave four tries, of 200 s three). Fixed in the settings: `drive.max_total_seconds` is **3600**, a backstop far
-  above five slow tries, never a cap on tries. Tests: attempts of 200 s on the policy's clock with a 300 s header still
-  make five tries, each wait 120 s; and 5 x 200 s + 4 x 120 s = 1480 s is asserted under the limit. With the limit back at
-  500 s three tests fail (the old tests gave attempts zero duration, which is why the plant survived).
+- **Judge 1, item 1 (real, found by a new test; the orchestrator's ruling applied):** the policy's 900 s total-time limit could
+  cut a call below today's five tries, because `requests` bounds each connect or read, not the whole request, so one attempt
+  can run past 60 s (attempts of 110 s gave four tries, of 200 s three). Today's `DriveSession` has **no total bound** (four
+  waits and the per-read timeout only; checked in the code before it was replaced), so Drive's `max_total_seconds` is now
+  **infinite**, matching today: the step timeout is the backstop exactly as before. NSE keeps its own 900 s, untouched (a
+  test pins the NSE numbers). Tests: attempts of 1000 s on the policy's clock with a 300 s header still make five tries,
+  each wait 120 s; with the limit put back at 900 s three tests fail (the old tests gave attempts zero duration, which is why
+  the plant survived).
 - **Judge 1, item 2:** the canonical-marker test is the one in the previous fold (a failed CSV save is incomplete and writes no
   canonical marker); the story's "exactly one reader" is corrected there too.
 - **Judge 1, item 3:** the intraday ledger half is tested: `IntradayRecorder._take` over a Drive that fails every try
