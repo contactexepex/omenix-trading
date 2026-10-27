@@ -431,8 +431,8 @@
    "tests/ingestion/news/sources/test_rules.py::test_a_look_alike_or_a_malformed_host_is_unlisted"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "        for start in range(max(len(parts) - 1, 0)):\n            outlet = self.outlets.get(\".\".join(parts[start:]))",
-  "new": "        for start in range(len(name)):\n            outlet = self.outlets.get(name[start:])"
+  "old": "        found = (self.outlets.get(\".\".join(parts[start:])) for start in range(max(len(parts) - 1, 0)))",
+  "new": "        found = (self.outlets.get(plain_host(host)[start:]) for start in range(len(plain_host(host))))"
  },
  {
   "id": "O2",
@@ -449,8 +449,8 @@
    "tests/ingestion/news/sources/test_rules.py::test_an_unlisted_host_is_never_fetchable_and_an_outlet_that_refuses_bots_is_not_either"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "        if outlet is None or not outlet.fetch:\n            return False",
-  "new": "        if outlet is None:\n            return False"
+  "old": "        return outlet.fetch and (main is None or main.fetch)",
+  "new": "        return main is None or main.fetch"
  },
  {
   "id": "O4",
@@ -580,8 +580,8 @@
    "tests/ingestion/news/sources/test_rules.py::test_an_alias_of_an_outlet_that_refuses_bots_refuses_them_too"
   ],
   "file": "fno/ingestion/news/sources/rules.py",
-  "old": "        return main is None or main.fetch  # an alias never bypasses the main domain's fetch: false",
-  "new": "        return True"
+  "old": "        return outlet.fetch and (main is None or main.fetch)",
+  "new": "        return outlet.fetch"
  },
  {
   "id": "O13",
@@ -1263,5 +1263,163 @@
   "file": "fno/ingestion/staging_cleanup/wiring.py",
   "old": "NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE)",
   "new": "NewsManifest(POLL_LOG_FOLDER)"
+ },
+ {
+  "id": "H1",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_url_that_is_not_plain_https_is_refused_before_any_request",
+   "tests/ingestion/news/pages/test_fetcher.py::test_only_listed_outlets_that_allow_automated_reads_are_fetched"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        if not clean or not host:",
+  "new": "        if not host:"
+ },
+ {
+  "id": "H2",
+  "tests": [
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_host_is_fetchable_only_when_every_listed_domain_it_sits_under_allows_it",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_the_shipped_allowlist_keeps_its_fetchable_set_under_the_stricter_rule"
+  ],
+  "file": "fno/ingestion/news/sources/rules.py",
+  "old": "        return bool(listed) and all(self._allows_fetch(outlet) for outlet in listed)",
+  "new": "        return bool(listed) and self._allows_fetch(listed[0])"
+ },
+ {
+  "id": "H3",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused",
+   "tests/ingestion/news/pages/test_address.py::test_a_name_is_reachable_only_when_every_address_it_resolves_to_is_global",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_name_that_resolves_to_a_non_global_address_is_refused_before_any_request"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    return ip.is_global and not ip.is_multicast  # Python calls some multicast ranges global",
+  "new": "    return not ip.is_private"
+ },
+ {
+  "id": "H4",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_hop_that_leaves_the_rules_is_a_refused_redirect_and_is_never_requested",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_hop_to_an_address_that_is_not_global_is_refused",
+   "tests/ingestion/news/pages/test_fetcher.py::test_too_many_hops_and_a_redirect_without_a_location_are_refused"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        for hop in range(MAX_HOPS + 1):",
+  "new": "        for hop in range(MAX_HOPS * 1000):"
+ },
+ {
+  "id": "H5",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_body_over_the_cap_is_too_large_and_nothing_is_kept",
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_cap_counts_decoded_bytes_so_a_small_gzip_body_that_inflates_is_too_large"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                if size > limit:",
+  "new": "                if False:"
+ },
+ {
+  "id": "H6",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_listed_page_is_fetched_after_its_robots_txt_and_spaced_from_it",
+   "tests/ingestion/news/pages/test_fetcher.py::test_requests_are_spaced_across_hosts_not_per_host"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        self.spacer.wait()",
+  "new": "        pass"
+ },
+ {
+  "id": "H7",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_refusal_stops_that_host_for_the_run_and_only_that_host",
+   "tests/ingestion/news/pages/test_fetcher.py::test_other_errors_do_not_stop_the_host"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "                    self.stopped.add(host)",
+  "new": "                    pass"
+ },
+ {
+  "id": "H8",
+  "tests": [
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_path_robots_txt_disallows_is_not_requested",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_a_server_error_means_the_hosts_pages_are_not_read_this_run",
+   "tests/ingestion/news/pages/test_robots_and_rules.py::test_robots_txt_is_read_once_per_host_per_run"
+  ],
+  "file": "fno/ingestion/news/pages/robots.py",
+  "old": "        if rules == UNREADABLE:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H9",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_only_html_is_accepted"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        if kind not in accept:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H10",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_page_never_shows_its_url_or_body_in_its_repr",
+   "tests/ingestion/news/pages/test_fetcher.py::test_a_network_error_is_a_fixed_code_and_the_message_is_not_kept"
+  ],
+  "file": "fno/ingestion/news/pages/model.py",
+  "old": "    body: bytes = field(default=b\"\", repr=False)",
+  "new": "    body: bytes = b\"\""
+ },
+ {
+  "id": "H11",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_probe_asks_each_fetchable_outlet_front_page_once_and_leaves_the_refusing_ones_alone",
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_workflow_is_dispatch_only_read_only_and_holds_no_secret"
+  ],
+  "file": "fno/ingestion/news/pages/probe.py",
+  "old": "        if refuses and not include_refusing:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H12",
+  "tests": [
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_each_outlet_line_is_printed_as_it_completes_so_a_killed_run_leaves_the_log_so_far",
+   "tests/ingestion/news/pages/test_probe_cli_workflow.py::test_the_job_timeout_covers_the_worst_case_of_every_request_timing_out"
+  ],
+  "file": "fno/ingestion/news/pages/probe.py",
+  "old": "        if on_result is not None:",
+  "new": "        if False:"
+ },
+ {
+  "id": "H13",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"::/96\",  # IPv4-compatible (deprecated; embeds an IPv4 address): ::127.0.0.1\n",
+  "new": ""
+ },
+ {
+  "id": "H14",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"fec0::/10\",  # deprecated site-local\n",
+  "new": ""
+ },
+ {
+  "id": "H15",
+  "tests": [
+   "tests/ingestion/news/pages/test_address.py::test_everything_else_is_refused"
+  ],
+  "file": "fno/ingestion/news/pages/address.py",
+  "old": "    \"2001:20::/28\",  # ORCHIDv2 (not routable)\n",
+  "new": ""
+ },
+ {
+  "id": "H16",
+  "tests": [
+   "tests/ingestion/news/pages/test_fetcher.py::test_the_session_takes_no_proxy_or_settings_from_the_environment"
+  ],
+  "file": "fno/ingestion/news/pages/fetcher.py",
+  "old": "        self.session.trust_env = False  # no proxy, netrc or CA bundle from the environment: the guards see every hop",
+  "new": "        pass"
  }
 ]

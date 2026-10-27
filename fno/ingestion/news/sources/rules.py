@@ -40,15 +40,16 @@ class SourceRules:
         self._promo_providers = {normalise_label(n) for n in promotional.providers}
 
     # outlets
+    def _listed_suffixes(self, host: str | None) -> list[Outlet]:
+        """Every listed outlet the host is, or is a subdomain of, nearest first."""
+        parts = plain_host(host).split(".")
+        found = (self.outlets.get(".".join(parts[start:])) for start in range(max(len(parts) - 1, 0)))
+        return [outlet for outlet in found if outlet is not None]
+
     def lookup(self, host: str | None) -> Outlet | None:
         """The allowlisted outlet for a host or one of its parent domains, or None (unlisted)."""
-        name = plain_host(host)
-        parts = name.split(".")
-        for start in range(max(len(parts) - 1, 0)):
-            outlet = self.outlets.get(".".join(parts[start:]))
-            if outlet is not None:
-                return outlet
-        return None
+        listed = self._listed_suffixes(host)
+        return listed[0] if listed else None
 
     def tier_of(self, host: str | None) -> str:
         outlet = self.lookup(host)
@@ -66,12 +67,15 @@ class SourceRules:
         return name
 
     def may_fetch(self, host: str | None) -> bool:
-        """True only for a listed outlet that does not refuse automated traffic. An unlisted host is never requested."""
-        outlet = self.lookup(host)
-        if outlet is None or not outlet.fetch:
-            return False
+        """True only for a listed outlet that does not refuse automated traffic. An unlisted host is never requested.
+        EVERY listed domain the host sits under must allow it: a separately listed child of a `fetch: false` outlet is
+        not fetchable (judge 84 F1), and an alias never bypasses its main domain's `fetch: false`."""
+        listed = self._listed_suffixes(host)
+        return bool(listed) and all(self._allows_fetch(outlet) for outlet in listed)
+
+    def _allows_fetch(self, outlet: Outlet) -> bool:
         main = self.outlets.get(outlet.same_as) if outlet.same_as else None
-        return main is None or main.fetch  # an alias never bypasses the main domain's fetch: false
+        return outlet.fetch and (main is None or main.fetch)
 
     def may_upgrade_to_https(self, host: str | None) -> bool:
         """True when a feed's http:// link on this host may be stored as https:// (its pages are served over HTTPS)."""
