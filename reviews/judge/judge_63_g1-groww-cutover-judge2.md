@@ -77,3 +77,28 @@ Frozen SHA `af42b79` (branch `story/G1-groww-cutover`): `docs/GROWW_CUTOVER.md` 
   `GrowwProvider`, but I did not trace which value it reads.
 
 **Verdict: FAIL** (round 1, `af42b79`). F1 to F3 are text fixes. F1 would point a routine at the wrong command.
+
+## Addendum 1: round 2 on `15e1dad`
+
+`git diff af42b79 15e1dad -- docs` changes only `docs/GROWW_CUTOVER.md`, which is now 97 lines. Doc-reading tests:
+79 passed. `check_numbers` is clean.
+
+- **F1 fixed.**
+  - NIFTY: `quotes record`, 14:55-15:10.
+  - A4c: `quotes record-indices`, 15:01-15:13 (`--help` exits 0), with a warning that `quotes record` records NIFTY
+    only.
+  - New row for v4: `quotes record --window v4`, 14:32-14:40. This matches `config.yaml:12,15`, and v4 has its own
+    `quote-snapshots-v4` dataset.
+- **F2 fixed.** The nine sites now match R1d item 4 verbatim, and the claim is graded *some evidence* (its test is not
+  built), consistently at lines 58 and 88.
+- **F3 fixed.** I re-derived each margin; they are correct:
+  - 36 / 3 = 12;
+  - (150 - 38) / 3 = 37.3;
+  - (150 - 19) / 3 = 43.7;
+  - 150 - 38 = 112, which the doc rounds to about 110.
+
+  The failing case now comes first.
+- **F4 fixed.** The doc says the probe note is not in this repository, and that the 150 is the owner's figure
+  (CLAUDE.md:39).
+
+**Verdict: PASS** (`15e1dad`).
