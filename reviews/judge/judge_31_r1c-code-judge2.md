@@ -99,3 +99,35 @@ fewer. Reproduced on `1381a8e` with a scripted session (scratch script, not comm
 
 S1 stands. All three are tests only, so they can go into the one superseding SHA, where my plants R4, W6b and the 401
 delta plants carry forward.
+
+## Addendum 2: round 2, 1381a8e code plus the 65a99c0 tests (FAIL, round 2; S2 fixed, S1 and S3 open)
+
+Branch `story/R1c-code-r2`, SHA `65a99c0b421ee8f7caac15f6ef29b1d981114db1`. `git diff 1381a8e 65a99c0 --stat` shows
+only `docs/stories/R1c-drive.md` and `tests/ingestion/test_drive_resilience.py`: the code is byte-identical. Gates
+(`__pycache__` cleared): 514 passed; ruff, imports and code size clean.
+
+| Plant on 65a99c0 | Result |
+|---|---|
+| X1 library ceiling 600 -> 120 | caught (1 failed) |
+| X3 401 re-signed on every attempt | caught (2 failed: the new no-spin test plus the old one) |
+| R4 receipt repair returns a made-up receipt when Drive has no file | **survives (514 passed)** |
+| R4b receipt repair's several-files refusal removed | **survives (514 passed)** |
+| W6b `meta[RAW_FILE_SAVED] = False` replaced by `pass` | **survives (514 passed)** |
+
+The Addendum 1 results (the `RetryPolicy`/NSE guard, 401 counted, 409, row before file for every writer) apply
+unchanged, because the code is identical.
+
+- **S2: fixed.** `test_INTENTIONAL_DELTA_...` pins 401, then a dropped connection, then 200 returning 200 with waits
+  `[2]`, and five drops after a 401 giving 6 sends. `test_the_401_re_sign_happens_at_most_once_per_call...` pins
+  2 sign-ins and 2 sends for a persistent 401, and plant X3 now fails it. I agree the delta is acceptable: more
+  attempts, never fewer, bounded by the same 5 tries, and safe for a create under its reserved ID.
+- **S1: still open.** No test was added for receipt repair's no-file or several-files refusal (plants R4 and R4b).
+- **S3: still open.** No test checks that a failed save writes `RAW_FILE_SAVED` false into the sidecar (plant W6b).
+  The new compare test covers the reader. My view on judge #1's writer-side requirement, which is his call: reader
+  tests plus reading the code are **not** enough. W6b shows that the one writer line producing the flag can be deleted
+  with every test green. A recorder-level harness is not needed, though: the sidecar dict is built in one method, so a
+  test can run that method, or `_save_quote_file` plus the meta build, with a store that raises. If the recorder
+  cannot be driven at all, that is itself a testability finding.
+
+S1 and S3 are tests only and small. This is my second round on the R1c code, so under the rules the orchestrator
+decides the next step. I would PASS a SHA that adds these two tests and makes R4, R4b and W6b fail.
