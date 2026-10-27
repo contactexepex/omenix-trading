@@ -143,3 +143,67 @@ one-record-per-item-key invariant asked for above.
 deleted.
 
 **Verdict at f23aeff: FAIL (design).** D1-D8 as above. The second judge is still asked for.
+
+## Addendum 2: design round 2, ca6a8c5: FAIL, two new gaps (D1-D8 resolved)
+
+Reviewed `ca6a8c5aca97039e2c49be53ea90ace7fb0b6290`, a full rewrite (160 lines).
+
+**My D-items are resolved in the text:**
+
+| Item | How it is resolved |
+|---|---|
+| D1 | Invariant 1 and the master privacy test, failure paths included. Feed ids only. The news manifest has no `url` column. `revisions.py:25`'s `INDEX_FIELDS` carries a key-based path, no URL. |
+| D2 | Keys defined per kind. |
+| D3 | An explicit strip allow-list, and the gate test (`id=123` against `id=124` gives two keys). Invariant 3 is kept separate from invariant 4. |
+| D4 | The fixed fields are compared without `seen_at`. |
+| D5 | A tie-break plus `previous_cluster_ids`. |
+| D6 | The header carries the version, the window end and the input rule. |
+| D7 | Articles stay in the Record for ever. |
+| D8 | Fixed reason codes, messages withheld. |
+
+The block handling (N11), the serial concurrency (N9), the window-covers-t reader (N10) and the per-poll reconciliation
+plant (N8) are sound too.
+
+### New gap R2-1 (blocking, privacy): where the feed URLs live is not said
+
+Invariant 1 forbids "search query or feed URL outside Drive". The fetcher needs the URLs, and the design says only that
+"each feed has a fixed short id **in the code** (`gn-nifty`, not its URL)". If the URLs sit in the code or in
+`config.yaml`, which are committed, invariant 1 is broken by construction, and the master test would not see it: the
+test scans outputs, not the source tree.
+
+The id `gn-nifty` also names the query's topic in the public code. The design itself says a query "would show the
+owner's research intent".
+
+Fix:
+- The feed list (id → URL) lives in private storage: a Drive file read at run time, or a GitHub secret. Its absence is a
+  named configuration error.
+- Feed ids are neutral (`gn-01`), or the owner accepts topic-named ids in writing.
+- A test scans the committed tree (`fno/`, `config.yaml`, workflows) for a `news.google.com/rss/search` URL.
+
+### New gap R2-2 (blocking, an article hidden): the Google News fallback key can collide, and the collision hides the second article
+
+The fallback key, used when there is no `guid`, is the normalised **title + source name + publication date**. Two
+distinct articles from one outlet on one day with the same normalised title get one key. Examples: two "Sensex today
+LIVE" or "Stock market highlights" items, or a morning and an evening edition.
+
+Under N5 the second becomes a *revision* of the first. Revisions are kept, so the bytes are not lost. But clustering
+reads the article Record, so the second article is never clustered or counted. In effect it is hidden, against the
+spirit of invariants 2 and 4. Invariant 2's "two distinct articles never share a key" is false for this fallback.
+
+Fix:
+- Use the full publication time to the second, plus a hash of the summary if there is one, in the fallback key.
+- State the residual case honestly: a collision is kept as a revision, and the reconciliation line counts it as
+  `revision`.
+- P2a measures on real data how often a Google News item lacks a `guid`, and the owner sees that rate.
+- Clustering must also read revisions whose title differs, or the doc must say clearly that it does not.
+- Add a test: two distinct same-title items, one minute apart, give two keys.
+
+### Carried to the P2a code (not design-blocking)
+
+**R2-3.** The master test must run with Python logging captured at DEBUG. A library can log a URL on its own: urllib3's
+retry warnings name the request path, query included. Today there is no `HTTPAdapter` or `Retry` in `fno/`, so the fetch
+code must not add one that logs, and the test must prove it.
+
+**Verdict at ca6a8c5: FAIL (design).** R2-1 and R2-2 are small text fixes with one test each. This was the decisive round
+(two-round rule), so the call goes to the owner. My recommendation to the owner: accept the design once R2-1 and R2-2 are
+written in. Everything else is sound.
