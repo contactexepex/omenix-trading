@@ -44,7 +44,7 @@ class ArticleViewer:
     def view(self, article: Article, resolution: Resolution | None = None, read: ReadFile | None = None) -> ArticleView:
         url = resolution.url if resolution else article.canonical_url
         parts = urlsplit(url) if url else None
-        host = plain_host(parts.hostname) if parts else plain_host(article.source_domain)
+        host = plain_host(parts.hostname) if parts else ""  # the domain a feed CLAIMS is never a host (NP0 s.3)
         provider, authors = (read.provider, read.authors) if read else ("", ())
         tag = self.tagger.tag(article.title, article.summary, article.source)
         tier = self.rules.tier_of(host)

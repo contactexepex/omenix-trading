@@ -1333,8 +1333,8 @@
    "tests/ingestion/news/pages/test_fetcher.py::test_other_errors_do_not_stop_the_host"
   ],
   "file": "fno/ingestion/news/pages/fetcher.py",
-  "old": "                    self.stopped.add(host)",
-  "new": "                    pass"
+  "old": "                if response.status_code in STOP_STATUSES:\n                    self.stopped.add(host)",
+  "new": "                if response.status_code in STOP_STATUSES:\n                    pass"
  },
  {
   "id": "H8",
@@ -1871,5 +1871,14 @@
   "file": "fno/ingestion/news/tagging/dictionary.py",
   "old": "for p in _candidates(parts)]",
   "new": "for p in parts if p]"
+ },
+ {
+  "id": "U13",
+  "tests": [
+   "tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file"
+  ],
+  "file": "fno/ingestion/news/view.py",
+  "old": "if parts else \"\"  # the domain",
+  "new": "if parts else plain_host(article.source_domain)  # the domain"
  }
 ]

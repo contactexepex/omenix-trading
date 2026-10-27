@@ -332,6 +332,7 @@ Which of the owner's companies an article is about, computed when the article is
 | U10 | A headline is cut to the text cap before a term looks at it. | `MaterialTerms.weight` | `tests/ingestion/news/materiality/test_terms_and_file.py::test_a_term_beyond_the_text_cap_is_not_seen` | uncapped | **tested, plant run** |
 | U11 | A Google News article takes its URL only from the resolution file, never from the feed. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file`<br>`tests/ingestion/news/test_view.py::test_the_feed_text_a_label_or_a_page_can_never_set_the_url` | wrapper link used as URL | **tested, plant run** |
 | U12 | An unlisted host is unlisted. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_an_unlisted_host_is_unlisted_and_a_non_news_path_of_a_desk_outlet_is_opinion` | unlisted shown as listed | **tested, plant run** |
+| U13 | With no URL an article has no host: the domain a feed claims never makes it listed, a tier-1 outlet or an agency copy. | `ArticleViewer.view` | `tests/ingestion/news/test_view.py::test_a_google_news_article_takes_its_url_only_from_the_resolution_file` | claimed domain used as the host | **tested, plant run** |
 
 ## Not guaranteed (said plainly)
 

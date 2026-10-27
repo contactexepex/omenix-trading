@@ -8,6 +8,7 @@ from fno.ingestion.news.materiality.terms import parse_terms
 from fno.ingestion.news.reads.read_file import ReadFile
 from fno.ingestion.news.resolve.resolution_file import Resolution
 from fno.ingestion.news.sources.loader import build_source_rules
+from fno.ingestion.news.sources.model import UNLISTED
 from fno.ingestion.news.tagging.dictionary import NameDictionary
 from fno.ingestion.news.tagging.tagger import HIGH, Tagger
 from fno.ingestion.news.view import ArticleViewer
@@ -52,9 +53,13 @@ def test_a_publisher_article_takes_its_url_tier_and_tags_from_what_the_record_ho
 def test_a_google_news_article_takes_its_url_only_from_the_resolution_file():
     wrapper = article(kind="wrapper", source_domain="pub.example", wrapper_link="https://wrap.svc.example/rss/a?oc=5")
     unresolved = VIEWER.view(wrapper)
+    assert (unresolved.url, unresolved.host, unresolved.tier, unresolved.listed) == ("", "", UNLISTED, False)
+    claiming_a_wire = VIEWER.view(
+        article(kind="wrapper", source_domain="wire-a.example", wrapper_link="https://w.example/a")
+    )
     assert (
-        unresolved.url == "" and unresolved.host == "pub.example" and unresolved.tier == "tier1"
-    )  # only the claimed host
+        claiming_a_wire.wire == "" and claiming_a_wire.tier == UNLISTED
+    )  # judge 94 B1: a claimed domain proves nothing
     resolved = VIEWER.view(wrapper, resolution("https://pub.example/news/story"))
     assert resolved.url == "https://pub.example/news/story" and resolved.host == "pub.example"
     assert "wrap.svc" not in repr(resolved)

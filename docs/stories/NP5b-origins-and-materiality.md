@@ -28,3 +28,8 @@ written, no Record change, no workflow, no dependency.** Everything is computed 
   missed. Reasoning only; measured in NP3c if it matters.
 - Title attribution is a heuristic: `Rates hold - Agency` is called a copy even if the outlet wrote it itself and credits the
   agency as a source. For a dashboard flag this is acceptable; it never changes a recorded byte.
+
+## Judge 94 round 1 (judge #1)
+- B1 accepted, reproduced: an unresolved wrapper whose feed claims a tier-1 agency domain was listed, tier 1 and an agency copy,
+  against NP0 section 3. The host is now empty with no URL (U13); the first test had pinned the bug.
+- Merge artifact accepted: my branch carried the old H7 plant; main's entry is taken.
