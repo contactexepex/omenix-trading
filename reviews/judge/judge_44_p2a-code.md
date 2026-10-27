@@ -163,3 +163,55 @@ value stored only in Drive.
   in `news-fetch.yml`). The owner's choice is still pending.
 
 **Verdict at 9f794fe: FAIL.** F1, F2 and F3 remain, plus the salt item. The orchestrator rules on round counting.
+
+## Addendum 2: round 2 (decisive), f5a656b: PASS
+
+Reviewed `f5a656ba9e26d3037796f7aa9ddf2172df08413f` (`story/P2a-news-fetch-r3`). That is the whole delta from 9f794fe:
+- the `fno/ingestion/news/` changes in b0a8549, f7b87b1, 70ae53e and 7541d3b;
+- e22b1bf and f5a656b, which change tests only.
+
+`git diff f0f20e3 f5a656b -- fno/shared` is still empty.
+
+**Gates:**
+- Suite: 637 passed, 5 runs out of 5, no flake.
+- ruff and imports (414 files): clean.
+- Size: 3 passed.
+
+**Round-1 items, each closed (strong evidence: code read and a plant per item):**
+
+| Item | How it is closed | Plant |
+|---|---|---|
+| F1 | `NewsSession` pins `urllib3` at WARNING, and `test_real_session.py` runs the real session on a local server. | Removing the pin is caught. |
+| F2 | The story now says the list is "read directly from Drive with no receipt", and integrity comes from the hash logged at first use. | n/a (text) |
+| F3 | `NEWS_PACER = NsePacer()` is never attached to the committed log or alerts. An unknown host still gets 1.0 s spacing and the NSE breaker, so it is as strict as NSE. | Using the shared pacer is caught by the real-pacer host test. |
+| Salt | `salt` is required, at least 16 characters, and is in the private file only. | Not requiring it is caught. |
+| Version per run | `note_feed_list` writes a version row before the first request, so a run with no new bytes still records the version. | Removing it is caught (4 tests). |
+| Catch-all | The command prints the class name only, never a traceback. | Narrowing the catch-all is caught. |
+
+Judge #2's S1, S2 and S3 are in the same commits.
+
+**The thread tests for the merged resilience layer** (`test_groww_and_close_read_behaviour.py`,
+`test_pacer_and_public_behaviour.py`, `test_rate_limit.py`): the edit is sound, and it weakens no behaviour coverage.
+
+- **(1) Faithful.** On a frozen clock each caller reserves `max(now, last + spacing)` and sleeps the difference. N callers
+  must therefore ask for N−1 distinct waits of 0.05, 0.10, and so on: the first goes free and none share a slot. That is
+  the same property the old test approximated with wall-clock gaps, now without scheduler jitter.
+- **(2) It still bites:**
+
+  | Plant | Result |
+  |---|---|
+  | `RateLimit` lock removed | caught (the `slow_decide` test) |
+  | `RateLimit` sleep removed | caught (3) |
+  | Spacing ignored | caught (3) |
+  | The `NsePacer` per-host creation race | caught by the frozen-clock `NsePacer` test |
+
+  The race plant has the lock off plus a 20 ms gap, which gives two limiters for one host.
+- **(3) No retroactive weakening.** Only the timing source changed, and each assertion is stricter: exact waits instead
+  of a gap of at least 0.04 s or 0.03 s. One honest limit: without `slow_decide`, the two characterization tests do not
+  force a lock race on their own. The old wall-clock versions only caught it by chance too, and the shared-library test
+  forces it deterministically, so nothing is lost.
+
+**Verdict: PASS (strong evidence: gates, the delta read, 13 plants all caught).** Two non-blocking notes carry over
+from Addendum 1:
+- a new malformed version stops the run, by ruling;
+- the salt's randomness is the owner's to keep, because the code checks only its length.
