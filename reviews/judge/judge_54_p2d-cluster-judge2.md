@@ -47,3 +47,25 @@ machinery all holds under 22 plants. One gap is in the commit script and one in 
    now (floored to the hour) with a fixed code, and add a test.
 
 **Verdict: FAIL** (round 1). Both fixes are a line or two plus a test.
+
+## Addendum 1: 5aa0af3 (judge #1's items folded; my F1 and F2 not yet; FAIL)
+
+SHA `5aa0af341c2d8273828d20792c5d6a83223ecc5b`, which replaces `e1febbd`. **Gates** (`__pycache__` cleared): 839
+passed; ruff and imports clean. The change touches `run.py`, `article_source.py` and `writer.py` only; `ops/` and
+`news/cli.py` are unchanged.
+
+| New item | Plant | Failed |
+|---|---|---|
+| `clusters.csv` checked appendable before the Drive put | the check removed | 1 |
+| Not-whole rows in either manifest reported, nothing written | ignored | 1 |
+| Judge #1's R1: an earlier file listed but unreadable (`None`) | treated as no previous file | 1 |
+| Carried: the writer's own refusal / write when not reconciled | removed | 1 / 5 |
+
+All of these hold. The rest of the first report carries over: the code it covers is unchanged.
+
+**Still open, crossed in flight. My findings were sent after this SHA was frozen:**
+- **F1:** `ops/commit_news_record.sh` is unchanged, so a failed `git pull` still exits 0 (green, nothing pushed).
+- **F2:** `--as-of` still accepts a future moment.
+
+**Verdict: FAIL** on `5aa0af3`, on F1 and F2. A SHA that adds those two fixes and their tests gets a quick
+re-verify from me.
