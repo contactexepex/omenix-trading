@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 from datetime import date, datetime, timedelta
 
+from fno.ingestion.storage.manifest_commit import exit_for_commit
 from fno.shared.models import IST, today_local
 
 STORED = "REVISION {day} {path}: NSE's newer version kept as {revision_path} ({size} bytes, available from {at})"
@@ -50,11 +51,13 @@ def cmd_data_revisions(args) -> int:
 
 
 def _sweep(source_type, start: date | None, end: date) -> int:
+    from fno.ingestion.composition import build_alert_sender
     from fno.ingestion.storage import wiring
     from fno.ingestion.storage.coverage import archive_range, days_between
     from fno.ingestion.storage.revision_source import sweep_revisions
 
     archive, recorder = wiring.build_revision_archive(), wiring.build_manifest_recorder()
+    what = f"data-revisions sweep {source_type.dataset}"
     calendar = wiring.build_session_calendar()
     days = [d for d in days_between(*archive_range(source_type, start, end)) if calendar.is_session(d)]
     try:
@@ -67,8 +70,10 @@ def _sweep(source_type, start: date | None, end: date) -> int:
         lines.append(SUMMARY.format(**summary))
         print("\n".join(lines))
     finally:
-        print(recorder.commit(f"data-revisions sweep {source_type.dataset}"))
-    return 1 if archive.stored or result.unanswered or result.stopped else 0
+        committed = recorder.commit(what)
+        print(committed)
+    code = 1 if archive.stored or result.unanswered or result.stopped else 0
+    return exit_for_commit([committed], code, lambda text: print(build_alert_sender().send(text)), what)
 
 
 def revision_lines(archive) -> list[str]:
