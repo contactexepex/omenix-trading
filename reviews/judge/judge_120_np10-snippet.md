@@ -47,3 +47,25 @@ In a venv installed from `requirements.lock`:
 No orders, no Groww, no secret. No new request, and page text never reaches git or a log.
 
 ## Verdict: FAIL round 1 at cfb87c6. B1 required: a linear sentence split (lookbehind plus possessive), with a test and a plant.
+
+## Addendum 1: round 2 at 3793258: PASS
+
+3793258 is cfb87c6 plus the B1 fix, plus `main` merged in (DEL1 and NP9). I reviewed `git diff cfb87c6 3793258 -- reads/snippet.py`. The only code change is that `_STOP` becomes `(?<![.!?।])[.!?।]++(?=\s+\S)`, my measured fix; the docstring now says "linear (a run of stops is matched once)".
+
+**Gates (locked venv, strong evidence).**
+- 2005 passed. The count fell from 2030 because the merged DEL1 removed tests.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 269 of 269 `ok`.**
+
+**B1 fixed (strong evidence, timed at 3793258).**
+
+| Body | Time |
+|---|---|
+| `"." * 20000` | 0.0006 s |
+| `"?!" * 10000` | 0.0007 s |
+| `"x" + dots + "x"` | 0.0006 s |
+| `"a. " * 6666` | 0.0073 s |
+
+Row A8 and its plant (every start position tried again) are caught by the runner. The test bound is 0.5 s.
+
+**Verdict: PASS round 2 at 3793258.**
