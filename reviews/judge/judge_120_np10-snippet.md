@@ -69,3 +69,34 @@ No orders, no Groww, no secret. No new request, and page text never reaches git 
 Row A8 and its plant (every start position tried again) are caught by the runner. The test bound is 0.5 s.
 
 **Verdict: PASS round 2 at 3793258.**
+
+## Addendum 2: the merge candidate d64710e: PASS (this supersedes Addendum 1's SHA)
+
+d64710e is 3793258, my round-2 PASS, plus two changes from judge 119 and a merge of `main`. I reviewed `git diff 3793258 d64710e -- reads/snippet.py`:
+- **B1, A9.** `clean` now unescapes entities **before** it strips tags, so an entity-encoded tag is removed.
+- **C1, A10.** `_TAGS` becomes `</?[A-Za-z!][^<>]*>`, so only a real tag or comment is stripped and "EPS < 5 and > 3" stays text.
+
+I also ran 886feb8, the in-between head: 2006 passed and the runner was 270 of 270 `ok`.
+
+**Gates at d64710e (locked venv, strong evidence).**
+- 2007 passed.
+- ruff check is clean; check_imports is clean.
+- **Plant runner: 271 of 271 `ok`.**
+
+**Behaviour checked by running it.**
+- Input: `'EPS < Rs 5 and margin > 10% now. He said &lt;b&gt;hi&lt;/b&gt; &lt;script&gt;x&lt;/script&gt; ok. <!-- c --> Done.'`
+- Output: `'EPS < Rs 5 and margin > 10% now. He said hi x ok. Done.'`
+- So comparisons survive, and encoded tags and comments go. The text between encoded script tags stays as plain text, which is harmless: nothing here renders it.
+
+**Still linear.**
+
+| Body | Time |
+|---|---|
+| `"." * 20000` | 0.0006 s |
+| `"<a" * 10000` | 0.001 s |
+| `"<" * 20000` | 0.0011 s |
+| `"&lt;a" * 4000` | 0.0016 s |
+
+`[^<>]*` stops at the next `<`, so the tag pattern cannot go quadratic.
+
+**Verdict: PASS at d64710e.**
