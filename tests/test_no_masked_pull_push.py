@@ -14,7 +14,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PAIR = re.compile(r"git pull\b[^\n]*&&[^\n]*git push\b")
-SWALLOWED = re.compile(r"git push\b[^\n]*(\|\|\s*(true|:)(?!\w)|;\s*(exit 0|true)(?!\w))")  # a failure turned into success
+# a failed push turned into success
+SWALLOWED = re.compile(r"git push\b[^\n]*(\|\|\s*(true|:)(?!\w)|;\s*(exit 0|true)(?!\w))")
 
 
 def blocks() -> list[tuple[str, str]]:
