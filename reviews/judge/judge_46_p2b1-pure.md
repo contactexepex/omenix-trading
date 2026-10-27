@@ -170,3 +170,44 @@ parsing), so this is acceptable as it stands. If a later change adds its own `Va
 can raise.
 
 **Verdict at 3707faf: FAIL** for E1 and E2 (Addendum 1). The narrow-catch check passes.
+
+## Addendum 3: bounded re-verify (authorised past round 2), be857dc: PASS
+
+Reviewed `be857dcc02efb5e398e3e2ba375a41026c5f60c3` (`story/P2b1-pure-r3`), which is 3707faf plus 62b33f9, 40e19b5 and
+be857dc. The branch tip `ff08a7a` adds one test-only commit (edge pins) on top.
+
+**Gates:** 712 passed, 2 runs out of 2. ruff, imports and size are clean.
+
+**The order, checked in the code: convert first, then check the year.** `_read` calls `astimezone(UTC)` inside its
+`try`; `parse_time` checks `found[0].year` afterwards. So the `OverflowError` clause *is* load-bearing, and its
+docstring says so, naming `00010101T000000+0500`. Removing the clause is caught by 4 tests. The note matches the code.
+
+**Each scoped item (strong evidence: experiment):**
+
+| Item | Result |
+|---|---|
+| E1 | `00010101T000000+0500` and `99991231T235959-0500` give `seen`; in `read_poll` the item is kept (`seen`, nothing rejected). |
+| E2 | `.1234Z`, the comma form `,1234Z`, `.5000+05:30` and basic `20261026T1234Z` all keep their real time (`published`). The article file holds `2026-10-26T10:00:00+00:00`: real to the second, which is the file's stated precision. The written-year scan runs in `_rfc822` only. |
+| Compact implausible year | `18500101T000000+0500` gives `seen`. |
+| Not an age check | 2015 keeps its time in RFC 3339 and RFC 822 form. 1989 and 2101 give `seen`; 1990 and 2100 are kept; `Mon, 01 Jan 0001` and an 1850 RFC 822 date give `seen`. Items are always kept. |
+| Narrow catch at the source | `canonical_url` raises `UnreadableLink` `from None`, and `read_poll` catches only that. A `ValueError` from our own build propagates: I checked it directly, and a test pins it. |
+
+**Plants, all caught:**
+
+| Plant | Result |
+|---|---|
+| Overflow clause removed | caught |
+| Parsed-year check removed | caught |
+| RFC 822 scan removed | caught |
+| Scan applied to every path | caught (this is what brings E2 back) |
+| `except Exception` | caught |
+| URL in the exception | caught |
+| Item catch removed | caught |
+| Wrapper title removed (K2) | caught |
+
+The hostile-item privacy test is green.
+
+A note, not a finding: the band is applied after UTC conversion. So `1990-01-01T00:00+05:00` (which is 1989 in UTC)
+gives `seen`. That edge is a few hours wide and harmless.
+
+**Verdict: PASS (strong evidence).** P2b1 is clear to merge at be857dc. The tip ff08a7a adds tests only.
