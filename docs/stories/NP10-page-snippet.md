@@ -1,7 +1,9 @@
 # NP10: a bounded snippet of the page (E1 flipped to YES), plan
 
-Owner (28 Oct 2026, relayed by the orchestrator): wants "enriched, segregated summary" per article after all; "never the whole news,
-just a small summary". Lane 1 (it changes read-file Record content and keeps more text). Plan first: orchestrator + ONE judge; then
+Owner decision E1 = YES (28 Oct 2026, relayed by the orchestrator; logged verbatim in `conversations/2026-10-28.md`: "For point
+number three, per article snippet, yes, please do that. We need that extract, because that will help us to have more enriched and
+segregated summary and data." and "switch to yes on the article snippet."). "Small", not the whole body, is this plan's own bound
+(the earlier principle of a title, a link and a short summary is in the 25 Oct log). Lane 1 (it changes read-file Record content and keeps more text). Plan first: orchestrator + ONE judge; then
 code, two judges, full plant runner. Today: `reads/read_file.py` says "no key sentences" (E1 default), `NP4b` repeats it.
 
 ## What changes
