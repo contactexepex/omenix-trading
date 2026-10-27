@@ -101,4 +101,4 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 88 | NP4a page fetcher (code, judge #1) | 1 | PASS (round 1, 3f56dbc) | `judge_88_np4a-page-fetcher.md` |
 | 89 | NP4b page reads, code (judge #2) | 2 | PASS (98ad64a, 346e78c; FAIL 337f0ea) | `judge_89_np4b-page-reads-judge2.md` |
 | 90 | NP5 tagger and origins plan, plan doc (judge #2) | 2 | PASS (36623b1; FAIL 4a322e9) | `judge_90_np5-plan-judge2.md` |
-| 91 | NP4b page reads (code, judge #1) | 1 | FAIL (round 1, 337f0ea); PASS (346e78c) | `judge_91_np4b-page-reads.md` |
+| 91 | NP4b page reads (code, judge #1) | 1 | FAIL (round 1, 337f0ea); PASS (346e78c, 98ad64a) | `judge_91_np4b-page-reads.md` |
