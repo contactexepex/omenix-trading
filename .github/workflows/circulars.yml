@@ -5,12 +5,12 @@
 # Secrets: the Drive and Slack ones the other jobs use; none is printed.
 name: circulars
 
-# PAUSED on 27 Oct 2026 (owner): the schedule below is commented out while the receipts of `data/circulars/list` are rebuilt
-# from Drive. Without them every run stops at once ("no receipts under it", nothing captured) and alerts. Re-enable by
-# restoring the schedule block after the rebuilt receipts are merged and one manual run (workflow_dispatch) has gone green.
-#   schedule:
-#     - cron: "30 2-16 * * *" # hourly, 08:00-22:00 IST, every day: NSE issued circulars on 13 non-session days of 2026
+# Re-enabled on 27 Oct 2026 (owner: rebuild the receipts from Drive). It was paused 27 Oct while the receipts of
+# `data/circulars/list` were missing (every run stopped at once with "no receipts under it"); they were rebuilt from Drive
+# (rebuild-receipts, 131 files) and one manual run went green and captured.
 on:
+  schedule:
+    - cron: "30 2-16 * * *" # hourly, 08:00-22:00 IST, every day: NSE issued circulars on 13 non-session days of 2026
   workflow_dispatch:
     inputs:
       dry_run:

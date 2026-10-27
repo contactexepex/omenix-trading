@@ -15,7 +15,7 @@ schedule: it is the manual stage-then-promote tool (`python -m fno stage` / `pro
 
 | Workflow | Main commands | Schedule (UTC cron, IST in the file's comment) |
 |---|---|---|
-| `circulars.yml` | NSE circulars | hourly 08:00-22:00 IST; **PAUSED since 27 Oct 2026** (manual only) until its receipts are rebuilt from Drive; NSE is asked about 14 days back, so one green run must happen by about 9 Nov or the oldest circulars of the gap are lost |
+| `circulars.yml` | NSE circulars | hourly 08:00-22:00 IST (paused 27 Oct 2026 for a few hours while its receipts were rebuilt from Drive; back on); NSE is asked about 14 days back, so one green run must happen by about 9 Nov or the oldest circulars of the gap are lost |
 | `data-checks.yml` | the data checks and `data-cache sync` | 09:41 IST |
 | `filings-archive.yml` | `filings probe`, `archive`, `day-lists` | every 6 hours |
 | `flow-history.yml` | `data-librarian` participant-volume and fii-stats, `data-revisions sweep` | 21:30 and 07:15 IST |

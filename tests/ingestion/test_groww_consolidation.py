@@ -273,7 +273,7 @@ def test_an_index_recorder_paces_at_2_5_a_second_and_its_3_workers_share_that_on
     quoted = []
     provider = types.SimpleNamespace(quote_book=lambda chain, strike, kind: quoted.append(strike))
     recorder.provider = provider
-    fetcher = recorder._fetcher(date(2026, 10, 27))
+    fetcher = recorder._fetcher(date(2099, 1, 1))  # a future day: the stop time is never passed, whatever the clock
     assert fetcher.workers == 3 and fetcher.pacer is recorder.pacer
     fetcher.fetch(None, [(float(n), "CE") for n in range(11)])
     assert len(quoted) == 11 and recorder.pacer._limit._last == pytest.approx(10 * 0.4)  # 11 starts, 0.4 s apart
