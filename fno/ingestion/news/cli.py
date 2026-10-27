@@ -5,6 +5,7 @@ used, is alerted to #fno-desk as the same line: no feed, URL, query or title is 
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.feeds import FeedListError
@@ -30,6 +31,9 @@ def add_news_parser(subparsers) -> None:
     promote.set_defaults(func=cmd_news_promote)
     check = actions.add_parser(
         "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
+    )
+    check.add_argument(
+        "folder", nargs="?", type=Path, default=None, help="the manifest folder (default: the repository's)"
     )
     check.set_defaults(func=cmd_news_check_manifest)
 
@@ -71,12 +75,23 @@ def cmd_news_promote(args, out=print) -> int:
     return 0 if ok else 1
 
 
+GUARD_ALERT = (
+    "Omenix F&O news promote: the news manifest is {code}; it was NOT committed. Re-run the same --from..--to range "
+    "to repair the missing rows (a later run heals only the days its range covers)"
+)
+
+
 def cmd_news_check_manifest(args, out=print) -> int:
     """The promote workflow commits the manifest only when this says it is whole, so a promote killed mid-write can
-    never publish a torn line. Judged on the file, not on promote's exit code: a rejection still commits good rows."""
+    never publish a torn line. It judges the file, not promote's exit code: a rejection still commits good rows. A
+    broken manifest is loud: exit 1 and an alert."""
+    from fno.ingestion.composition import build_alert_sender
     from fno.ingestion.news.record.manifest import NewsManifest
     from fno.ingestion.news.wiring import POLL_LOG_FOLDER
 
-    whole = NewsManifest(POLL_LOG_FOLDER).well_formed()
-    out("news manifest: whole" if whole else f"news manifest: {codes.MANIFEST_BROKEN}")
-    return 0 if whole else 1
+    if NewsManifest(args.folder or POLL_LOG_FOLDER).well_formed():
+        out("news manifest: whole")
+        return 0
+    out(f"news manifest: {codes.MANIFEST_BROKEN}")
+    out(build_alert_sender().send(GUARD_ALERT.format(code=codes.MANIFEST_BROKEN)))
+    return 1

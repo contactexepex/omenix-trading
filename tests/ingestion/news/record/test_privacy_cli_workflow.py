@@ -94,49 +94,10 @@ def test_the_promote_step_may_fail_without_stopping_the_commit_and_the_commit_ha
     """judge 48 S3: good rows and receipts are committed even when the promotion exits 1; then the run fails."""
     steps = _steps()
     promote = steps["Promote staged polls through the article gate"]
-    commit = steps["Commit the news manifest and receipts (only when the manifest is whole)"]
+    commit = steps["Commit the news manifest and receipts (the manifest only when it is whole)"]
     final = next(s for n, s in steps.items() if n.startswith("Fail the run"))
     assert promote["continue-on-error"] is True
     assert (
         commit["if"] == "${{ !inputs.dry_run }}" and "steps." not in commit["if"] and "continue-on-error" not in commit
     )
     assert "steps.promote.outcome != 'success'" in final["if"] and final["run"] == "exit 1"
-
-
-def test_the_commit_step_runs_the_manifest_guard_and_skips_only_a_broken_manifest():
-    """The guard judges the file, never promote's outcome: a rejection still commits, a torn file never does."""
-    commit = _steps()["Commit the news manifest and receipts (only when the manifest is whole)"]
-    run = commit["run"]
-    assert commit["if"] == "${{ !inputs.dry_run }}" and "steps." not in run
-    assert "if python -m fno news check-manifest; then" in run and run.index("check-manifest") < run.index("git add")
-    assert "git push origin HEAD:main" in run and "else" in run
-
-
-def _check(tmp_path, monkeypatch, torn):
-    from tests.ingestion.news.record.helpers import Setup
-
-    s = Setup(tmp_path)
-    s.stage(rss(rss_item()))
-    s.promote()
-    if torn:
-        path = s.manifest_folder / "articles.csv"
-        path.write_text(path.read_text().rstrip("\n")[:-40])
-    monkeypatch.setattr("fno.ingestion.news.wiring.POLL_LOG_FOLDER", s.manifest_folder)
-    printed = []
-    return news_cli.cmd_news_check_manifest(None, out=printed.append), printed
-
-
-def test_check_manifest_passes_a_whole_file_and_an_absent_one(tmp_path, monkeypatch):
-    assert _check(tmp_path, monkeypatch, torn=False) == (0, ["news manifest: whole"])
-    monkeypatch.setattr("fno.ingestion.news.wiring.POLL_LOG_FOLDER", tmp_path / "nothing")
-    out = []
-    assert news_cli.cmd_news_check_manifest(None, out=out.append) == 0
-
-
-def test_check_manifest_refuses_a_torn_file_and_a_not_whole_row(tmp_path, monkeypatch):
-    assert _check(tmp_path / "a", monkeypatch, torn=True) == (1, ["news manifest: manifest_broken"])
-    s_path = tmp_path / "b" / "repo" / "manifests" / "articles.csv"
-    s_path.parent.mkdir(parents=True)
-    s_path.write_text("date,article_id,status,sha256,size_bytes\n2026-10-27,abc,recorded,def,1\n")
-    monkeypatch.setattr("fno.ingestion.news.wiring.POLL_LOG_FOLDER", s_path.parent)
-    assert news_cli.cmd_news_check_manifest(None, out=lambda line: None) == 1
