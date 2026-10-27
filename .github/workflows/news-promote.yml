@@ -34,7 +34,7 @@ jobs:
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       MANIFEST: research/data/manifests/news/articles.csv
-      EXTRA_MANIFESTS: research/data/manifests/news/wrappers.csv # the index of Google News articles (NP2d)
+      EXTRA_MANIFESTS: research/data/manifests/news/wrappers.csv research/data/manifests/news/provenance.csv # the Google News index (NP2d) and the provenance files (NP11)
       RECEIPTS: receipts/raw/news receipts/_batches
       COMMIT_MESSAGE: "P2b2 Actions: news record"
       FROM_DATE: ${{ inputs.from_date }}

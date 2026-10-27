@@ -65,7 +65,9 @@ def test_the_wired_gate_writes_only_the_record_areas_and_reads_only_staging_conf
     world.writes.clear()
     report = wiring.build_news_promotion().promote(DAY, DAY)
     assert report.ok and report.outcomes["recorded"] == 1 and report.outcomes["revisions"] == 1
-    assert world.writes and all(p.startswith(("raw/news/articles/", "raw/news/revisions/")) for p in world.writes)
+    assert world.writes and all(
+        p.startswith(("raw/news/articles/", "raw/news/revisions/", "raw/news/provenance/")) for p in world.writes
+    )
     assert all(p.startswith(("staging/news/", "config/feeds/", "raw/news/")) for p in world.reads)
     assert any(p.startswith("staging/news/") for p in world.reads)
     again = wiring.build_news_promotion().promote(DAY, DAY)  # a new process reads the Record back: all no-ops

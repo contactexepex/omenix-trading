@@ -20,6 +20,7 @@ from collections.abc import Callable, Iterable
 
 from fno.ingestion.news.feeds import PrivateFeedLists
 from fno.ingestion.news.fetcher import SOURCE as NEWS_TAG
+from fno.ingestion.news.provenance.index import ProvenanceIndex
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner
 from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
@@ -80,7 +81,11 @@ def proofs(
         rules[NSE_TAG] = NseCopyProof(record, ArchiveFingerprints(manifests), ArchiveRevisionHolds(archive))
     if NEWS_TAG in wanted:
         rules[NEWS_TAG] = NewsPollProof(
-            kinds(), ArticlePlanner(record), NewsManifest(POLL_LOG_FOLDER), NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE)
+            kinds(),
+            ArticlePlanner(record),
+            NewsManifest(POLL_LOG_FOLDER),
+            NewsManifest(POLL_LOG_FOLDER, WRAPPERS_FILE),
+            ProvenanceIndex(record),
         )
     return rules
 

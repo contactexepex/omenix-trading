@@ -12,6 +12,7 @@ from fno.ingestion.news import codes
 from fno.ingestion.news.article.parse_feed import PollRejected
 from fno.ingestion.news.article.read_poll import read_poll
 from fno.ingestion.news.fetcher import SOURCE
+from fno.ingestion.news.provenance.writer import ProvenanceCollector, ProvenanceWriter
 from fno.ingestion.news.record.planner import Outcome
 from fno.ingestion.news.record.report import NO_OPS, RECORDED, REVISIONS, PromotionReport
 from fno.ingestion.news.record.writer import ArticleWriter
@@ -26,13 +27,24 @@ def days_between(start: date, end: date) -> list[date]:
 
 
 class NewsGate:
-    def __init__(self, staging: StagingArea, writer: ArticleWriter, kinds: Mapping[str, str]):
-        """`kinds`: feed id -> item kind, from the private feed list. Staging is read only."""
+    def __init__(
+        self,
+        staging: StagingArea,
+        writer: ArticleWriter,
+        kinds: Mapping[str, str],
+        provenance: ProvenanceWriter | None = None,
+        scopes: Mapping[str, str] | None = None,
+    ):
+        """`kinds`: feed id -> item kind, from the private feed list. Staging is read only. `provenance`: when given,
+        the writer of which feed found which article (NP11); `scopes`: feed id -> broad/targeted (absent = unknown)."""
         self.staging, self.writer, self.kinds = staging, writer, kinds
+        self.provenance, self.seen = provenance, ProvenanceCollector(dict(scopes or {}))
 
     def promote(self, start: date, end: date) -> PromotionReport:
         report = PromotionReport()
         self.writer.check_appendable()  # a torn manifest stops the run before any write (TableFileBroken)
+        if self.provenance:
+            self.provenance.check_ready()
         skipped = self.writer.manifest.skipped + (self.writer.wrappers.skipped if self.writer.wrappers else 0)
         if skipped:
             report.reject(codes.MANIFEST_ROW_SKIPPED, skipped)
@@ -45,7 +57,9 @@ class NewsGate:
         for feed in sorted(self.kinds):
             for day in days:
                 for poll in self._polls(feed, day):
-                    self._poll(poll, self.kinds[feed], report)
+                    self._poll(poll, feed, report)
+        if self.provenance:
+            self.provenance.flush(self.seen.days, report)
         return report
 
     def _polls(self, feed: str, day: date) -> list[StagedCopy]:
@@ -54,12 +68,15 @@ class NewsGate:
     def _staged_in(self, feed: str, days: list[date]) -> bool:
         return any(self._polls(feed, day) for day in days)
 
-    def _poll(self, poll: StagedCopy, kind: str, report: PromotionReport) -> None:
+    def _poll(self, poll: StagedCopy, feed: str, report: PromotionReport) -> None:
         try:
-            reading = read_poll(poll.data, kind, poll.fetched_at)
+            reading = read_poll(poll.data, self.kinds[feed], poll.fetched_at)
         except PollRejected as refused:
             report.reject(str(refused))
+            if self.provenance:
+                report.reject(codes.PROVENANCE_POLL_SKIPPED)
             return
+        self.seen.add(feed, poll.fetched_at, [article.key for article in reading.articles])
         outcomes, failed = Counter(), 0
         for article in reading.articles:
             try:

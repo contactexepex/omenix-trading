@@ -79,3 +79,17 @@ recall buckets are exact · P12 cleanup keeps a poll whose pairs are not in the 
 1. Hand-listed feeds without a scope are `unknown` (not required). 2. The report window is 14 days, a CLI parameter. 3. Day-file size
 grows with articles x feeds: unmeasured, fine at expected volume. 4. The owner must add a feed-list version with `scope` labels for
 hand-listed feeds before the first real run if they want them in `broad`/`targeted` rather than `unknown`.
+
+## As built (differences from the plan, said plainly)
+
+- **Scope labels (corrects item 9):** `plan-feeds` labels the discovery file's publisher feeds and its broad queries `broad` and each
+  company's own query `targeted` (not "every `q-` id targeted": broad queries are `q-` ids too). Row B10. Hand-listed feeds stay
+  `unknown` until the owner adds a feed-list version with labels.
+- **Counts:** the promote report counts `provenance_poll_skipped` (a poll that could not be read at write time), `provenance_unreadable`
+  (a damaged file of the day), `provenance_conflict`, `provenance_failed`. The cleanup side has no separate counter: a poll whose pairs
+  are not recorded is simply not "promoted", so it shows in the existing `unproven` count and stays staged. A feed removed from the list
+  keeps its staged polls for good and is already counted by `feed_unknown` (judge 114 note 1).
+- **Scope is baked in when a file is written** (judge 114 note 2): a label added later does not relabel old files. The recall line shows
+  `with_unknown_feed` so the owner sees how much of a number rests on unlabelled feeds.
+- Rows are B1-B16 (`B` is the free prefix); the planned P-numbers map as: P1 B1, P2 B2/B3, P3 B4, P4 B5, P5 B6/B6b, P6 B7, P7 B9/B9b,
+  P8 B10, P9 B15, P10/P11 B13-B15, P12 B11, P13 B8/B8b, P14 B12.

@@ -8,6 +8,7 @@ from datetime import timedelta
 import pytest
 
 from fno.ingestion.news.fetcher import SOURCE
+from fno.ingestion.news.provenance.index import ProvenanceIndex
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner
 from fno.ingestion.news.record.wrapper_index import WRAPPERS_FILE
@@ -28,6 +29,7 @@ def proof_for(setup: Setup, kinds=None) -> NewsPollProof:
         ArticlePlanner(AreaStore(setup.drive, "raw")),
         manifest,
         NewsManifest(setup.manifest_folder, WRAPPERS_FILE),
+        ProvenanceIndex(AreaStore(setup.drive, "raw")),
     )
 
 
@@ -41,7 +43,7 @@ def cleanup(setup: Setup, trash, proof=None) -> StagingCleanup:
 
 
 def test_a_poll_whose_articles_are_all_in_the_record_with_manifest_rows_is_promoted_and_trashed(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item(), rss_item(title="Second story", link="https://example.com/second")))
     assert s.promote().ok
     trash = Trash()
@@ -50,7 +52,7 @@ def test_a_poll_whose_articles_are_all_in_the_record_with_manifest_rows_is_promo
 
 
 def test_a_poll_that_was_never_promoted_is_kept(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     trash = Trash()
     report = cleanup(s, trash).run([SOURCE])
@@ -58,7 +60,7 @@ def test_a_poll_that_was_never_promoted_is_kept(tmp_path):
 
 
 def test_one_missing_article_keeps_the_whole_poll(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     s.stage(
@@ -73,7 +75,7 @@ def test_one_missing_article_keeps_the_whole_poll(tmp_path):
 
 
 def test_a_poll_with_a_rejected_item_is_kept_even_if_the_rest_is_recorded(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item(), "<item><description>no title and no link</description></item>"))
     s.promote()
     trash = Trash()
@@ -82,7 +84,7 @@ def test_a_poll_with_a_rejected_item_is_kept_even_if_the_rest_is_recorded(tmp_pa
 
 
 def test_a_poll_of_a_feed_that_is_not_in_the_feed_list_is_kept(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     trash = Trash()
@@ -91,7 +93,7 @@ def test_a_poll_of_a_feed_that_is_not_in_the_feed_list_is_kept(tmp_path):
 
 
 def test_an_article_in_the_record_with_no_manifest_row_keeps_the_poll(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     (s.manifest_folder / "articles.csv").write_text("")  # the manifest of the checkout lost its rows
@@ -101,7 +103,7 @@ def test_an_article_in_the_record_with_no_manifest_row_keeps_the_poll(tmp_path):
 
 
 def test_a_changed_version_counts_as_held_only_through_its_revision_file(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item(title="Story v1")))
     s.stage(rss(rss_item(title="Story v2")), at=POLL_AT + timedelta(hours=1))
     s.promote()  # the second poll is a REVISION of the same key
@@ -111,7 +113,7 @@ def test_a_changed_version_counts_as_held_only_through_its_revision_file(tmp_pat
 
 
 def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
 
@@ -124,6 +126,7 @@ def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
         ArticlePlanner(Down(s.drive, "raw")),
         NewsManifest(s.manifest_folder),
         NewsManifest(s.manifest_folder, WRAPPERS_FILE),
+        ProvenanceIndex(AreaStore(s.drive, "raw")),
     )
     trash = Trash()
     report = cleanup(s, trash, proof).run([SOURCE])
@@ -131,7 +134,7 @@ def test_a_record_that_cannot_be_read_keeps_the_poll(tmp_path):
 
 
 def test_a_poll_younger_than_seven_days_is_kept_even_when_promoted(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     trash = Trash()
@@ -141,7 +144,7 @@ def test_a_poll_younger_than_seven_days_is_kept_even_when_promoted(tmp_path):
 
 @pytest.mark.parametrize("path", ["feed-01/2026/10/27", "feed-01/2026/10/27/other"])
 def test_only_a_poll_folder_is_ever_judged(tmp_path, path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     s.staging.stage(SOURCE, path, rss(rss_item()), POLL_AT)  # genuine feed bytes, all held, but not in a poll folder
@@ -162,7 +165,7 @@ def test_an_unknown_feed_is_refused_before_the_poll_is_even_parsed(tmp_path, mon
         return real(*args, **kwargs)
 
     monkeypatch.setattr(news_proof, "read_poll", recording)
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     trash = Trash()
@@ -171,7 +174,7 @@ def test_an_unknown_feed_is_refused_before_the_poll_is_even_parsed(tmp_path, mon
 
 
 def test_a_poll_that_is_refused_as_having_no_items_is_kept(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss())  # read_poll refuses a feed with no items (no_items)
     trash = Trash()
     report = cleanup(s, trash).run([SOURCE])
@@ -185,7 +188,7 @@ def test_a_poll_read_as_whole_but_with_no_articles_is_kept_not_trashed_by_an_emp
 
     # read_poll itself refuses an empty feed today; this pins the proof's own guard so all([]) can never trash a poll
     monkeypatch.setattr(news_proof, "read_poll", lambda *a, **k: SimpleNamespace(rejected=[], articles=[]))
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     trash = Trash()
     report = cleanup(s, trash).run([SOURCE])
@@ -199,7 +202,7 @@ def test_a_wrapper_poll_is_kept_while_its_index_row_is_missing_and_trashed_once_
     from fno.ingestion.news.article.keys import WRAPPER
     from tests.ingestion.news.article.samples import rss, rss_item
 
-    s = Setup(tmp_path, kinds={FEED: WRAPPER})
+    s = Setup(tmp_path, kinds={FEED: WRAPPER}, provenance=True)
     link = "https://wrap.svc.example/rss/articles/CBMi0001?oc=5"
     s.stage(rss(rss_item(title="Zzwrap", link=link, guid="g-1", source="Outlet")))
     s.promote()
@@ -211,7 +214,37 @@ def test_a_wrapper_poll_is_kept_while_its_index_row_is_missing_and_trashed_once_
 
 
 def test_a_publisher_poll_needs_no_index_row(tmp_path):
-    s = Setup(tmp_path)
+    s = Setup(tmp_path, provenance=True)
     s.stage(rss(rss_item()))
     s.promote()
     assert not (s.manifest_folder / WRAPPERS_FILE).exists() and proof_for(s).promoted(staged(s)) is True
+
+
+# ---- NP11: a poll is protected until the feeds that found its articles are recorded ---------------------------------
+
+
+def test_a_promoted_poll_is_kept_until_its_feed_is_recorded_for_its_day_and_trashed_once_it_is(tmp_path):
+    s = Setup(tmp_path)  # promotion without a provenance writer: the articles are in the Record, the feeds are not
+    s.stage(rss(rss_item()))
+    assert s.promote().ok
+    assert proof_for(s).promoted(staged(s)) is False
+    trash = Trash()
+    assert cleanup(s, trash).run([SOURCE]).counts["unproven"] == 1 and trash.calls == []
+    s2 = Setup(tmp_path, provenance=True)  # the next run knows the feeds and writes them
+    assert s2.promote().ok
+    assert proof_for(s2).promoted(staged(s2)) is True
+
+
+def test_a_poll_is_kept_when_only_another_feed_is_recorded_for_its_article(tmp_path):
+    from fno.ingestion.news.article.keys import PUBLISHER
+
+    s = Setup(tmp_path, kinds={FEED: PUBLISHER, "feed-02": PUBLISHER}, provenance=True)
+    s.stage(rss(rss_item()))
+    s.promote()
+    s.stage(rss(rss_item()), feed="feed-02")  # the same article, found by a feed the provenance files do not know yet
+    path = f"feed-02/{POLL_AT:%Y/%m/%d}/poll"
+    copy = s.staging.read(SOURCE, path, s.staging.stamps(SOURCE, path)[0][1])
+    assert proof_for(s).promoted(copy) is False
+    s.build()
+    s.promote()
+    assert proof_for(s).promoted(copy) is True

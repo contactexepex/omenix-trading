@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fno.ingestion.news.article.keys import PUBLISHER
 from fno.ingestion.news.fetcher import SOURCE
+from fno.ingestion.news.provenance.index import ProvenanceIndex
+from fno.ingestion.news.provenance.model import PROVENANCE_FILE, provenance_id
+from fno.ingestion.news.provenance.writer import ProvenanceWriter
 from fno.ingestion.news.record.gate import NewsGate
 from fno.ingestion.news.record.manifest import NewsManifest
 from fno.ingestion.news.record.wrapper_index import WrapperIndex
 from fno.ingestion.news.record.writer import ArticleWriter
+from fno.ingestion.news.write_once import WriteOnceWriter
 from fno.ingestion.promotion.staging import StagingArea
 from fno.ingestion.storage.data_store import DataStore
 from fno.ingestion.storage.raw_store import AreaStore, LocalFolderStore
@@ -20,12 +24,13 @@ FEED = "feed-01"
 
 
 class Setup:
-    def __init__(self, tmp_path, kinds=None):
+    def __init__(self, tmp_path, kinds=None, provenance=False):
         self.drive = LocalFolderStore(tmp_path / "drive")
         self.receipts = ReceiptFolder(tmp_path / "repo" / "receipts")
         self.manifest_folder = tmp_path / "repo" / "manifests"
         self.staging = StagingArea(AreaStore(self.drive, "staging"))
         self.kinds = kinds if kinds is not None else {FEED: PUBLISHER}
+        self.with_provenance = provenance
         self.build()
 
     def build(self) -> None:
@@ -34,7 +39,18 @@ class Setup:
         self.manifest = NewsManifest(self.manifest_folder)
         self.wrappers = WrapperIndex(self.manifest_folder)
         self.writer = ArticleWriter(AreaStore(self.drive, "raw"), store, self.manifest, self.wrappers)
-        self.gate = NewsGate(self.staging, self.writer, self.kinds)
+        record = AreaStore(self.drive, "raw")
+        provenance = (
+            ProvenanceWriter(
+                ProvenanceIndex(record),
+                WriteOnceWriter(record, store, NewsManifest(self.manifest_folder, PROVENANCE_FILE), provenance_id),
+                "s" * 16,
+                today=lambda: date(2026, 11, 30),
+            )
+            if self.with_provenance
+            else None
+        )
+        self.gate = NewsGate(self.staging, self.writer, self.kinds, provenance)
 
     def stage(self, data: bytes, feed: str = FEED, at: datetime = POLL_AT) -> None:
         self.staging.stage(SOURCE, f"{feed}/{at:%Y/%m/%d}/poll", data, at)

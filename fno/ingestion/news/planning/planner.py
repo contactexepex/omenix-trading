@@ -21,6 +21,7 @@ from fno.ingestion.news.companies.model import CompanyList
 from fno.ingestion.news.feeds import FeedListError, parse_feed_list
 from fno.ingestion.news.planning.discovery import NAME_SLOT, DiscoveryPlan
 from fno.ingestion.news.planning.query_id import normalise_query, planned_feed_id
+from fno.ingestion.news.provenance.model import BROAD, TARGETED
 
 
 class FeedPlanError(Exception):
@@ -74,13 +75,13 @@ def plan_feeds(
     """`previous_ids`: the ids of the newest existing list. `kinds_ever`: every id ever listed -> its kind."""
     kinds_ever = kinds_ever or {}
     broad, targeted = _queries(companies, discovery)
-    entries = [{"id": i, "url": u, "kind": PUBLISHER} for i, u in discovery.publisher_feeds]
+    entries = [{"id": i, "url": u, "kind": PUBLISHER, "scope": BROAD} for i, u in discovery.publisher_feeds]
     by_id: dict[str, str] = {}
-    for query in (*broad, *targeted):
+    for query, scope in [*((q, BROAD) for q in broad), *((q, TARGETED) for q in targeted)]:
         feed_id = planned_feed_id(salt, WRAPPER, query)
         if by_id.setdefault(feed_id, normalise_query(query)) != normalise_query(query):
             raise FeedPlanError(codes.FEED_PLAN_COLLISION)
-        entries.append({"id": feed_id, "url": _search_url(discovery, query), "kind": WRAPPER})
+        entries.append({"id": feed_id, "url": _search_url(discovery, query), "kind": WRAPPER, "scope": scope})
     for entry in entries:
         if kinds_ever.get(entry["id"], entry["kind"]) != entry["kind"]:
             raise FeedPlanError(codes.FEED_PLAN_KIND_CONFLICT)

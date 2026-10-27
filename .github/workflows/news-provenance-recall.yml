@@ -1,0 +1,50 @@
+# Story NP11: of the recent tagged articles, how many the broad feeds found alone, the targeted queries alone, or both
+# (docs/stories/NP11-feed-provenance.md). Manual only (workflow_dispatch): NO schedule. READ ONLY: it reads the Record and
+# the private company list from the Drive and writes nothing to the Drive, commits nothing (contents: read) and sends no alert.
+# The log holds counts only (no feed id, key, company or symbol). Research data only; never places orders.
+name: news-provenance-recall
+
+on:
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "Window end, ISO with a zone (default: now, floored to the hour)."
+        type: string
+        required: false
+      days:
+        description: "How many days back to count."
+        type: string
+        default: "14"
+      dry_run:
+        description: "Validate runner + deps + CLI load; no Drive."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  recall:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      AS_OF: ${{ inputs.as_of }}
+      DAYS: ${{ inputs.days }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: "pip install --require-hashes --only-binary=:all: -r requirements.lock"
+      - name: DRY-RUN validation (no Drive; prove the CLI loads)
+        if: ${{ inputs.dry_run }}
+        run: python -m fno news provenance-recall --help
+      - name: Count the tagged articles by the kind of feed that found them (counts only)
+        if: ${{ !inputs.dry_run }}
+        run: python -m fno news provenance-recall --days "${DAYS:-14}" ${AS_OF:+--as-of "$AS_OF"}

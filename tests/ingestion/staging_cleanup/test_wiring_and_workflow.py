@@ -54,7 +54,7 @@ def test_the_news_proof_is_built_with_the_wrapper_index_so_the_cleanup_consults_
 
 def test_the_news_proof_cannot_be_built_without_an_index():
     with pytest.raises(TypeError):
-        NewsPollProof(KINDS, None, None)  # the index is required: a missing one must not turn the check off
+        NewsPollProof(KINDS, None, None, None)  # the index is required: a missing one must not turn the check off
 
 
 def test_the_proof_reads_the_record_area_and_the_staging_area_is_a_different_one(monkeypatch, tmp_path):

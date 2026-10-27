@@ -12,7 +12,10 @@ left staged on purpose, which are re-read on every run):
 - NONE of its items was rejected (a rejected item stays staged with its code), and it has at least one article;
 - EVERY article is already held by the Record exactly as the writer would treat it (a NO_OP in the writer's own rule,
   `ArticlePlanner`, in the article file or the revision file of that version) AND has its manifest row, and a Google
-  News article with a redirect link also has its row in the wrapper index (NP2d).
+  News article with a redirect link also has its row in the wrapper index (NP2d);
+- EVERY (article, feed) pair of the poll is held by the provenance files of the poll's IST day (NP11): otherwise the
+  poll stays staged (it is re-read on every run, so a later promotion writes what is missing) and which feed found an
+  article is never lost silently. An explicit gate, not a timing assumption.
 A refused poll answers False. Any other error (Drive down, a collision, a bug) is NOT swallowed here: it propagates and
 `StagingCleanup` keeps the copy, counts it as `proof_error` and turns the run red."""
 
@@ -24,6 +27,8 @@ from collections.abc import Mapping
 from fno.ingestion.news.article.article_file import Article
 from fno.ingestion.news.article.parse_feed import PollRejected
 from fno.ingestion.news.article.read_poll import read_poll
+from fno.ingestion.news.provenance.index import ProvenanceIndex
+from fno.ingestion.news.provenance.model import day_of
 from fno.ingestion.news.record.manifest import RECORDED, NewsManifest
 from fno.ingestion.news.record.planner import ArticlePlanner, Outcome
 from fno.ingestion.news.record.wrapper_index import is_resolvable
@@ -40,12 +45,15 @@ class NewsPollProof(PromotedProof):
         planner: ArticlePlanner,
         manifest: NewsManifest,
         wrappers: NewsManifest,
+        provenance: ProvenanceIndex,
     ):
         """`kinds`: feed id -> kind; `planner`: the Record, read only; `manifest`: the checkout's articles manifest;
         `wrappers`: the wrapper index (NP2d), REQUIRED so the check can never be silently off: a Google News article
         with a link must also have its row there, so a
-        poll is never trashed while its resolve marker is missing (judge 86)."""
+        poll is never trashed while its resolve marker is missing (judge 86); `provenance` (NP11), REQUIRED for the same
+        reason: a poll is never trashed while the feeds that found its articles are not recorded."""
         self.kinds, self.planner, self.manifest, self.wrappers = kinds, planner, manifest, wrappers
+        self.provenance = provenance
 
     def promoted(self, copy: StagedCopy) -> bool:
         parts = copy.path.split("/")
@@ -56,9 +64,15 @@ class NewsPollProof(PromotedProof):
             reading = read_poll(copy.data, kind, copy.fetched_at)
             if reading.rejected or not reading.articles:
                 return False
-            return all(self._held(article) for article in reading.articles)
+            return all(self._held(article) for article in reading.articles) and self._recorded_feeds(
+                parts[0], copy, reading.articles
+            )
         except PollRejected:  # the one expected refusal: the gate left such a poll staged
             return False
+
+    def _recorded_feeds(self, feed: str, copy: StagedCopy, articles: list[Article]) -> bool:
+        day = day_of(copy.fetched_at)
+        return all(feed in self.provenance.feeds_of(day, article.key) for article in articles)
 
     def _held(self, article: Article) -> bool:
         plan = self.planner.plan(article)

@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 from fno.ingestion.news import codes
 from fno.ingestion.news.article.keys import KINDS
+from fno.ingestion.news.provenance.model import LABELLED, UNKNOWN
 from fno.ingestion.news.versioned import ErrorCodes, VersionedFiles
 from fno.ingestion.storage.raw_store import RawFileStore
 
@@ -35,6 +36,7 @@ class FeedEntry:
     kind: str = (
         "publisher"  # "wrapper" for a feed whose links are redirect wrappers (Google News): set in the private file
     )
+    scope: str = ""  # NP11: "broad" or "targeted" (a per-company query); "" = not labelled, reported as unknown
 
     @property
     def host(self) -> str:
@@ -54,7 +56,9 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
     try:
         document = json.loads(data)
         salt, entries = document["salt"], document["feeds"]
-        feeds = tuple(FeedEntry(item["id"], item["url"], item.get("kind", "publisher")) for item in entries)
+        feeds = tuple(
+            FeedEntry(item["id"], item["url"], item.get("kind", "publisher"), item.get("scope", "")) for item in entries
+        )
     except (UnicodeDecodeError, ValueError, KeyError, TypeError):
         raise FeedListError(codes.FEED_LIST_INVALID) from None
     ids = [feed.feed_id for feed in feeds]
@@ -72,6 +76,7 @@ def parse_feed_list(data: bytes, version: int) -> FeedList:
         and all(FEED_ID.match(i) for i in ids)
         and hosts_ok
         and all(f.kind in KINDS for f in feeds)
+        and all(f.scope in ("", *LABELLED) for f in feeds)
         and all(isinstance(f.url, str) and f.url.startswith("https://") for f in feeds)
     )
     if not valid:
@@ -94,6 +99,19 @@ class PrivateFeedLists:
         picked = self.files.latest(lowest_version, used)
         found = parse_feed_list(picked.data, picked.version)
         return FeedList(found.version, found.feeds, found.sha256, picked.damaged, found.salt)
+
+    def scopes_ever_listed(self) -> dict[str, str]:
+        """Feed id -> scope over every valid version, a newer one overriding an older one, so a retired feed keeps the
+        label it had. A feed no version labels is `unknown` (NP11): never guessed from its id."""
+        scopes: dict[str, str] = {}
+        for version, data in self.files.every_version():
+            try:
+                listed = parse_feed_list(data, version) if data is not None else None
+            except FeedListError:
+                continue
+            for feed in listed.feeds if listed else ():
+                scopes[feed.feed_id] = feed.scope or UNKNOWN
+        return scopes
 
     def kinds_ever_listed(self) -> dict[str, str]:
         """Feed id -> kind over every valid version, so a feed retired from the newest list still has its kind and its

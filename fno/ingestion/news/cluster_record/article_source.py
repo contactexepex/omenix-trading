@@ -34,8 +34,9 @@ class ArticleSource:
         """Rows of the articles manifest that are not whole: each may hide an article, so a run reports them."""
         return self.manifest.skipped
 
-    def candidates(self, as_of: datetime) -> Candidates:
-        net = (as_of - WINDOW - MARGIN).date()
+    def candidates(self, as_of: datetime, lookback: timedelta | None = None) -> Candidates:
+        """`lookback`: how far back to read (default: the clustering window plus its margin)."""
+        net = (as_of - (lookback or WINDOW + MARGIN)).date()
         found, unreadable = [], 0
         for key in self.manifest.recorded_since(net):
             try:

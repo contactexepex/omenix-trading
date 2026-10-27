@@ -342,10 +342,11 @@ def test_a_torn_wrapper_index_never_reaches_main_the_good_articles_manifest_does
     assert not (repo.work / INDEX).exists()
 
 
-def test_the_promote_workflow_names_the_index_as_an_extra_manifest():
+def test_the_promote_workflow_names_the_index_and_the_provenance_manifest_as_extra_manifests():
     flow = yaml.safe_load((ROOT / ".github/workflows/news-promote.yml").read_text())
     (job,) = flow["jobs"].values()
-    assert job["env"]["EXTRA_MANIFESTS"].split("#")[0].strip() == INDEX
+    assert job["env"]["EXTRA_MANIFESTS"].split("#")[0].split() == [INDEX, f"{MANIFEST_DIR}/provenance.csv"]
+    assert "receipts/raw/news" in job["env"]["RECEIPTS"].split()  # covers receipts/raw/news/provenance
 
 
 def test_a_manifest_that_does_not_exist_yet_does_not_stop_the_step_before_it_commits_and_pushes(tmp_path):

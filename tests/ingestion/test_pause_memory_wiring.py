@@ -21,6 +21,7 @@ NOT_PACED = {
     "news-promote.yml",
     "news-cluster.yml",
     "news-compare-clusterings.yml",
+    "news-provenance-recall.yml",
     "news-resolve.yml",
     "news-probe-outlets.yml",
     "news-read-pages.yml",

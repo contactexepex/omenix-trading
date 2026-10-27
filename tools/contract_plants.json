@@ -1035,7 +1035,7 @@
   "tests": [
    "tests/ingestion/news/record/test_commit_guard.py::test_a_whole_wrapper_index_is_committed_with_the_articles_manifest",
    "tests/ingestion/news/record/test_commit_guard.py::test_a_torn_wrapper_index_never_reaches_main_the_good_articles_manifest_does_and_the_run_is_red",
-   "tests/ingestion/news/record/test_commit_guard.py::test_the_promote_workflow_names_the_index_as_an_extra_manifest"
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_promote_workflow_names_the_index_and_the_provenance_manifest_as_extra_manifests"
   ],
   "file": "ops/commit_news_record.sh",
   "old": "for manifest in $MANIFEST ${EXTRA_MANIFESTS:-}; do",
@@ -2403,5 +2403,188 @@
   "file": "fno/ingestion/news/reads/order.py",
   "old": "self.tagger.tag(article.title, None, article.source)",
   "new": "self.tagger.tag(article.title, None)"
+ },
+ {
+  "id": "B1",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_an_article_holds_no_feed_so_a_later_poll_by_another_feed_is_never_a_revision"
+  ],
+  "file": "fno/ingestion/news/article/article_file.py",
+  "old": "wrapper_link: str = \"\"  # a Google News item's redirect link, kept so it can be resolved later (NP2c)",
+  "new": "wrapper_link: str = \"\"\n    feed: str = \"\""
+ },
+ {
+  "id": "B2",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_pairs_are_written_sorted_whatever_order_they_come_in"
+  ],
+  "file": "fno/ingestion/news/provenance/file.py",
+  "old": "sorted([feed, scope] for feed, scope in pairs[key])",
+  "new": "list([feed, scope] for feed, scope in pairs[key])"
+ },
+ {
+  "id": "B3",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_the_bytes_are_sorted_sealed_and_the_same_on_every_run",
+   "tests/ingestion/news/provenance/test_provenance.py::test_without_the_seal_the_file_could_be_rebuilt_from_public_values_and_with_it_it_cannot"
+  ],
+  "file": "fno/ingestion/news/provenance/file.py",
+  "old": "\"seal\": seal_of(salt, path_of(day, number)),",
+  "new": "\"seal\": \"\","
+ },
+ {
+  "id": "B4",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_closed_days_file_lists_every_feed_that_found_an_article_with_its_scope"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "self.days[day_of(moment)][key].add(pair)",
+  "new": "self.days[day_of(moment)][key] = {pair}"
+ },
+ {
+  "id": "B5",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_the_open_day_is_not_written"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "for day in sorted(d for d in collected if d < self.today()):",
+  "new": "for day in sorted(collected):"
+ },
+ {
+  "id": "B6",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_late_poll_goes_to_a_numbered_supplement_and_the_day_file_is_never_rewritten"
+  ],
+  "file": "fno/ingestion/news/provenance/index.py",
+  "old": "self._numbers[day] = (numbers[-1] + 1) if numbers else 0",
+  "new": "self._numbers[day] = 0"
+ },
+ {
+  "id": "B6b",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_late_poll_goes_to_a_numbered_supplement_and_the_day_file_is_never_rewritten"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "wanted = {key: frozenset(pairs - held.get(key, frozenset())) for key, pairs in seen.items()}",
+  "new": "wanted = {key: frozenset(pairs) for key, pairs in seen.items()}"
+ },
+ {
+  "id": "B7",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_the_manifest_and_the_receipts_name_no_feed_no_key_and_no_pair"
+  ],
+  "file": "fno/ingestion/news/provenance/model.py",
+  "old": "PROVENANCE_FILE = \"provenance.csv\"",
+  "new": "PROVENANCE_FILE = \"articles.csv\""
+ },
+ {
+  "id": "B8",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_poll_that_cannot_be_read_is_counted_and_a_damaged_day_is_left_alone"
+  ],
+  "file": "fno/ingestion/news/record/gate.py",
+  "old": "report.reject(codes.PROVENANCE_POLL_SKIPPED)",
+  "new": "pass"
+ },
+ {
+  "id": "B8b",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_poll_that_cannot_be_read_is_counted_and_a_damaged_day_is_left_alone"
+  ],
+  "file": "fno/ingestion/news/provenance/writer.py",
+  "old": "except ProvenanceUnreadable:",
+  "new": "except ZeroDivisionError:"
+ },
+ {
+  "id": "B9",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_scope_is_broad_targeted_or_absent_and_an_old_list_without_one_still_parses"
+  ],
+  "file": "fno/ingestion/news/feeds.py",
+  "old": "and all(f.scope in (\"\", *LABELLED) for f in feeds)",
+  "new": "and True"
+ },
+ {
+  "id": "B9b",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_a_feed_with_no_label_is_unknown_never_guessed_from_its_id_and_a_newer_list_relabels"
+  ],
+  "file": "fno/ingestion/news/feeds.py",
+  "old": "scopes[feed.feed_id] = feed.scope or UNKNOWN",
+  "new": "scopes[feed.feed_id] = feed.scope or (\"targeted\" if feed.feed_id.startswith(\"q-\") else UNKNOWN)"
+ },
+ {
+  "id": "B10",
+  "tests": [
+   "tests/ingestion/news/provenance/test_provenance.py::test_the_feed_plan_labels_publisher_feeds_and_broad_queries_broad_and_company_queries_targeted"
+  ],
+  "file": "fno/ingestion/news/planning/planner.py",
+  "old": "\"kind\": WRAPPER, \"scope\": scope}",
+  "new": "\"kind\": WRAPPER, \"scope\": TARGETED}"
+ },
+ {
+  "id": "B11",
+  "tests": [
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_promoted_poll_is_kept_until_its_feed_is_recorded_for_its_day_and_trashed_once_it_is",
+   "tests/ingestion/staging_cleanup/test_news_proof.py::test_a_poll_is_kept_when_only_another_feed_is_recorded_for_its_article"
+  ],
+  "file": "fno/ingestion/staging_cleanup/news_proof.py",
+  "old": "feed in self.provenance.feeds_of(day, article.key)",
+  "new": "True"
+ },
+ {
+  "id": "B12",
+  "tests": [
+   "tests/ingestion/news/record/test_commit_guard.py::test_the_promote_workflow_names_the_index_and_the_provenance_manifest_as_extra_manifests"
+  ],
+  "file": ".github/workflows/news-promote.yml",
+  "old": " research/data/manifests/news/provenance.csv #",
+  "new": " #"
+ },
+ {
+  "id": "B13",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_each_tagged_article_is_in_exactly_one_bucket_and_untagged_ones_are_not_counted",
+   "tests/ingestion/news/provenance/test_recall.py::test_the_bucket_of_a_set_of_feeds_follows_their_scopes_only"
+  ],
+  "file": "fno/ingestion/news/provenance/recall.py",
+  "old": "if BROAD in scopes and TARGETED in scopes:",
+  "new": "if BROAD in scopes or TARGETED in scopes:"
+ },
+ {
+  "id": "B13b",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_days_before_the_window_are_not_read_and_the_window_is_a_parameter"
+  ],
+  "file": "fno/ingestion/news/provenance/recall.py",
+  "old": "for back in range(days + 3):",
+  "new": "for back in range(3):"
+ },
+ {
+  "id": "B14",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_a_damaged_provenance_file_stops_the_report_with_its_code"
+  ],
+  "file": "fno/ingestion/news/provenance/recall.py",
+  "old": "except ProvenanceUnreadable:",
+  "new": "except ZeroDivisionError:"
+ },
+ {
+  "id": "B15",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_every_word_the_command_prints_is_a_fixed_label_or_a_count"
+  ],
+  "file": "fno/ingestion/news/provenance/recall.py",
+  "old": "f\"recall: window_days {self.days}, tagged",
+  "new": "f\"recall: q-0123456789ab window_days {self.days}, tagged"
+ },
+ {
+  "id": "B16",
+  "tests": [
+   "tests/ingestion/news/provenance/test_recall.py::test_the_report_has_no_way_to_write_and_the_workflow_is_manual_read_only_and_alerts_nothing"
+  ],
+  "file": "fno/ingestion/news/provenance/wiring.py",
+  "old": "    return RecallRun(",
+  "new": "    record.put(\"x\", b\"\")\n    return RecallRun("
  }
 ]
