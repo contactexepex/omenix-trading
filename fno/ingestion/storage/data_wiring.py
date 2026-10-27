@@ -24,9 +24,9 @@ def receipt_folder() -> ReceiptFolder:
     return ReceiptFolder(REPOSITORY / RECEIPTS_FOLDER)
 
 
-def batch_receipt_writer() -> BatchReceiptWriter:
-    """Receipts packed one file per run (story R2): for the news writers."""
-    return BatchReceiptWriter(receipt_folder())
+def batch_receipt_writer(run_id: str) -> BatchReceiptWriter:
+    """Receipts packed one file per run (story R2): for the news writers, which pass the run id the store uses."""
+    return BatchReceiptWriter(receipt_folder(), run_id)
 
 
 def _owner_drive(env=os.environ) -> RawFileStore:

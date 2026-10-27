@@ -46,7 +46,9 @@ def world(tmp_path, monkeypatch):
     drive = RecordingDrive(tmp_path / "drive")
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
     monkeypatch.setattr(
-        wiring, "batch_receipt_writer", lambda: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"))
+        wiring,
+        "batch_receipt_writer",
+        lambda run_id: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"), run_id),
     )
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", tmp_path / "repo" / "manifests")
     return drive
@@ -77,7 +79,7 @@ def test_the_wired_gate_receipts_every_record_file_in_one_batch_file_for_the_run
     world.writes.clear()
     wiring.build_news_promotion().promote(DAY, DAY)
     receipts = tmp_path / "repo" / "receipts"
-    assert len(list((receipts / "_batches").glob("*.tsv"))) == 1 and not list(receipts.rglob("*.sha256"))
+    assert len(list((receipts / "_batches").rglob("*.tsv"))) == 1 and not list(receipts.rglob("*.sha256"))
     folder = ReceiptFolder(receipts)
     assert sorted(r.path for r in folder.under("raw/news")) == sorted(
         f"raw/{p.removeprefix('raw/')}" for p in world.writes

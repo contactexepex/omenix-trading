@@ -78,7 +78,9 @@ def test_the_wired_run_writes_only_the_cluster_area_and_reads_only_the_record(tm
     drive = RecordingDrive(world.drive.folder)
     monkeypatch.setattr(wiring, "build_owner_drive", lambda env=None: drive)
     monkeypatch.setattr(
-        wiring, "batch_receipt_writer", lambda: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"))
+        wiring,
+        "batch_receipt_writer",
+        lambda run_id: BatchReceiptWriter(ReceiptFolder(tmp_path / "repo" / "receipts"), run_id),
     )
     monkeypatch.setattr(wiring, "POLL_LOG_FOLDER", world.record.manifest_folder)
     report = wiring.build_news_cluster().run(AS_OF)
@@ -88,7 +90,7 @@ def test_the_wired_run_writes_only_the_cluster_area_and_reads_only_the_record(tm
     again = wiring.build_news_cluster().run(AS_OF)
     assert again.outcome == "no_op" and len(drive.writes) == 1  # a second process reads the file back
     receipts = tmp_path / "repo" / "receipts"  # the cluster file is receipted by a line of the run's batch file
-    assert len(list((receipts / "_batches").glob("*.tsv"))) == 1  # the articles of the test world have per-file ones
+    assert len(list((receipts / "_batches").rglob("*.tsv"))) == 1  # the articles of the test world have per-file ones
     assert not list((receipts / "raw" / "news" / "clusters").rglob("*.sha256"))
     assert [r.path for r in ReceiptFolder(receipts).under("raw/news/clusters")] == drive.writes
 

@@ -17,13 +17,13 @@ orchestrator): "we don't want to lose any data anymore"; receipts for news go fr
    the path). `ReceiptFolder` already has that method, so strategy A (one file per Drive file) is unchanged and stays in the tree.
    `DataStore` is typed against the Protocol instead of `ReceiptFolder`.
 2. **Strategy B, `BatchReceiptWriter(folder, run_id)`**: appends one line per Drive file to ONE file for the run,
-   `receipts/_batches/<run_id>.tsv` (run ids are unique and time-sortable, so two runs never touch one file: no merge conflicts, the
+   `receipts/_batches/<YYYY>/<MM>/<run_id>.tsv` (run ids are unique and time-sortable, so two runs never touch one file: no merge conflicts, the
    property the per-file layout was chosen for). A line has the same five fields a per-file receipt has plus the path
    (`path, sha256, size, written_at, writer, run_id`), written as ONE `O_APPEND` write of the whole line, after Drive accepted
    the file (rule W3 unchanged). The articles run and the clusters run are two workflow runs, so two batch files; each covers
    every Record file that run wrote.
 3. **The reader finds a file inside a batch**: `ReceiptFolder.read(path)` and `.under(prefix)` look at the per-file receipt first and
-   then at the batch files (an index of all `_batches/*.tsv`, built once per `ReceiptFolder` and kept current by the writer). So
+   then at the batch files (an index of all `_batches/**/*.tsv`, built once per `ReceiptFolder` and kept current by the writer). So
    `DriveCache.sync`, `receipted_rows` and the other readers verify a batch-receipted file **without any change**: "a batch that
    cannot prove an individual file is unacceptable" is met because the proof of one file is one line, found by its path.
 4. **Write-once, as today (W4)**: the same path with the same digest keeps the first line; a different digest for a path that
@@ -55,7 +55,12 @@ can; the protection against that is git history, same as before.
 ## Built (27 Oct 2026)
 `fno/ingestion/storage/batch_receipts.py` (`BatchIndex`, `BatchReceiptWriter`), `receipt.py` (the `Receipt` dataclass moved out so the two modules do not import each other; `receipts.py` still exports it), `ReceiptWriter` Protocol and the combined reader in `receipts.py`, `DataStore` typed to the Protocol, `DriveCache.sync` reports batch problems, `batch_receipt_writer()` in `data_wiring.py` used by the two news wiring roots, `receipts/_batches` added to the two news workflows' commit paths. Contract rows N6 to N8 (plants run). Existing news tests changed only where they patched the old `receipt_folder` or asserted the old `RECEIPTS` path.
 
-## Questions for the orchestrator (none is a blocker unless you disagree)
+## Fail closed (orchestrator, 27 Oct)
+A Record file with no valid receipt line is never passed silently. Verifiers that walk receipts (`DriveCache.sync`, `receipted_rows`) cannot see a file that has none, in the per-file layout either; so `DriveCache.unreceipted(prefix)` walks the Drive folder and lists every file with no receipt (per-file or batch), and `data-cache sync <prefix> --unreceipted` reports them and exits 1. It is opt-in so the existing `data/vix` check is unchanged. A torn last batch line names its file (`path: its receipt line is cut short, so the file is not proved`) and the file is listed as unreceipted too. The news writers' own reconcile-before-write on the next run also re-saves a missing line.
+
+**Where the guarantee lives (stated plainly):** tamper-evidence is the committed hash compared with the Drive file, plus git history; it is not a self-protecting receipt, in the per-file layout or the batch. A batch file edited in git can hide nothing that git history does not show.
+
+## Questions for the orchestrator (settled)
 1. One batch file per workflow run (so articles and clusters get separate files); the brief says "one receipt file per run
    covering both": they are two different workflow runs, so I read it that way. Say if you want something else.
-2. `receipts/_batches/` flat folder (not under the area), so one folder per run regardless of area. A file's area stays in each line.
+2. SHARDED by the month of the run id (`receipts/_batches/YYYY/MM/`), not flat (orchestrator's call, 27 Oct: about 17,000 batch files a year would otherwise sit in ONE folder). The month comes from the run id, which starts with its UTC date; a run id without one is refused when the writer is made, before the run writes anything to Drive.

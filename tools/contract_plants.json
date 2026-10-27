@@ -263,6 +263,17 @@
   "new": "                return existing"
  },
  {
+  "id": "N9",
+  "tests": [
+   "tests/ingestion/test_batch_receipts.py::test_a_file_whose_batch_line_was_dropped_is_listed_as_unreceipted",
+   "tests/ingestion/test_batch_receipts.py::test_a_file_whose_last_batch_line_is_torn_is_reported_as_unproved_and_as_unreceipted",
+   "tests/ingestion/test_batch_receipts.py::test_the_cache_command_lists_unreceipted_files_only_when_asked"
+  ],
+  "file": "fno/ingestion/storage/drive_cache.py",
+  "old": "        walk(prefix)\n        return sorted(found)",
+  "new": "        return sorted(found)"
+ },
+ {
   "id": "C1",
   "tests": [
    "tests/ingestion/news/cluster_record/test_write_and_run.py::test_other_bytes_for_a_closed_window_are_a_conflict_and_nothing_is_overwritten",

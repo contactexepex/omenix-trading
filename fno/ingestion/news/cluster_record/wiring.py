@@ -29,6 +29,7 @@ def build_news_cluster(env=os.environ) -> ClusterRun:
     if drive is None:
         raise RuntimeError(NEEDS_DRIVE.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
     record = AreaStore(drive, RAW_AREA)
-    store = DataStore(drive, RAW_AREA, batch_receipt_writer(), WRITER, new_run_id(now_utc()))
+    run_id = new_run_id(now_utc())
+    store = DataStore(drive, RAW_AREA, batch_receipt_writer(run_id), WRITER, run_id)
     writer = ClusterWriter(record, store, NewsManifest(POLL_LOG_FOLDER, CLUSTERS_MANIFEST))
     return ClusterRun(ArticleSource(record, NewsManifest(POLL_LOG_FOLDER)), writer, record)

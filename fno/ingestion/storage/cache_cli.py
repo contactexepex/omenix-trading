@@ -4,6 +4,8 @@ Exit 1 when a file is missing from Drive or holds other bytes (each named)."""
 
 from __future__ import annotations
 
+from fno.ingestion.storage.drive_cache import UNRECEIPTED
+
 SYNCED = "{prefix}: {present} file(s) already in the cache, {downloaded} downloaded and verified"
 
 
@@ -12,13 +14,17 @@ def add_cache_parser(subparsers) -> None:
     actions = cache.add_subparsers(dest="cache_action", required=True)
     sync = actions.add_parser("sync", help="sync every receipted file under a Drive prefix")
     sync.add_argument("prefix", help="a Drive path prefix inside the project folder, e.g. data/vix")
+    sync.add_argument("--unreceipted", action="store_true", help="also list Drive files under it with no receipt")
     sync.set_defaults(func=cmd_cache_sync)
 
 
 def cmd_cache_sync(args, out=print) -> int:
     from fno.ingestion.storage.data_wiring import build_drive_cache
 
-    report = build_drive_cache().sync(args.prefix)
+    cache = build_drive_cache()
+    report = cache.sync(args.prefix)
+    if args.unreceipted:
+        report.problems += [UNRECEIPTED.format(path=path) for path in cache.unreceipted(args.prefix)]
     out(SYNCED.format(prefix=args.prefix, present=report.present, downloaded=len(report.downloaded)))
     for problem in report.problems:
         out(problem)
