@@ -36,3 +36,15 @@ RECORD_CONFLICT = (
 NOT_RECONCILED = "not_reconciled"  # items != recorded + revisions + no-ops + rejected: an item went missing
 MANIFEST_BROKEN = "manifest_broken"  # the news manifest ends in a torn line: nothing is written until it is trimmed
 MANIFEST_ROW_SKIPPED = "manifest_row_skipped"  # rows of the news manifest that are not whole (counted, never ignored)
+# the cluster record (P2d)
+CLUSTER_NOT_RECONCILED = (
+    "cluster_not_reconciled"  # the clusters do not account for the articles read: nothing is written
+)
+CLUSTER_CONFLICT = "cluster_conflict"  # the closed window's file exists with other bytes: investigate, never overwrite
+CLUSTER_RECORD_FAILED = "cluster_record_failed"  # Drive or the manifest would not take the file (only the code is kept)
+ARTICLE_UNREADABLE = (
+    "article_unreadable"  # a recorded article's file is missing or damaged: counted, nothing is written
+)
+PREVIOUS_UNREADABLE = (
+    "previous_unreadable"  # the earlier run's cluster file is damaged: the replaced ids cannot be named
+)

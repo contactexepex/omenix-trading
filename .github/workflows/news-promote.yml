@@ -20,7 +20,7 @@ permissions:
   contents: write # commits the news manifest and the receipts of the files the gate wrote
 
 concurrency:
-  group: news-promote
+  group: news-record
   cancel-in-progress: false
 
 jobs:

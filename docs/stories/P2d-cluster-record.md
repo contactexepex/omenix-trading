@@ -75,6 +75,30 @@ P2d to the cluster file, manifest, receipt, report line, DEBUG logs and the aler
 
 Corroboration or wire-credit counting (owner decision), tuning the threshold, scheduling (the owner's go-live), the first real file.
 
+## P2d as built
+
+- **Step 1, the guard (own commit):** the commit step is now `ops/commit_news_record.sh` (env `MANIFEST`, `RECEIPTS`, `COMMIT_MESSAGE`),
+  called by `news-promote.yml` and `news-cluster.yml`. **Behaviour-preserving:** the merged P2b3 real-git tests (a whole manifest
+  commits; a torn one is discarded, not committed, red with the alert and its receipts still committed; a torn one over a good
+  committed one leaves main with the good one) run unchanged against the script, plus the same case for `clusters.csv`. The step
+  that used to be inline in the workflow is now one `bash` line. `check-manifest` takes `--file` (default `articles.csv`);
+  `NewsManifest` takes a `file_name`. Both news workflows now share one concurrency group, `news-record` (the promote one was
+  `news-promote`), so a promote and a cluster run are serial. Disclosed test edits: seventeen workflow installs; `news-cluster.yml`
+  joins `NOT_PACED` (it reaches Drive only).
+- **Code (`fno/ingestion/news/cluster_record/`):** `cluster_file` (path, deterministic bytes, parse), `article_source` (read only),
+  `writer` (the one `put`), `run` (read, cluster, reconcile, write), `reader` (design N10), `report`, `wiring`; `news cluster
+  [--as-of]` in `news/cli.py`; `news-cluster.yml` (dispatch only). Four new codes in `news/codes.py`, plus `previous_unreadable`.
+- **Candidate net:** manifest rows recorded on or after the window start minus two days, then one Drive read per key; P2c applies
+  the exact window. **Flag for the judges:** an article first seen before the net but dated in the future by its feed is missed;
+  reasoning only, rare, and widening `MARGIN` is the remedy.
+- **Order of runs:** cluster only a window whose end has passed, after the promote that covers it (shared concurrency group). The
+  default window end is the current hour floored, so every article first seen before it is already in the Record only if that promote
+  has run. A `cluster_conflict` means inputs, version or determinism changed for a closed window: investigate, never overwrite.
+- **Proof:** 27 cluster-record tests and 12 guard tests; plants fail a test for the conflict check (also with a store that overwrites),
+  file-before-row order, the missing-row repair, each reconciliation check on its own (duplicate member, made-up member, counts),
+  the version in the path, the strictly earlier previous file, a damaged previous file, an unreadable article, the candidate net,
+  the reader's window cover and its `known_at` bound, the member order, and the conflict alert text.
+
 ## Order and gates
 
 After P2c merges. Full suite, ruff, imports, numbers, size (350 per file and class), record scan, mutation plants for every line above,

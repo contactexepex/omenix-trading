@@ -4,7 +4,7 @@ used, is alerted to #fno-desk as the same line: no feed, URL, query or title is 
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from fno.ingestion.news import codes
@@ -15,7 +15,16 @@ from fno.shared.models import now_utc
 ALERT = "Omenix F&O news fetch: {line}"
 PROMOTE_STOPPED = "news promote stopped: {code}"
 PROMOTE_ALERT = "Omenix F&O news promote: {line}"
+CLUSTER_ALERT = "Omenix F&O news cluster: {line}"
+CLUSTER_STOPPED = "news cluster stopped: {code}"
 STOPPED_LINE = "news fetch stopped: {code}"
+
+
+def _utc_moment(text: str) -> datetime:
+    moment = datetime.fromisoformat(text)
+    if moment.tzinfo is None:
+        raise ValueError("the window end needs a zone, for example 2026-10-27T12:00:00+00:00")
+    return moment.astimezone(UTC)
 
 
 def add_news_parser(subparsers) -> None:
@@ -29,6 +38,10 @@ def add_news_parser(subparsers) -> None:
     promote.add_argument("--to", dest="end", type=date.fromisoformat, default=None,
                          help="YYYY-MM-DD (default: today, UTC: the day polls are staged under)")  # fmt: skip
     promote.set_defaults(func=cmd_news_promote)
+    cluster = actions.add_parser("cluster", help="recent articles into one write-once cluster file (story P2d)")
+    cluster.add_argument("--as-of", dest="as_of", type=_utc_moment, default=None,
+                         help="the window end, ISO with a zone (default: now, floored to the hour)")  # fmt: skip
+    cluster.set_defaults(func=cmd_news_cluster)
     check = actions.add_parser(
         "check-manifest", help="exit 0 only when the news manifest is whole (the workflow's commit guard)"
     )
@@ -99,3 +112,21 @@ def cmd_news_check_manifest(args, out=print) -> int:
     out(f"news manifest: {problem}")
     out(build_alert_sender().send(GUARD_ALERTS[problem]))
     return 1
+
+
+def cmd_news_cluster(args, out=print) -> int:
+    """One line of counts by fixed code; exit 0 only when the file was written or already there; else alerted."""
+    from fno.ingestion.composition import build_alert_sender
+    from fno.ingestion.news.cluster_record.wiring import build_news_cluster
+
+    as_of = args.as_of or now_utc().replace(minute=0, second=0, microsecond=0)
+    try:
+        report = build_news_cluster().run(as_of)
+        line, ok, alert = report.line(), report.ok, report.alert_text()
+    except Exception as unexpected:  # noqa: BLE001 - never a traceback in a public log; the message may carry a URL
+        line = CLUSTER_STOPPED.format(code=f"{codes.UNEXPECTED} {type(unexpected).__name__}")
+        ok, alert = False, line
+    out(line)
+    if not ok:
+        out(build_alert_sender().send(CLUSTER_ALERT.format(line=alert)))
+    return 0 if ok else 1

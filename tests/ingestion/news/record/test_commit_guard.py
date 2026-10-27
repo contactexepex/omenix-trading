@@ -203,3 +203,28 @@ def test_check_manifest_exits_1_for_a_final_row_torn_inside_the_size_field(tmp_p
     """judge 50 G1, at the command: the exit code, the printed code and the alert for `…,recorded,<64 hex>,12`."""
     code, printed, sent = _alert_for(tmp_path, monkeypatch, HEADER + WHOLE_ROW.rsplit(",", 1)[0] + ",12")
     assert (code, printed[0]) == (1, "news manifest: manifest_broken") and len(sent) == 1
+
+
+def test_the_same_script_guards_the_cluster_manifest_and_commits_its_receipts(tmp_path):
+    """P2d: news-cluster.yml calls this script too; a torn clusters.csv never reaches main, its receipts do."""
+    repo = Repo(tmp_path)
+    folder = repo.work / MANIFEST_DIR
+    NewsManifest(folder, "clusters.csv").add(date(2026, 10, 27), "a" * 64, "recorded", SHA, 10)
+    path = folder / "clusters.csv"
+    path.write_text(path.read_text().rstrip("\n")[:-30])  # a run killed mid-row
+    receipt = repo.work / "receipts/raw/news/clusters/1/x.json.sha256"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("receipt\n")
+    env = {
+        **os.environ,
+        "PATH": f"{repo.bin}:{os.environ['PATH']}",
+        "PYTHONPATH": str(ROOT),
+        "COMMIT_MESSAGE": "test: clusters",
+        "MANIFEST": f"{MANIFEST_DIR}/clusters.csv",
+        "RECEIPTS": "receipts/raw/news/clusters",
+        "FNO_SLACK_BOT_TOKEN": "",
+    }
+    done = subprocess.run(["bash", "-e", str(SCRIPT)], cwd=repo.work, env=env, capture_output=True, text=True)
+    assert done.returncode == 1 and "manifest_broken" in done.stdout
+    assert repo.on_main(f"{MANIFEST_DIR}/clusters.csv") is None
+    assert repo.on_main("receipts/raw/news/clusters/1/x.json.sha256")
