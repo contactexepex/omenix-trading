@@ -32,7 +32,7 @@ pass are NP2c) and is called by nothing yet; it is dispatch-free code plus its t
   stop on a refusal: against a service that refuses us, ten links gave ten requests and no wait, and each batch started at once. Now
   `resolve/pacing.py` holds both, in the hooks of its one HTTP client where every request and redirect hop passes: **`RequestSpacer`**
   (at least 1.5 s between any two requests, a failed one included; the library's own wait is switched off) and **`PushbackStop`**
-  (the first HTTP 429 or 503, or a redirect to the "sorry" page, stops every later request of the run; the rest of the links come back
+  (the first HTTP 429, 503 or 403, or a redirect to the "sorry" page, stops every later request of the run; the rest of the links come back
   `paused` and wait for the next run; a new resolver is a new run). Rows L8, L9, L11, L12; the tests run the REAL library on a mock
   transport that answers 503, 429, a sorry redirect and plain 404s.
 - **The hook** now also refuses an explicit port and credentials on the allowed host (row L10). The allowed domain stays the whole

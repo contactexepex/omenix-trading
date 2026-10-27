@@ -140,3 +140,13 @@ imports clean (526 files); code size passed; contract plants all ok.
   retried next run, but it hides one count.
 
 **Verdict: PASS** (`356b149`, final round).
+
+## Addendum 2: `3f2fbb1` (= `356b149` + 403 stops the run)
+
+`git diff 356b149 3f2fbb1 -- fno` changes `PUSHBACK_STATUSES` from `(429, 503)` to `(429, 503, 403)` (`pacing.py:17`)
+and updates the two docstrings. One test, row L13 and its plant are added. This takes up my Addendum 1 note on 403.
+
+**Gates** (in the locked venv): 1456 passed; ruff clean; contract plants all ok. My plant that removes 403 fails 3
+tests.
+
+**Verdict: PASS** (`3f2fbb1`).

@@ -85,6 +85,8 @@ New verdicts live here as `reviews/judge/judge_<n>_<story>.md`, numbered with
 | 72 | NP1 news source rules, code (judge #2 of 2) | 2 | PASS (d6f28e4, df3fe62; FAIL 1d1bfed) | `judge_72_np1-source-rules-judge2.md` |
 | 73 | NP2a article format 2 (code, judge #1 of 2) | 1 | FAIL (round 1, 20c8c32); PASS (round 2, a72a037) | `judge_73_np2a-article-format-2.md` |
 | 74 | NP2a article format 2, code (judge #2 of 2) | 2 | PASS (a72a037; FAIL 20c8c32) | `judge_74_np2a-article-format-2-judge2.md` |
-| 75 | NP2b link resolver, code (judge #2 of 2) | 2 | PASS (356b149; FAIL 3cc0c62) | `judge_75_np2b-link-resolver-judge2.md` |
+| 75 | NP2b link resolver, code (judge #2 of 2) | 2 | PASS (3f2fbb1, 356b149; FAIL 3cc0c62) | `judge_75_np2b-link-resolver-judge2.md` |
 | 76 | NP2b link resolver (code, judge #1 of 2) | 1 | FAIL (round 1, 3cc0c62); PASS (round 2, 356b149) | `judge_76_np2b-link-resolver.md` |
 | 77 | NP3 company list and feed plan, plan doc (judge #2) | 2 | PASS (ec3b34f; FAIL 8459517, eb05a7b) | `judge_77_np3-plan-judge2.md` |
+| 78 | NP3a company list, code (judge #2) | 2 | PASS (0ffad12, 1a1e5d6, c5aeb93; FAIL 6504962) | `judge_78_np3a-company-list-judge2.md` |
+| 79 | NP3a company list (code, judge #1) | 1 | FAIL (round 1, 6504962); PASS (round 2, 1a1e5d6; allow-list grammar) | `judge_79_np3a-company-list.md` |

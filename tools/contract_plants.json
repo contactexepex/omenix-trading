@@ -693,69 +693,6 @@
   "new": ""
  },
  {
-  "id": "Q1",
-  "tests": [
-   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
-  ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
-  "new": ""
- },
- {
-  "id": "Q2",
-  "tests": [
-   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_list_with_a_mistake_is_refused_with_one_fixed_code"
-  ],
-  "file": "fno/ingestion/news/companies/parse.py",
-  "old": "            if owner.setdefault(normalise_label(text), company.symbol) != company.symbol:\n                raise _invalid()",
-  "new": "            owner.setdefault(normalise_label(text), company.symbol)"
- },
- {
-  "id": "Q3",
-  "tests": [
-   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_version_edited_after_it_was_used_is_skipped_for_the_older_good_one"
-  ],
-  "file": "fno/ingestion/news/versioned.py",
-  "old": "            if version in used and digest != used[version]:",
-  "new": "            if False:"
- },
- {
-  "id": "Q4",
-  "tests": [
-   "tests/ingestion/news/companies/test_seed_and_cli.py::test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master"
-  ],
-  "file": "fno/ingestion/news/companies/seed.py",
-  "old": "        raw = legal.get(symbol) or n500.get(symbol) or master[symbol]",
-  "new": "        raw = master.get(symbol) or legal.get(symbol) or n500.get(symbol)"
- },
- {
-  "id": "Q5",
-  "tests": [
-   "tests/ingestion/news/companies/test_seed_and_cli.py::test_without_apply_nothing_is_written_and_the_line_is_counts_only"
-  ],
-  "file": "fno/ingestion/news/companies/wiring.py",
-  "old": "    if apply:\n        config.put(FIRST_FILE, seed.data)",
-  "new": "    if True:\n        config.put(FIRST_FILE, seed.data)"
- },
- {
-  "id": "Q6",
-  "tests": [
-   "tests/ingestion/news/companies/test_seed_and_cli.py::test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused"
-  ],
-  "file": "fno/ingestion/news/companies/wiring.py",
-  "old": "    if config.checksums(COMPANIES_FOLDER):\n        raise SeedFailed(codes.COMPANY_LIST_EXISTS)\n",
-  "new": ""
- },
- {
-  "id": "Q7",
-  "tests": [
-   "tests/ingestion/news/companies/test_seed_and_cli.py::test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form"
-  ],
-  "file": "fno/ingestion/news/companies/seed.py",
-  "old": "        if normalise_label(name) in taken:",
-  "new": "        if False:"
- },
- {
   "id": "L1",
   "tests": [
    "tests/ingestion/news/resolve/test_guard_and_accept.py::test_a_link_off_the_allowed_domain_or_not_plain_https_is_not_allowed",
@@ -869,6 +806,78 @@
   "file": "fno/ingestion/news/resolve/decoder_adapter.py",
   "old": "        if self.stop.stopped:\n            return [Resolved(PAUSED) for _ in links]",
   "new": "        if False:\n            return [Resolved(PAUSED) for _ in links]"
+ },
+ {
+  "id": "L13",
+  "tests": [
+   "tests/ingestion/news/resolve/test_pacing_and_stop.py::test_a_403_stops_the_run"
+  ],
+  "file": "fno/ingestion/news/resolve/pacing.py",
+  "old": "PUSHBACK_STATUSES = (429, 503, 403)",
+  "new": "PUSHBACK_STATUSES = (429, 503)"
+ },
+ {
+  "id": "Q1",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_an_exclusion_that_is_not_a_regex_or_could_run_for_ever_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            or not EXCLUSION_GRAMMAR.fullmatch(pattern)\n",
+  "new": ""
+ },
+ {
+  "id": "Q2",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_list_with_a_mistake_is_refused_with_one_fixed_code"
+  ],
+  "file": "fno/ingestion/news/companies/parse.py",
+  "old": "            if owner.setdefault(normalise_label(text), company.symbol) != company.symbol:\n                raise _invalid()",
+  "new": "            owner.setdefault(normalise_label(text), company.symbol)"
+ },
+ {
+  "id": "Q3",
+  "tests": [
+   "tests/ingestion/news/companies/test_parse_and_file.py::test_a_version_edited_after_it_was_used_is_skipped_for_the_older_good_one"
+  ],
+  "file": "fno/ingestion/news/versioned.py",
+  "old": "            if version in used and digest != used[version]:",
+  "new": "            if False:"
+ },
+ {
+  "id": "Q4",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_the_name_comes_from_the_equity_list_then_the_nifty_500_and_only_last_from_the_abbreviated_master"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        raw = legal.get(symbol) or n500.get(symbol) or master[symbol]",
+  "new": "        raw = master.get(symbol) or legal.get(symbol) or n500.get(symbol)"
+ },
+ {
+  "id": "Q5",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_without_apply_nothing_is_written_and_the_line_is_counts_only"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if apply:\n        config.put(FIRST_FILE, seed.data)",
+  "new": "    if True:\n        config.put(FIRST_FILE, seed.data)"
+ },
+ {
+  "id": "Q6",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_with_apply_the_first_version_is_written_and_a_second_seed_is_refused"
+  ],
+  "file": "fno/ingestion/news/companies/wiring.py",
+  "old": "    if config.checksums(COMPANIES_FOLDER):\n        raise SeedFailed(codes.COMPANY_LIST_EXISTS)\n",
+  "new": ""
+ },
+ {
+  "id": "Q7",
+  "tests": [
+   "tests/ingestion/news/companies/test_seed_and_cli.py::test_two_symbols_with_one_cleaned_name_do_not_collide_the_second_keeps_its_full_form"
+  ],
+  "file": "fno/ingestion/news/companies/seed.py",
+  "old": "        if normalise_label(name) in taken:",
+  "new": "        if False:"
  },
  {
   "id": "Q8",
