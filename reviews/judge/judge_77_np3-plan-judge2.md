@@ -90,3 +90,20 @@ a 32-bit prefix plus guessable queries reveals. Short queries such as company na
 
 **Verdict: FAIL** (round 2, `8459517`). F1 to F4 are fixed. F5 is a privacy hole that the F1 rule opens, with a
 one-line design fix. This was the second round, so per the round rule the orchestrator or the owner decides next.
+
+## Addendum 2: a targeted F5 re-check on `ec3b34f` (the document only)
+
+`git diff 8459517 ec3b34f` changes only the plan document. Section 4 now reads:
+- a planned id is `q-` plus 8 hex of an HMAC-SHA-256 keyed with the feed list's private salt, over the kind and the
+  normalised query;
+- the salt and the normaliser are frozen;
+- a second test asserts that a plain unsalted SHA-256 does not reproduce an id, and that another salt gives a
+  different one;
+- the re-plan stability test stays.
+
+This closes F5: an id committed in `polls.csv` can no longer be confirmed without the private salt.
+
+**Cross-check:** NP3a at `91ae2a4` builds no feed ids. A grep of `fno/` for `hmac` and `q-` finds nothing relevant, so
+NP3a needs no change; the ids come in NP3b.
+
+**Verdict: PASS** (`ec3b34f`).
