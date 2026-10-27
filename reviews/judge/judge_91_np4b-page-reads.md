@@ -42,3 +42,25 @@
 No order path, no secret, no Groww call. Nothing is requested until the owner dispatches, and only with `apply` is anything committed.
 
 ## Verdict: FAIL round 1 at 337f0ea. B1 required; M1 requested.
+
+## Addendum 1: superseded by 346e78c: PASS
+
+Reviewed `git diff 337f0ea 346e78c`, which also answers judge 89.
+
+**Gates (locked venv).** 1806 passed; contract plants all `ok`, H1 to H17 and Y1 to Y18.
+
+**B1 fixed (strong evidence, my reproduction re-run).**
+- The 100,000-deep JSON-LD block is now skipped (`extract` catches `ValueError` and `RecursionError` per block), and the page falls back to its meta tags (`provider='X'`).
+- `_read` also counts any other extractor failure as `extract_error` and goes on.
+- Plants: `RecursionError` not caught → 1 failed; `_read` catching only `ValueError` → 1 failed.
+
+**M1 fixed (strong evidence).**
+- `import fno.ingestion.news.cli` no longer loads selectolax.
+- I removed the selectolax I had installed for the base interpreter (my change to the environment, now undone). All 23 commit-guard tests then pass through the symlinked interpreter.
+
+**The total deadline per fetch (judge 89 F2, and my judge 88 note) holds.**
+- It covers the hops, robots.txt and the body; request timeouts are `min(limit, time left)`.
+- The body is read with `raw.read1(65536, decode_content=True)`. I checked this against a **real** local server sending a gzip bomb (48 KB compressed, 50 MB of zeros): decoded chunks were at most 65,536 bytes, reading stopped at the 4 MB cap, and peak memory was 75 MB. So the decoded-byte cap still holds with `read1`.
+- Plants: no deadline between drips → 4 failed; no deadline per hop → 1 failed.
+
+**Verdict: PASS at 346e78c.**
