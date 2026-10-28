@@ -24,6 +24,7 @@ JSWENERGY,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers '
 LAURUSLABS,results-xbrl,"NSE serves a truncated or malformed file for the 2025-09-30 standalone filing, the same twice (65258 bytes, SHA-256 8e4444ebe320fc7ed01ebb30f6098fe3e2045f179e5953ea84a445ea85dfb93c): not XML: unclosed token: line 1, column 65227"
 MCX,results-xbrl,NSE lists no results-xbrl filing made public since 2025-09-23
 MCX,shareholding-xbrl,NSE lists no shareholding-xbrl filing made public since 2025-09-23
+TIINDIA,shareholding-xbrl,NSE lists 1 filing(s) with no XBRL file (periods 2026-06-30 to 2026-06-30)
 UPL,results-xbrl,NSE's link for the 2025-09-30 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1567145_06112025062650_WEB.xml
 UPL,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1665495_11052026041028_WEB.xml
 UPL,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1694775_17072026103528_WEB.xml
