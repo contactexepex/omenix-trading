@@ -24,3 +24,4 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-30T07:28:04.567396+05:30,twse/indices/taiex-month/2026/10/30/072804_taiex-month.json,https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST,,950aa2ee8eb808755ba328bdc2e7ba588f69f2090978ac4aa15212f94b401a1f,2216
 2026-10-30T08:07:14.038797+05:30,twse/indices/taiex-month/2026/10/30/080714_taiex-month.json,https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST,,950aa2ee8eb808755ba328bdc2e7ba588f69f2090978ac4aa15212f94b401a1f,2216
 2026-10-30T20:49:14.578391+05:30,twse/indices/taiex-month/2026/10/30/204914_taiex-month.json,https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST,,950aa2ee8eb808755ba328bdc2e7ba588f69f2090978ac4aa15212f94b401a1f,2216
+2026-10-31T07:06:10.653539+05:30,twse/indices/taiex-month/2026/10/31/070610_taiex-month.json,https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST,,07c5f272c4efbc6770f4d99a5fe039bf77b2cb24bf7db1b56b49474cd54400db,2339
