@@ -194,3 +194,4 @@ date,url,status,sha256,size_bytes
 2026-07-01,https://www.nseindia.com/api/historicalOR/vixhistory?from=01-07-2026&to=31-07-2026,200,b4f9460d8a18315a9cb75309ac7658742aa4b6c7ef15339600634b87939adb5c,6550
 2026-08-01,https://www.nseindia.com/api/historicalOR/vixhistory?from=01-08-2026&to=31-08-2026,200,2c3da085ecf182d3cd7e999186bfb1f46791d53d10c2988c9ab8254d326ccfd9,5964
 2026-09-01,https://www.nseindia.com/api/historicalOR/vixhistory?from=01-09-2026&to=30-09-2026,200,f7d4fd98e0afcadd571c3822dada1eaae2e332a6038a9e4223228196a60d3804,5984
+2026-10-01,https://www.nseindia.com/api/historicalOR/vixhistory?from=01-10-2026&to=31-10-2026,200,c02159075f030aa81a5056dcfd63c4f720d0850242a481e6fe8449d0c4256620,5693
